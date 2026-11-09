@@ -29,6 +29,8 @@ export type Cue =
   | { readonly kind: 'ghost'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly text: string }
   | { readonly kind: 'sound'; readonly t0: number; readonly sound: SoundId; readonly at: Pt; readonly weapon?: WeaponFx; readonly rounds?: number; readonly interval?: number }
   | { readonly kind: 'dice'; readonly t0: number; readonly dur: number; readonly dice: readonly number[]; readonly text: string; readonly tone: Tone }
+  /** Units moving one hex (or a straight run): counters slide from `from` to `to`. */
+  | { readonly kind: 'slide'; readonly t0: number; readonly dur: number; readonly units: readonly string[]; readonly from: Pt; readonly to: Pt }
   /** Something hit (or nearly hit) a hex: the POV camera shakes if it is there. */
   | { readonly kind: 'hit'; readonly t0: number; readonly hex: HexKey; readonly severity: 'near' | 'hit' };
 
@@ -126,6 +128,19 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
   let t = 0; // running clock in seconds
   let commitAt: number | undefined;
   let firstFire = true;
+  /** Moves play one after another along each unit's path. */
+  let slideT = 0;
+  const slide = (units: readonly string[], path: readonly HexKey[]) => {
+    for (let i = 0; i + 1 < path.length; i++) {
+      const a = path[i]!;
+      const b = path[i + 1]!;
+      if (!ctx.map.hexes[a] || !ctx.map.hexes[b] || a === b) continue;
+      const dur = (opts.reducedMotion ? 0.12 : 0.26) * k;
+      cues.push({ kind: 'slide', t0: slideT, dur, units, from: hexPoint(ctx, a), to: hexPoint(ctx, b) });
+      slideT += dur;
+    }
+    t = Math.max(t, slideT);
+  };
 
   for (const e of events) {
     const fx = (e.fx ?? {}) as FireFx & { result?: string; hit?: boolean };
@@ -231,6 +246,15 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         t = t0;
         break;
       }
+      case 'move':
+      case 'advance': {
+        if (e.units?.length && e.from && e.to) slide(e.units, [e.from, e.to]);
+        break;
+      }
+      case 'rout': {
+        if (e.units?.length && e.from) slide(e.units, e.hexes?.length ? e.hexes : [e.from, e.to ?? e.from]);
+        break;
+      }
       case 'breakdown': {
         const hex = e.hexes?.[0];
         const t0 = t + 0.2 * k;
@@ -245,5 +269,7 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
   }
   if (!cues.length) return undefined;
   const duration = Math.max(...cues.map((c) => c.t0 + ('dur' in c ? c.dur : 0.3)));
-  return { cues, commitAt: commitAt ?? 0, duration };
+  // With moves, the board shows the new positions at once and the movers slide into place.
+  const moves = cues.some((c) => c.kind === 'slide');
+  return { cues, commitAt: moves ? 0 : (commitAt ?? 0), duration };
 }

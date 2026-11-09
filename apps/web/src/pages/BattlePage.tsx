@@ -141,18 +141,19 @@ function Battle() {
   useEffect(() => {
     const prev = seen.current;
     seen.current = nActions;
-    if (nActions !== prev + 1) return; // undo, load, or several at once
+    // New actions (one, or a short run such as a clicked path or a committed plan); not undo or load.
+    if (nActions <= prev || nActions - prev > 16) return;
     if (aiVsAi && speed === 'max') return;
     const st = useSession.getState();
-    const before = st.states[nActions - 1];
+    const before = st.states[prev];
     if (!before) return;
-    const tl = buildTimeline(ctx, before, st.events.filter((e) => e.action === nActions - 1), {
+    const tl = buildTimeline(ctx, before, st.events.filter((e) => e.action >= prev && e.action < nActions), {
       scale: SPEED_SCALE[fxs.speed],
       reducedMotion: fxs.reducedMotion,
       dice: fxs.dice,
     });
     if (!tl) return;
-    setHold(nActions - 1);
+    if (tl.commitAt > 0) setHold(prev);
     fxPlayer.play(tl, { onCommit: () => setHold(undefined) });
   }, [nActions, ctx, aiVsAi, speed, fxs.speed, fxs.reducedMotion, fxs.dice]);
   useEffect(() => () => fxPlayer.skip(), []);

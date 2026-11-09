@@ -76,7 +76,7 @@ function Review() {
       if (i >= n) return;
       const tl = buildTimeline(ctx, states[i]!, events.filter((e) => e.action === i), { scale: SPEED_SCALE[fxs.speed], reducedMotion: fxs.reducedMotion, dice: fxs.dice });
       if (!tl) return;
-      setHold(i);
+      if (tl.commitAt > 0) setHold(i);
       fxPlayer.play(tl, { onCommit: () => setHold(undefined) });
     },
     [n, ctx, states, events, fxs.speed, fxs.reducedMotion, fxs.dice],

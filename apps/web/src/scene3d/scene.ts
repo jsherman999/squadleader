@@ -398,12 +398,13 @@ export class Scene3D {
         const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: counterTexture(ctx, s, u, selected.has(u.id)), transparent: true, side: THREE.DoubleSide }));
         mesh.scale.set(size, size / this.exaggeration, 1);
         mesh.position.set(c.x + Math.cos(ang) * r, top * LEVEL + (size * 0.62) / this.exaggeration + 0.02, c.y + Math.sin(ang) * r);
-        mesh.userData = { hex, standee: true };
+        mesh.userData = { hex, standee: true, unit: u.id, base: mesh.position.clone() };
         mesh.renderOrder = 4;
         this.units.add(mesh);
         const base = new THREE.Mesh(new THREE.CircleGeometry(size * 0.38, 18), new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }));
         base.rotation.x = -Math.PI / 2;
         base.position.set(mesh.position.x, top * LEVEL + 0.006, mesh.position.z);
+        base.userData = { unit: u.id, base: base.position.clone() };
         this.units.add(base);
       });
     }
@@ -443,6 +444,21 @@ export class Scene3D {
     const px = this.renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
     this.fx.update(f, px, this.exaggeration);
     if (this.pov) this.shake = Math.max(this.shake, f.hits.get(this.pov.spec.hex) ?? 0);
+  }
+
+  /** Move standees of sliding units by an offset (map units) from where the state puts them; a small hop on the way. */
+  slideUnits(offsets: ReadonlyMap<string, { x: number; y: number; hop: number }>): void {
+    for (const o of this.units.children) {
+      const d = o.userData as { unit?: string; base?: THREE.Vector3; standee?: boolean };
+      if (!d.unit || !d.base) continue;
+      const off = offsets.get(d.unit);
+      o.position.copy(d.base);
+      if (off) {
+        o.position.x += off.x;
+        o.position.z += off.y;
+        if (d.standee) o.position.y += (off.hop * 0.12) / this.exaggeration;
+      }
+    }
   }
 
   /** The POV unit's hex, if in POV. */

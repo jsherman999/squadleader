@@ -46,6 +46,12 @@ export interface FxGhost {
   readonly alpha: number;
 }
 
+/** Units drawn away from their hex while they slide there. */
+export interface FxSlide {
+  readonly units: readonly string[];
+  readonly at: Pt;
+}
+
 export interface FxFrame {
   readonly streaks: Streak[];
   readonly glows: Glow[];
@@ -54,6 +60,7 @@ export interface FxFrame {
   readonly ghosts: FxGhost[];
   /** Hexes being hit right now, 0..1 intensity (POV shake). */
   readonly hits: Map<HexKey, number>;
+  readonly slides: FxSlide[];
 }
 
 const STREAK_LEN = 1.5;
@@ -79,10 +86,37 @@ function rounds(c: Extract<Cue, { kind: 'burst' }>) {
 }
 const roundCache = new WeakMap<Cue, ReturnType<typeof rounds>>();
 
+type SlideCue = Extract<Cue, { kind: 'slide' }>;
+const slideGroups = new WeakMap<readonly Cue[], Map<string, SlideCue[]>>();
+
+/** Where each moving group is: on its current leg, waiting at its start, or done (omitted). */
+function sampleSlides(cues: readonly Cue[], t: number): FxSlide[] {
+  let groups = slideGroups.get(cues);
+  if (!groups) {
+    groups = new Map();
+    for (const c of cues) if (c.kind === 'slide') (groups.get(c.units.join()) ?? groups.set(c.units.join(), []).get(c.units.join())!).push(c);
+    slideGroups.set(cues, groups);
+  }
+  const out: FxSlide[] = [];
+  for (const legs of groups.values()) {
+    const last = legs[legs.length - 1]!;
+    if (t > last.t0 + last.dur) continue;
+    let at: Pt = legs[0]!.from;
+    for (const leg of legs) {
+      if (t < leg.t0) break;
+      const u = Math.min(1, (t - leg.t0) / leg.dur);
+      const e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2; // ease in-out
+      at = lerp(leg.from, leg.to, e);
+    }
+    out.push({ units: legs[0]!.units, at });
+  }
+  return out;
+}
+
 export function sampleFx(cues: readonly Cue[], t: number): FxFrame {
-  const f: FxFrame = { streaks: [], glows: [], labels: [], lines: [], ghosts: [], hits: new Map() };
+  const f: FxFrame = { streaks: [], glows: [], labels: [], lines: [], ghosts: [], hits: new Map(), slides: sampleSlides(cues, t) };
   cues.forEach((c, ci) => {
-    if (c.kind === 'sound' || c.kind === 'dice') return;
+    if (c.kind === 'sound' || c.kind === 'dice' || c.kind === 'slide') return;
     if (c.kind === 'hit') {
       const u = (t - c.t0) / 0.45;
       if (u >= 0 && u <= 1) f.hits.set(c.hex, Math.max(f.hits.get(c.hex) ?? 0, (c.severity === 'hit' ? 1 : 0.45) * (1 - u)));
@@ -149,4 +183,4 @@ export function sampleFx(cues: readonly Cue[], t: number): FxFrame {
   return f;
 }
 
-export const EMPTY_FRAME: FxFrame = { streaks: [], glows: [], labels: [], lines: [], ghosts: [], hits: new Map() };
+export const EMPTY_FRAME: FxFrame = { streaks: [], glows: [], labels: [], lines: [], ghosts: [], hits: new Map(), slides: [] };

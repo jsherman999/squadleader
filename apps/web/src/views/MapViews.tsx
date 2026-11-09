@@ -14,6 +14,9 @@ import { playCue, setListener } from '../fx/audio';
 import { DiceTray } from '../fx/DiceTray';
 import { Fx2D } from '../fx/fx2d';
 import { fxPlayer } from '../fx/player';
+import type { FxSlide } from '../fx/sample';
+import { HEX_PX } from '../board/palette';
+import { Container } from 'pixi.js';
 
 // three.js is large: load it the first time the 3D view is shown.
 const Scene3DView = lazy(() => import('../scene3d/Scene3DView').then((m) => ({ default: m.Scene3DView })));
@@ -100,6 +103,18 @@ export function MapViews(p: MapViewsProps) {
 
   // ---- Fire Director: every frame goes to the visible views ----
   const hitRef = useRef<HTMLDivElement>(null);
+  /** Units sliding to their new hex: drawn apart from their stacks until they arrive. */
+  const [sliding, setSliding] = useState<string>('');
+  const slidesRef = useRef<FxSlide[]>([]);
+  useEffect(
+    () =>
+      fxPlayer.onFrame((f) => {
+        slidesRef.current = f.slides;
+        const key = f.slides.map((x) => x.units.join()).join('|');
+        setSliding((k) => (k === key ? k : key));
+      }),
+    [],
+  );
   useEffect(() => {
     if (!r2 || !show2d) return;
     const fx = new Fx2D(r2);
@@ -148,8 +163,37 @@ export function MapViews(p: MapViewsProps) {
   useEffect(() => {
     if (!r2 || !show2d) return;
     const c = r2.container('units', 'units');
-    if (units) drawUnits(c, units.ctx, units.s, { selected: new Set(units.selected) });
-  }, [r2, show2d, units]);
+    const sc = r2.container('units-slide', 'units');
+    if (!units) return;
+    const groups = sliding ? sliding.split('|').map((g) => g.split(',')) : [];
+    const moving = new Set(groups.flat());
+    const keep = (pred: (id: string) => boolean) => ({ ...units.s, units: Object.fromEntries(Object.entries(units.s.units).filter(([id]) => pred(id))) });
+    drawUnits(c, units.ctx, moving.size ? keep((id) => !moving.has(id)) : units.s, { selected: new Set(units.selected) });
+    // One container per moving group, shifted every frame from the hex the state puts it in.
+    const subs: { box: Container; ids: string[] }[] = [];
+    for (const ids of groups) {
+      const box = new Container();
+      drawUnits(box, units.ctx, keep((id) => ids.includes(id)), { selected: new Set(units.selected) });
+      sc.addChild(box);
+      subs.push({ box, ids });
+    }
+    if (!subs.length) return;
+    const place = (slides: FxSlide[]) => {
+      for (const sb of subs) {
+        const sl = slides.find((x) => x.units.join() === sb.ids.join());
+        const u = sb.ids.map((id) => units.s.units[id]).find(Boolean);
+        if (!sl || !u) {
+          sb.box.visible = !sl && !!u;
+          sb.box.position.set(0, 0);
+          continue;
+        }
+        const home = hexToPixel(parseHexKey(u.hex));
+        sb.box.position.set((sl.at.x - home.x) * HEX_PX, (sl.at.y - home.y) * HEX_PX);
+      }
+    };
+    place(slidesRef.current);
+    return fxPlayer.onFrame((f) => place(f.slides));
+  }, [r2, show2d, units, sliding]);
 
   useEffect(() => {
     if (!r2 || !show2d) return;
@@ -168,6 +212,24 @@ export function MapViews(p: MapViewsProps) {
   useEffect(() => {
     if (!s3 || !show3d || !units) return;
     s3.setUnits(units.ctx, units.s, units.selected);
+    const place = (slides: FxSlide[]) => {
+      const off = new Map<string, { x: number; y: number; hop: number }>();
+      for (const sl of slides) {
+        for (const id of sl.units) {
+          const u = units.s.units[id];
+          if (!u) continue;
+          const home = hexToPixel(parseHexKey(u.hex));
+          const dx = sl.at.x - home.x;
+          const dy = sl.at.y - home.y;
+          // A little hop that peaks mid-hex.
+          const frac = Math.hypot(dx, dy) % Math.sqrt(3);
+          off.set(id, { x: dx, y: dy, hop: Math.sin((frac / Math.sqrt(3)) * Math.PI) });
+        }
+      }
+      s3.slideUnits(off);
+    };
+    place(slidesRef.current);
+    return fxPlayer.onFrame((f) => place(f.slides));
   }, [s3, show3d, units]);
 
   useEffect(() => {
