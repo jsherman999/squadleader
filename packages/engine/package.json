@@ -8,5 +8,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": { "@squadwar/hex": "workspace:*", "@squadwar/terrain": "workspace:*", "@squadwar/los": "workspace:*", "zod": "4.6.7" }
+  "dependencies": {
+    "@squadwar/hex": "workspace:*",
+    "@squadwar/terrain": "workspace:*",
+    "@squadwar/los": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@squadwar/content": "workspace:*"
+  }
 }

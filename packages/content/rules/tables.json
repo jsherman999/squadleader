@@ -1,0 +1,56 @@
+{
+  "ift": {
+    "columns": [1, 2, 4, 6, 8, 12, 16, 20, 24, 30, 36],
+    "rows": [
+      ["KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA"],
+      [1, "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA"],
+      [1, 1, 2, "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA", "KIA"],
+      ["M", 1, 1, 2, 2, 3, "KIA", "KIA", "KIA", "KIA", "KIA"],
+      ["-", "M", 1, 1, 2, 2, 3, 4, "KIA", "KIA", "KIA"],
+      ["-", "-", "M", 1, 1, 2, 2, 3, 4, "KIA", "KIA"],
+      ["-", "-", "-", "M", 1, 1, 2, 2, 3, 4, "KIA"],
+      ["-", "-", "-", "-", "M", 1, 1, 2, 2, 3, 4],
+      ["-", "-", "-", "-", "-", "M", 1, 1, 2, 2, 3],
+      ["-", "-", "-", "-", "-", "-", "M", 1, 1, 2, 2],
+      ["-", "-", "-", "-", "-", "-", "-", "M", 1, 1, 2],
+      ["-", "-", "-", "-", "-", "-", "-", "-", "M", 1, 1],
+      ["-", "-", "-", "-", "-", "-", "-", "-", "-", "M", 1],
+      ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "M"],
+      ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"]
+    ]
+  },
+  "closeCombat": {
+    "thresholds": [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8],
+    "labels": ["1-5", "1-4", "1-2", "1-1", "3-2", "2-1", "3-1", "4-1", "6-1", "8-1"],
+    "kill": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  },
+  "tem": {
+    "open": 0,
+    "woods": 1,
+    "shellhole": 1,
+    "woodBuilding": 2,
+    "stoneBuilding": 3,
+    "wheat": 0,
+    "water": 0,
+    "hedge": 1,
+    "wall": 2,
+    "movingInOpen": -2
+  },
+  "movement": {
+    "open": 1,
+    "road": 0.5,
+    "woods": 2,
+    "building": 2,
+    "wheat": 1,
+    "hexsideWallHedge": 1,
+    "squadMF": 4,
+    "leaderMF": 6,
+    "leaderBonus": 2,
+    "squadPortage": 3,
+    "leaderPortage": 1,
+    "advanceSquadPortage": 5,
+    "advanceLeaderPortage": 3
+  },
+  "stacking": { "units": 4, "squads": 3, "portage": 10 },
+  "desperationMorale": 4
+}

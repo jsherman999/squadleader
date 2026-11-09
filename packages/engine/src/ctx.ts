@@ -1,0 +1,69 @@
+import type { HexKey } from '@squadwar/hex';
+import { colIndex, composeMap, type BoardDef, type GameMap } from '@squadwar/terrain';
+import { bestLos, type LosResult } from '@squadwar/los';
+import type { RulesData, Scenario } from './data';
+import type { SideId } from './types';
+
+/** Static context for a game: map, rules data, scenario and caches. Not part of the saved state. */
+export interface Ctx {
+  readonly map: GameMap;
+  readonly data: RulesData;
+  readonly scenario: Scenario;
+  /** Setup zones per side. */
+  readonly zones: Readonly<Record<SideId, ReadonlySet<HexKey>>>;
+  /** Hexes of each objective building, by objective name. */
+  readonly objectives: readonly { readonly name: string; readonly building: string; readonly hexes: readonly HexKey[] }[];
+  los(from: HexKey, to: HexKey): LosResult;
+}
+
+export function makeCtx(scenario: Scenario, data: RulesData, boards: Readonly<Record<string, BoardDef>>): Ctx {
+  const map = composeMap(scenario.layout, boards);
+  const zones: Record<SideId, Set<HexKey>> = {};
+  for (const side of scenario.sides) {
+    const set = new Set<HexKey>();
+    for (const z of side.setup) {
+      const c0 = colIndex(z.cols[0]);
+      const c1 = colIndex(z.cols[1]);
+      for (const h of Object.values(map.hexes)) {
+        if (h.board !== z.board) continue;
+        const m = /^([A-Z]+)(\d+)$/.exec(h.localId)!;
+        const c = colIndex(m[1]!);
+        const row = Number(m[2]);
+        if (c < c0 || c > c1) continue;
+        if (z.rows && (row < z.rows[0] || row > z.rows[1])) continue;
+        set.add(h.key);
+      }
+    }
+    zones[side.id] = set;
+  }
+  const objectives = scenario.victory.controlBuildings.buildings.map((b) => {
+    const key = map.byId[b.hex];
+    const building = key ? map.hexes[key]?.building : undefined;
+    if (!building) throw new Error(`objective ${b.name}: ${b.hex} is not a building hex`);
+    return { name: b.name, building, hexes: map.buildings[building]!.hexes };
+  });
+  const cache = new Map<string, LosResult>();
+  return {
+    map,
+    data,
+    scenario,
+    zones,
+    objectives,
+    los(from, to) {
+      const k = from < to ? `${from}|${to}` : `${to}|${from}`;
+      let r = cache.get(k);
+      if (!r) {
+        r = bestLos(map, from, to);
+        cache.set(k, r);
+      }
+      // Results are symmetric for clear/blocked; callers needing direction
+      // details (hexside TEM) use losFrom.
+      return r;
+    },
+  };
+}
+
+/** Directional LOS (hexside TEM depends on which end is the target). */
+export function losFrom(ctx: Ctx, from: HexKey, to: HexKey): LosResult {
+  return bestLos(ctx.map, from, to);
+}
