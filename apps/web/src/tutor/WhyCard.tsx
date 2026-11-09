@@ -16,14 +16,17 @@ export interface WhyCardProps {
   /** Who made the decision. */
   actor: 'bot' | 'human';
   title?: string;
+  /** "wide" splits the card into two boxes side by side: the decision, then the lesson and result. */
+  variant?: 'stack' | 'wide';
 }
 
 /** The tutor's explanation of one decision: goal, reasons, options weighed, lesson and result. */
-export function WhyCard({ ctx, s, note, position, events, actor, title }: WhyCardProps) {
+export function WhyCard({ ctx, s, note, position, events, actor, title, variant = 'stack' }: WhyCardProps) {
   const [open, setOpen] = useState<number | undefined>();
   const side = s.sides.find((x) => x.id === s.awaiting);
-  return (
-    <div className="why-card" aria-live="polite">
+  const wide = variant === 'wide';
+  const decision = (
+    <>
       <div className="why-head">
         {title && <span className="panel-h why-title">{title}</span>}
         <span className={`side-chip nation-${side?.nation ?? 'german'}`}>{side?.name ?? s.awaiting}</span>
@@ -46,6 +49,16 @@ export function WhyCard({ ctx, s, note, position, events, actor, title }: WhyCar
               ))}
             </ul>
           )}
+        </>
+      ) : (
+        <p className="small dim">{actor === 'human' ? 'A human player made this move; no reasoning was recorded.' : 'No reasoning was recorded for this move (older save).'}</p>
+      )}
+    </>
+  );
+  const rest = (
+    <>
+      {note && (
+        <>
           {note.alternatives && note.alternatives.length > 0 && (
             <details className="why-alt" open>
               <summary>Also considered</summary>
@@ -62,8 +75,6 @@ export function WhyCard({ ctx, s, note, position, events, actor, title }: WhyCar
             </div>
           )}
         </>
-      ) : (
-        <p className="small dim">{actor === 'human' ? 'A human player made this move; no reasoning was recorded.' : 'No reasoning was recorded for this move (older save).'}</p>
       )}
       {events && events.length > 0 && (
         <div className="why-result">
@@ -87,6 +98,20 @@ export function WhyCard({ ctx, s, note, position, events, actor, title }: WhyCar
           ))}
         </div>
       )}
+    </>
+  );
+  if (!wide)
+    return (
+      <div className="why-card" aria-live="polite">
+        {decision}
+        {rest}
+      </div>
+    );
+  const hasRest = !!(note?.alternatives?.length || note?.tip || events?.length);
+  return (
+    <div className="why-wide" aria-live="polite">
+      <div className="why-card dock-box">{decision}</div>
+      <div className="why-card dock-box why-rest">{hasRest ? rest : <p className="small faint">No lesson or result for this decision yet.</p>}</div>
     </div>
   );
 }

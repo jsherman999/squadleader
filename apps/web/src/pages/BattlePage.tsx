@@ -25,6 +25,7 @@ import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
 import { loadCampaign } from '../game/campaign';
 import { LogPanel } from '../battle/LogPanel';
+import { InfoDock } from '../battle/InfoDock';
 import { drawArc, drawArtillery, drawNight, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks, drawWestern } from '../battle/overlays';
 import { groupPath, vehiclePath } from '../battle/pathing';
 import { VehiclePanel } from '../battle/VehiclePanel';
@@ -136,6 +137,25 @@ function Battle() {
       return new Set(['rally', 'rout', 'defensiveFire', 'closeCombat']);
     }
   });
+  /** Where the decision card and the combat log go: a dock under the map (wide screens) or the right-hand panel. */
+  const [infoLayout, setInfoLayoutRaw] = useState<'dock' | 'side'>(() => {
+    try {
+      const v = localStorage.getItem('squadwar:infoLayout');
+      if (v === 'dock' || v === 'side') return v;
+    } catch {
+      // ignore
+    }
+    return window.innerWidth >= 1200 ? 'dock' : 'side';
+  });
+  const setInfoLayout = (v: 'dock' | 'side') => {
+    setInfoLayoutRaw(v);
+    try {
+      localStorage.setItem('squadwar:infoLayout', v);
+    } catch {
+      // ignore
+    }
+  };
+  const docked = infoLayout === 'dock';
   /** Your standing orders for Defensive Fire under Streamlined automation. */
   const [standing, setStanding] = useState<string>(() => localStorage.getItem('squadwar:standing') ?? 'open');
   const [notice, setNotice] = useState<string>();
@@ -260,6 +280,10 @@ function Battle() {
     }
     return undefined;
   }, [session.actions, session.notes, session.states, session.events, paused, aiVsAi]);
+
+  /** Watching the computer with the info docked below: the right column only appears when it has something to show. */
+  const sideEmpty = docked && aiVsAi && !losMode && !session.error && !sel.hex && radio.length === 0 && llmSides.length === 0;
+  const whyTitle = aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision';
 
   const openReview = useCallback(() => {
     const save = session.save();
@@ -772,7 +796,7 @@ function Battle() {
           </button>
         )}
       </TopBar>
-      <div className="battle">
+      <div className={`battle ${docked ? 'with-dock' : ''} ${sideEmpty ? 'no-side' : ''}`}>
         <PhaseRibbon ctx={ctx} s={s} />
         <div className="board-wrap">
           <MapViews
@@ -918,6 +942,7 @@ function Battle() {
             </div>
           )}
         </div>
+        {!sideEmpty && (
         <aside className="side-right">
           {losMode && (
             <div className="panel-card small">
@@ -1048,19 +1073,45 @@ function Battle() {
                 </div>
               ) : null,
             )}
-          {tutor && (
+          {!docked && tutor && (
             <WhyCard
               ctx={ctx}
               s={tutor.before}
               note={tutor.note}
               actor="bot"
               events={tutor.i === hold ? [] : tutor.events}
-              title={aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision'}
+              title={whyTitle}
             />
           )}
-          <h3 className="panel-h">Combat log</h3>
-          <LogPanel events={shownEvents} />
+          {!docked && (
+            <>
+              <div className="log-head">
+                <h3 className="panel-h">Combat log</h3>
+                <button className="btn tiny ghost dock-toggle" onClick={() => setInfoLayout('dock')} title="Show the decision and the log in wide boxes under the map">
+                  Dock under the map
+                </button>
+              </div>
+              <LogPanel events={shownEvents} />
+            </>
+          )}
         </aside>
+        )}
+        {docked && (
+          <InfoDock
+            events={shownEvents}
+            onSidebar={() => setInfoLayout('side')}
+            ticker={tutor?.note ? `${sideName(tutor.before.awaiting)} · ${tutor.note.goal}` : undefined}
+            why={
+              tutor ? (
+                <WhyCard ctx={ctx} s={tutor.before} note={tutor.note} actor="bot" events={tutor.i === hold ? [] : tutor.events} title={whyTitle} variant="wide" />
+              ) : (
+                <div className="dock-box dock-empty small dim">
+                  {aiVsAi ? 'The computer’s reasons for each move appear here.' : 'The computer opponent’s reasons for its moves appear here once it has made one.'}
+                </div>
+              )
+            }
+          />
+        )}
       </div>
     </div>
   );
