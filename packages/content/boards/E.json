@@ -1,0 +1,753 @@
+{
+ "format": "squadwar-board@1",
+ "id": "E",
+ "name": "Forest Edge",
+ "kind": "country",
+ "seed": 4313,
+ "hexes": {
+  "B0": {
+   "lv": 1
+  },
+  "C1": {
+   "lv": 2
+  },
+  "D0": {
+   "lv": 2
+  },
+  "E1": {
+   "lv": 2
+  },
+  "F0": {
+   "lv": 2
+  },
+  "G1": {
+   "lv": 2
+  },
+  "H0": {
+   "lv": 2
+  },
+  "I1": {
+   "t": "woods",
+   "lv": 2
+  },
+  "J0": {
+   "t": "woods",
+   "lv": 1
+  },
+  "K1": {
+   "t": "woods"
+  },
+  "BB0": {
+   "t": "wheat"
+  },
+  "CC1": {
+   "t": "wheat"
+  },
+  "DD0": {
+   "t": "wheat"
+  },
+  "EE1": {
+   "t": "wheat"
+  },
+  "FF0": {
+   "t": "wheat"
+  },
+  "B1": {
+   "lv": 2
+  },
+  "C2": {
+   "lv": 2
+  },
+  "D1": {
+   "t": "woods",
+   "lv": 2
+  },
+  "E2": {
+   "t": "woods",
+   "lv": 2
+  },
+  "F1": {
+   "lv": 2
+  },
+  "G2": {
+   "lv": 2
+  },
+  "H1": {
+   "t": "woods",
+   "lv": 2
+  },
+  "I2": {
+   "t": "woods",
+   "lv": 2
+  },
+  "J1": {
+   "t": "woods",
+   "lv": 2
+  },
+  "K2": {
+   "t": "woods"
+  },
+  "Q2": {
+   "t": "wheat"
+  },
+  "R1": {
+   "t": "wheat"
+  },
+  "BB1": {
+   "t": "wheat"
+  },
+  "CC2": {
+   "t": "wheat"
+  },
+  "DD1": {
+   "t": "wheat"
+  },
+  "EE2": {
+   "t": "wheat"
+  },
+  "FF1": {
+   "t": "wheat"
+  },
+  "B2": {
+   "t": "woods",
+   "lv": 2
+  },
+  "C3": {
+   "t": "woods",
+   "lv": 2
+  },
+  "D2": {
+   "t": "woods",
+   "lv": 2
+  },
+  "E3": {
+   "t": "woods",
+   "lv": 2
+  },
+  "F2": {
+   "lv": 2
+  },
+  "G3": {
+   "lv": 2
+  },
+  "H2": {
+   "t": "woods",
+   "lv": 2
+  },
+  "I3": {
+   "lv": 2
+  },
+  "J2": {
+   "t": "woods"
+  },
+  "K3": {
+   "t": "woods"
+  },
+  "O3": {
+   "t": "wheat"
+  },
+  "P2": {
+   "t": "wheat"
+  },
+  "Q3": {
+   "t": "wheat"
+  },
+  "R2": {
+   "t": "wheat"
+  },
+  "S3": {
+   "t": "wheat"
+  },
+  "BB2": {
+   "t": "wheat"
+  },
+  "DD2": {
+   "t": "wheat"
+  },
+  "A4": {
+   "t": "woods"
+  },
+  "B3": {
+   "lv": 1
+  },
+  "C4": {
+   "t": "woods",
+   "lv": 2
+  },
+  "D3": {
+   "t": "woods",
+   "lv": 2
+  },
+  "E4": {
+   "t": "woods",
+   "lv": 2
+  },
+  "F3": {
+   "t": "woods",
+   "lv": 2
+  },
+  "G4": {
+   "lv": 2
+  },
+  "H3": {
+   "lv": 2
+  },
+  "I4": {
+   "lv": 2
+  },
+  "J3": {
+   "t": "woods",
+   "lv": 1
+  },
+  "P3": {
+   "t": "wheat"
+  },
+  "Q4": {
+   "t": "wheat"
+  },
+  "R3": {
+   "t": "wheat"
+  },
+  "S4": {
+   "t": "wheat"
+  },
+  "Z3": {
+   "t": "woods"
+  },
+  "CC4": {
+   "t": "woods"
+  },
+  "B4": {
+   "t": "woods"
+  },
+  "C5": {
+   "lv": 1
+  },
+  "D4": {
+   "t": "woods",
+   "lv": 2
+  },
+  "E5": {
+   "t": "woods",
+   "lv": 2
+  },
+  "F4": {
+   "t": "woods",
+   "lv": 2
+  },
+  "G5": {
+   "lv": 2
+  },
+  "H4": {
+   "lv": 2
+  },
+  "I5": {
+   "lv": 2
+  },
+  "J4": {
+   "lv": 1
+  },
+  "P4": {
+   "t": "wheat"
+  },
+  "Q5": {
+   "t": "wheat"
+  },
+  "T4": {
+   "sh": true
+  },
+  "W5": {
+   "t": "woodBuilding",
+   "b": "b1"
+  },
+  "X4": {
+   "t": "woodBuilding",
+   "b": "b2"
+  },
+  "Y5": {
+   "t": "woodBuilding",
+   "b": "b2"
+  },
+  "Z4": {
+   "t": "woodBuilding",
+   "b": "b3"
+  },
+  "AA5": {
+   "t": "woodBuilding",
+   "b": "b3"
+  },
+  "BB4": {
+   "t": "stoneBuilding",
+   "b": "b4"
+  },
+  "DD4": {
+   "t": "woodBuilding",
+   "b": "b5"
+  },
+  "D5": {
+   "t": "woods"
+  },
+  "E6": {
+   "lv": 1
+  },
+  "F5": {
+   "lv": 2
+  },
+  "G6": {
+   "lv": 1
+  },
+  "V5": {
+   "t": "woodBuilding",
+   "b": "b1"
+  },
+  "CC6": {
+   "t": "woodBuilding",
+   "b": "b6"
+  },
+  "EE6": {
+   "t": "woodBuilding",
+   "b": "b7"
+  },
+  "F6": {
+   "lv": 2
+  },
+  "Q7": {
+   "sh": true
+  },
+  "X6": {
+   "t": "stoneBuilding",
+   "b": "b8"
+  },
+  "Y7": {
+   "t": "woodBuilding",
+   "b": "b9"
+  },
+  "Z6": {
+   "t": "stoneBuilding",
+   "b": "b10"
+  },
+  "AA7": {
+   "t": "stoneBuilding",
+   "b": "b10"
+  },
+  "BB6": {
+   "t": "woodBuilding",
+   "b": "b11"
+  },
+  "DD6": {
+   "t": "woodBuilding",
+   "b": "b7"
+  },
+  "K8": {
+   "t": "wheat"
+  },
+  "Q8": {
+   "lv": 1
+  },
+  "R7": {
+   "lv": 1
+  },
+  "S8": {
+   "lv": 1
+  },
+  "Y8": {
+   "t": "woodBuilding",
+   "b": "b9"
+  },
+  "Z7": {
+   "t": "woods"
+  },
+  "AA8": {
+   "t": "stoneBuilding",
+   "b": "b10"
+  },
+  "EE8": {
+   "t": "woods"
+  },
+  "C9": {
+   "t": "woods"
+  },
+  "E9": {
+   "t": "woods"
+  },
+  "K9": {
+   "t": "wheat"
+  },
+  "L8": {
+   "t": "wheat"
+  },
+  "M9": {
+   "t": "wheat"
+  },
+  "N8": {
+   "t": "wheat"
+  },
+  "P8": {
+   "lv": 1
+  },
+  "Q9": {
+   "lv": 1
+  },
+  "R8": {
+   "lv": 1
+  },
+  "S9": {
+   "lv": 1
+  },
+  "T8": {
+   "lv": 1
+  },
+  "U9": {
+   "lv": 1
+  },
+  "V8": {
+   "lv": 1
+  },
+  "Z8": {
+   "t": "woods"
+  },
+  "EE9": {
+   "t": "woods"
+  },
+  "A10": {
+   "t": "woods"
+  },
+  "B9": {
+   "t": "woods"
+  },
+  "C10": {
+   "t": "woods"
+  },
+  "D9": {
+   "t": "woods"
+  },
+  "K10": {
+   "t": "wheat"
+  },
+  "L9": {
+   "t": "wheat"
+  },
+  "M10": {
+   "t": "wheat"
+  },
+  "N9": {
+   "t": "wheat"
+  },
+  "Q10": {
+   "lv": 1
+  },
+  "R9": {
+   "lv": 1
+  },
+  "S10": {
+   "lv": 1
+  },
+  "T9": {
+   "lv": 1
+  },
+  "U10": {
+   "lv": 1
+  },
+  "Y10": {
+   "t": "woodBuilding",
+   "b": "b12"
+  },
+  "Z9": {
+   "t": "woods"
+  },
+  "DD9": {
+   "t": "woods"
+  },
+  "EE10": {
+   "t": "woods"
+  },
+  "FF9": {
+   "t": "woods"
+  },
+  "B10": {
+   "t": "woods"
+  },
+  "D10": {
+   "t": "woods"
+  },
+  "J10": {
+   "t": "wheat"
+  },
+  "L10": {
+   "t": "wheat"
+  },
+  "N10": {
+   "t": "wheat"
+  },
+  "R10": {
+   "lv": 1
+  },
+  "T10": {
+   "lv": 1
+  },
+  "V10": {
+   "lv": 1
+  },
+  "FF10": {
+   "t": "woods"
+  }
+ },
+ "hexsides": {
+  "A8/SE": {
+   "road": "dirt"
+  },
+  "B8/NE": {
+   "road": "dirt"
+  },
+  "C8/SE": {
+   "road": "dirt"
+  },
+  "D8/NE": {
+   "road": "dirt"
+  },
+  "E8/SE": {
+   "road": "dirt"
+  },
+  "F8/NE": {
+   "road": "dirt"
+  },
+  "G8/SE": {
+   "road": "dirt"
+  },
+  "H8/NE": {
+   "road": "dirt"
+  },
+  "I8/NE": {
+   "road": "dirt"
+  },
+  "J7/NE": {
+   "road": "dirt"
+  },
+  "K7/SE": {
+   "road": "dirt"
+  },
+  "L7/NE": {
+   "road": "dirt"
+  },
+  "M7/NE": {
+   "road": "dirt"
+  },
+  "N6/NE": {
+   "road": "dirt"
+  },
+  "O6/SE": {
+   "road": "dirt"
+  },
+  "P6/NE": {
+   "road": "dirt"
+  },
+  "Q6/SE": {
+   "road": "dirt"
+  },
+  "R6/NE": {
+   "road": "dirt"
+  },
+  "S6/SE": {
+   "road": "dirt"
+  },
+  "T6/NE": {
+   "road": "dirt"
+  },
+  "U6/SE": {
+   "road": "dirt"
+  },
+  "V6/NE": {
+   "road": "dirt"
+  },
+  "W6/NE": {
+   "road": "dirt"
+  },
+  "X5/SE": {
+   "road": "dirt"
+  },
+  "Y6/NE": {
+   "road": "dirt"
+  },
+  "Z5/SE": {
+   "road": "dirt"
+  },
+  "AA6/NE": {
+   "road": "dirt"
+  },
+  "BB5/NE": {
+   "road": "dirt"
+  },
+  "CC5/SE": {
+   "road": "dirt"
+  },
+  "DD5/NE": {
+   "road": "dirt"
+  },
+  "EE5/SE": {
+   "road": "dirt"
+  },
+  "FF5/NE": {
+   "road": "dirt"
+  },
+  "GG5/NE": {
+   "road": "dirt"
+  },
+  "A8/NW": {
+   "road": "dirt"
+  },
+  "W6/S": {
+   "road": "dirt"
+  },
+  "W7/S": {
+   "road": "dirt"
+  },
+  "W8/SE": {
+   "road": "dirt"
+  },
+  "X8/S": {
+   "road": "dirt"
+  },
+  "X9/S": {
+   "road": "dirt"
+  },
+  "X10/S": {
+   "road": "dirt"
+  },
+  "O6/N": {
+   "road": "dirt"
+  },
+  "O5/N": {
+   "road": "dirt"
+  },
+  "O4/NW": {
+   "road": "dirt"
+  },
+  "N3/N": {
+   "road": "dirt"
+  },
+  "N2/N": {
+   "road": "dirt"
+  },
+  "N1/N": {
+   "road": "dirt"
+  },
+  "N0/N": {
+   "road": "dirt"
+  },
+  "X3/SE": {
+   "hedge": true
+  },
+  "EE4/N": {
+   "hedge": true
+  },
+  "V4/NE": {
+   "hedge": true
+  },
+  "Y9/N": {
+   "hedge": true
+  },
+  "Z10/SE": {
+   "hedge": true
+  },
+  "R1/N": {
+   "hedge": true
+  },
+  "R1/NE": {
+   "hedge": true
+  },
+  "R1/SE": {
+   "hedge": true
+  },
+  "S3/N": {
+   "hedge": true
+  },
+  "S3/NE": {
+   "hedge": true
+  },
+  "S3/SE": {
+   "hedge": true
+  },
+  "DD2/SE": {
+   "hedge": true
+  },
+  "Q4/SE": {
+   "hedge": true
+  },
+  "S4/SE": {
+   "hedge": true
+  },
+  "Q5/SE": {
+   "hedge": true
+  },
+  "L8/NE": {
+   "hedge": true
+  },
+  "N8/N": {
+   "hedge": true
+  },
+  "B1/SW": {
+   "cliff": true
+  },
+  "B1/NW": {
+   "cliff": true
+  },
+  "I2/SE": {
+   "cliff": true
+  },
+  "J1/NE": {
+   "cliff": true
+  },
+  "J1/SE": {
+   "cliff": true
+  },
+  "J1/S": {
+   "cliff": true
+  },
+  "B2/SW": {
+   "cliff": true
+  },
+  "B2/NW": {
+   "cliff": true
+  },
+  "I3/NE": {
+   "cliff": true
+  },
+  "C4/SW": {
+   "cliff": true
+  },
+  "D4/S": {
+   "cliff": true
+  },
+  "E5/SW": {
+   "cliff": true
+  },
+  "G5/SE": {
+   "cliff": true
+  },
+  "H4/S": {
+   "cliff": true
+  },
+  "I5/SE": {
+   "cliff": true
+  },
+  "I5/S": {
+   "cliff": true
+  },
+  "I5/SW": {
+   "cliff": true
+  },
+  "F6/SE": {
+   "cliff": true
+  },
+  "F6/S": {
+   "cliff": true
+  },
+  "F6/SW": {
+   "cliff": true
+  }
+ },
+ "styles": {
+  "b10": "church",
+  "b4": "hall"
+ }
+}

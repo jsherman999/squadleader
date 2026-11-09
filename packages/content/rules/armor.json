@@ -1,28 +1,333 @@
 {
   "toHit": {
-    "bands": [6, 12, 24],
+    "bands": [
+      6,
+      12,
+      24
+    ],
     "rows": {
-      "infantryBuilding": [[8, 8], [7, 6], [6, 5], [5, 2]],
-      "infantryWoods": [[8, 8], [6, 6], [5, 4], [4, 2]],
-      "infantryOther": [[9, 9], [8, 7], [7, 6], [6, 3]],
-      "vehicleHullDown": [[7, 6], [5, 4], [4, 3], [3, 2]],
-      "vehicleCover": [[9, 9], [8, 7], [7, 6], [6, 3]],
-      "vehicleOther": [[10, 10], [9, 8], [8, 7], [7, 4]]
+      "infantryBuilding": [
+        [
+          8,
+          8
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          2
+        ]
+      ],
+      "infantryWoods": [
+        [
+          8,
+          8
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          2
+        ]
+      ],
+      "infantryOther": [
+        [
+          9,
+          9
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          6,
+          3
+        ]
+      ],
+      "vehicleHullDown": [
+        [
+          7,
+          6
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "vehicleCover": [
+        [
+          9,
+          9
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          6,
+          3
+        ]
+      ],
+      "vehicleOther": [
+        [
+          10,
+          10
+        ],
+        [
+          9,
+          8
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          7,
+          4
+        ]
+      ],
+      "atGun": [
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          2,
+          0
+        ]
+      ]
     },
-    "drm": { "moving": 2, "lowVelocity6": 2, "lowVelocity12": 4, "outsideArc": 2, "tankPivot": 1, "tankMoved": 5, "spgPivot": 3, "concealed": 2, "spgDefensivePivot": 4, "adjacent": -2, "sameHex": -2 }
+    "drm": {
+      "moving": 2,
+      "lowVelocity6": 2,
+      "lowVelocity12": 4,
+      "outsideArc": 2,
+      "tankPivot": 1,
+      "tankMoved": 5,
+      "spgPivot": 3,
+      "concealed": 2,
+      "spgDefensivePivot": 4,
+      "adjacent": -2,
+      "sameHex": -2
+    }
   },
   "kill": {
-    "columns": ["MG", "50cal", "AP37", "AP50", "AP75", "HE37", "HE50", "HE75", "HE105", "HE120", "HE150", "HEAT", "PF", "BAZ", "FT", "DC"],
-    "front": [-3, -3, 2, 3, 6, -1, 0, 2, 4, 6, 8, 8, 7, 3, 3, 9],
-    "side": [-3, -2, 3, 6, 8, 1, 2, 3, 6, 7, 10, 10, 8, 4, 4, 10],
-    "rear": [-2, -1, 4, 8, 10, 2, 3, 4, 8, 9, 12, 11, 10, 6, 6, 11]
+    "columns": [
+      "MG",
+      "50cal",
+      "AP37",
+      "AP50",
+      "AP75",
+      "HE37",
+      "HE50",
+      "HE75",
+      "HE105",
+      "HE120",
+      "HE150",
+      "HEAT",
+      "PF",
+      "BAZ",
+      "FT",
+      "DC"
+    ],
+    "front": [
+      -3,
+      -3,
+      2,
+      3,
+      6,
+      -1,
+      0,
+      2,
+      4,
+      6,
+      8,
+      8,
+      7,
+      3,
+      3,
+      9
+    ],
+    "side": [
+      -3,
+      -2,
+      3,
+      6,
+      8,
+      1,
+      2,
+      3,
+      6,
+      7,
+      10,
+      10,
+      8,
+      4,
+      4,
+      10
+    ],
+    "rear": [
+      -2,
+      -1,
+      4,
+      8,
+      10,
+      2,
+      3,
+      4,
+      8,
+      9,
+      12,
+      11,
+      10,
+      6,
+      6,
+      11
+    ]
   },
-  "heEquivalent": [[20, 1], [30, 2], [40, 4], [50, 6], [70, 8], [80, 12], [100, 16], [120, 20], [150, 30]],
-  "movement": { "road": 0.5, "open": 1, "woods": 6, "woodBuilding": 4, "uphill": 4, "outsideArc": 2, "perVehicle": 2, "enemyVehicle": 4, "smoke": 1, "unload": 2 },
-  "immobilize": { "german": 5, "russian": 6, "american": 6 },
-  "defensiveImmobilize": { "leader": 2, "wheat": 2, "smallBuilding": 3, "woodsOrLarge": 4 },
-  "overrun": { "tank": 16, "halftrack": 8 },
-  "panzerfaust": { "range": 3, "toHit": [[8, 7], [6, 5], [3, 2]] },
-  "bazooka": { "range": 4, "toHit": [[8, 7], [7, 6], [6, 4], [3, 2]], "outOfAmmo": 11 },
-  "mgRange": 8
+  "heEquivalent": [
+    [
+      20,
+      1
+    ],
+    [
+      30,
+      2
+    ],
+    [
+      40,
+      4
+    ],
+    [
+      50,
+      6
+    ],
+    [
+      70,
+      8
+    ],
+    [
+      80,
+      12
+    ],
+    [
+      100,
+      16
+    ],
+    [
+      120,
+      20
+    ],
+    [
+      150,
+      30
+    ]
+  ],
+  "movement": {
+    "road": 0.5,
+    "open": 1,
+    "woods": 6,
+    "woodBuilding": 4,
+    "uphill": 4,
+    "outsideArc": 2,
+    "perVehicle": 2,
+    "enemyVehicle": 4,
+    "smoke": 1,
+    "unload": 2
+  },
+  "immobilize": {
+    "german": 5,
+    "russian": 6,
+    "american": 6
+  },
+  "defensiveImmobilize": {
+    "leader": 2,
+    "wheat": 2,
+    "smallBuilding": 3,
+    "woodsOrLarge": 4
+  },
+  "overrun": {
+    "tank": 16,
+    "halftrack": 8
+  },
+  "panzerfaust": {
+    "range": 3,
+    "toHit": [
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        3,
+        2
+      ]
+    ]
+  },
+  "bazooka": {
+    "range": 4,
+    "toHit": [
+      [
+        8,
+        7
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        3,
+        2
+      ]
+    ],
+    "outOfAmmo": 11
+  },
+  "mgRange": 8,
+  "capacity": {
+    "units": 2,
+    "squads": 1
+  }
 }

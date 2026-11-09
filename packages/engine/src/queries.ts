@@ -96,7 +96,8 @@ export function leaderDrmFor(ctx: Ctx, s: GameState, hex: HexKey, side: SideId, 
 }
 
 export function stackingProblem(ctx: Ctx, s: GameState, hex: HexKey, side: SideId): string | undefined {
-  const units = sideUnitsIn(s, hex, side);
+  // Riders count against the vehicle, not the hex (§29.2, §31.1).
+  const units = sideUnitsIn(s, hex, side).filter((u) => !u.riding);
   const t = ctx.data.tables.stacking;
   const squads = units.filter((u) => !isLeader(ctx, u)).length;
   if (units.length > t.units) return `more than ${t.units} units`;

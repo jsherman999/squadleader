@@ -143,17 +143,24 @@ export function concealableHex(ctx: Ctx, hex: HexKey): boolean {
 
 /** Everyone concealed in a hex loses it (§25.4, §25.42, §25.9). */
 export function reveal(ctx: Ctx, s: GameState, hex: HexKey, emit: Emit, why: string): void {
-  const shown = unitsIn(s, hex).filter((u) => u.concealed);
+  const shown = unitsIn(s, hex).filter((u) => u.concealed || u.hidden);
+  for (const v of Object.values(s.vehicles)) if (v.hex === hex && v.hidden) v.hidden = false;
   if (!shown.length) return;
-  for (const u of shown) u.concealed = false;
+  for (const u of shown) {
+    u.concealed = false;
+    u.hidden = false;
+  }
   emit({ kind: 'info', text: `Concealment lost in ${hexLabel(ctx, hex)}: ${why} (§25.4)`, side: shown[0]!.side, hexes: [hex], units: shown.map((u) => u.id) });
 }
 
 /** Unbroken enemy infantry next to concealed units strips their concealment (§25.4–25.5). */
 export function revealAdjacent(ctx: Ctx, s: GameState, emit: Emit): void {
-  const hexes = new Set(Object.values(s.units).filter((u) => u.concealed).map((u) => u.hex));
+  // At night, concealment survives enemies next door (§49.3); hidden units do not (§42.2).
+  const night = !!ctx.scenario.night;
+  const hexes = new Set(Object.values(s.units).filter((u) => u.hidden || (u.concealed && !night)).map((u) => u.hex));
+  for (const v of Object.values(s.vehicles)) if (v.hidden) hexes.add(v.hex);
   for (const h of hexes) {
-    const side = unitsIn(s, h).find((u) => u.concealed)!.side;
+    const side = unitsIn(s, h).find((u) => u.concealed || u.hidden)?.side ?? Object.values(s.vehicles).find((v) => v.hex === h)!.side;
     const near = DIRECTIONS.some((d) => {
       const n = hexKey(neighbor(parseHexKey(h), d));
       return enemiesIn(s, n, side).some((e) => !e.broken);
@@ -169,12 +176,15 @@ export function revealAdjacent(ctx: Ctx, s: GameState, emit: Emit): void {
  */
 export function gainConcealment(ctx: Ctx, s: GameState, emit: Emit): void {
   if (ctx.scenario.rulesLevel < 25) return;
+  const night = !!ctx.scenario.night;
   const gained: Unit[] = [];
   for (const u of Object.values(s.units)) {
-    if (u.side !== s.phasing || u.concealed || u.noConceal || u.berserk) continue;
-    if (!concealableHex(ctx, u.hex) || inMelee(s, u.hex)) continue;
+    if (u.side !== s.phasing || u.concealed || u.hidden || u.noConceal || u.berserk) continue;
+    if (inMelee(s, u.hex)) continue;
+    // At night, any terrain and next to the enemy (§49.5).
+    if (!night && !concealableHex(ctx, u.hex)) continue;
     const near = DIRECTIONS.some((d) => enemiesIn(s, hexKey(neighbor(parseHexKey(u.hex), d)), u.side).length > 0);
-    if (near) continue;
+    if (near && !night) continue;
     u.concealed = true;
     gained.push(u);
   }

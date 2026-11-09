@@ -50,6 +50,18 @@ export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
       return `${veh(a.vehicle)} smoke dischargers`;
     case 'vrepair':
       return `Repair ${veh(a.vehicle)}`;
+    case 'starshell':
+      return `Starshell over ${hexLabel(ctx, a.hex)}`;
+    case 'radio':
+      return 'Radio the batteries';
+    case 'arty':
+      return a.op === 'cancel' ? 'Call off the artillery' : `Artillery ${a.op === 'request' ? 'request' : a.op === 'correct' ? 'correction' : 'fire for effect'} at ${a.hex ? hexLabel(ctx, a.hex) : '?'}`;
+    case 'board':
+      return `${units(a.units)} climb onto ${veh(a.vehicle)}`;
+    case 'unload':
+      return `${units(a.units)} get off ${veh(a.vehicle)}`;
+    case 'push':
+      return `${units([a.unit])} push the gun → ${hexLabel(ctx, a.to)}`;
   }
 }
 
@@ -71,7 +83,13 @@ export function actionUnits(a: Action | undefined): string[] {
       return [a.unit];
     case 'sewer':
     case 'antiTank':
+    case 'board':
+    case 'unload':
       return [...a.units];
+    case 'starshell':
+    case 'radio':
+    case 'push':
+      return [a.unit];
     case 'face':
     case 'vmove':
     case 'vstop':

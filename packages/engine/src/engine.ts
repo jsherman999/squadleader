@@ -6,6 +6,9 @@ import { advance } from './rules/advance';
 import { designate } from './rules/closeCombat';
 import { detonate, resolveFire } from './rules/fire';
 import { placeCharge, placeSmoke, sewerMove } from './rules/special';
+import { fireStarshell } from './rules/night';
+import { artilleryOrder, radioContact, setupBatteries } from './rules/artillery';
+import { board, pushGun, unload } from './rules/transport';
 import { antiTank, discharge, faceVehicle, facingIndex, newVehicle, resolveVehicleFire, vehicleLabel, vehicleMove, vehicleRepair, vehicleStop } from './rules/armor';
 import { endMove, moveStep, transferWeapon } from './rules/movement';
 import { rallyAttempt, repairAttempt } from './rules/rally';
@@ -36,7 +39,7 @@ export function createGame(ctx: Ctx, seed: number): Step {
           const id = `v${++vn}`;
           const hex = entry.hex ? ctx.map.byId[entry.hex] : [...ctx.zones[side.id]!][0];
           if (!hex) throw new Error(`${sc.id}: bad start hex ${entry.hex}`);
-          vehicles[id] = newVehicle(id, entry.type, side.id, hex, facingIndex(entry.facing ?? 'N-NE'), entry.names?.[i]);
+          vehicles[id] = { ...newVehicle(id, entry.type, side.id, hex, facingIndex(entry.facing ?? 'N-NE'), entry.names?.[i]), ...(entry.hidden ? { hidden: true } : {}) };
         }
         continue;
       }
@@ -70,6 +73,7 @@ export function createGame(ctx: Ctx, seed: number): Step {
           noConceal: false,
           smokeMade: false,
           sewerAssault: false,
+          ...(entry.hidden ? { hidden: true } : {}),
         };
         firstIds.push(id);
       }
@@ -110,10 +114,13 @@ export function createGame(ctx: Ctx, seed: number): Step {
     wrecks: [],
     vtracks: {},
     afvAssaults: [],
+    ...(sc.night ? { nightVis: 2, starshells: [], starshellsLeft: Object.fromEntries(sc.sides.map((x) => [x.id, sc.starshells?.[x.id] ?? 0])), flashes: { now: [], prev: [] } } : {}),
   };
+  setupBatteries(ctx, state);
+  const arty = (state.batteries ?? []).map((b) => `${sideName(state, b.side)} artillery: ${b.mm}mm, ${b.missions} fire mission${b.missions > 1 ? 's' : ''} (§45.2)`);
   return {
     state,
-    events: [{ kind: 'phase', text: `${sc.title} — ${sc.location}, ${sc.date}. ${sideName(state, sc.setupFirst)} sets up first.` }],
+    events: [{ kind: 'phase', text: `${sc.title} — ${sc.location}, ${sc.date}. ${sideName(state, sc.setupFirst)} sets up first.` }, ...arty.map((text) => ({ kind: 'info' as const, text }))],
   };
 }
 
@@ -187,6 +194,24 @@ export function applyAction(ctx: Ctx, state: GameState, action: Action): Step {
     case 'vrepair':
       vehicleRepair(ctx, s, action.vehicle, emit);
       break;
+    case 'radio':
+      radioContact(ctx, s, action.battery, action.unit, emit);
+      break;
+    case 'arty':
+      artilleryOrder(ctx, s, action.battery, action.op, action.hex, !!action.smoke, emit);
+      break;
+    case 'board':
+      board(ctx, s, action.units, action.vehicle, emit);
+      break;
+    case 'unload':
+      unload(ctx, s, action.units, action.vehicle, emit);
+      break;
+    case 'push':
+      pushGun(ctx, s, action.unit, action.gun, action.to, emit);
+      break;
+    case 'starshell':
+      fireStarshell(ctx, s, action.unit, action.hex, emit);
+      break;
     case 'endPhase':
       endPhase(ctx, s, emit);
       break;
@@ -237,6 +262,8 @@ function place(ctx: Ctx, s: GameState, unitId: string, hex: string, emit: Emit):
   const u = s.units[unitId];
   if (!u || u.side !== s.awaiting) throw new RuleError('Not your unit');
   if (!ctx.zones[u.side]!.has(hex)) throw new RuleError(`${hexLabel(ctx, hex)} is outside your setup area`, '§21');
+  const t = ctx.map.hexes[hex]!.terrain;
+  if (u.hidden && t !== 'woods' && t !== 'woodBuilding' && t !== 'stoneBuilding') throw new RuleError('Hidden units set up only in woods or buildings', '§42.1');
   if (Object.values(s.units).some((o) => o.hex === hex && o.side === otherSide(s, u.side))) throw new RuleError('Enemy units are there');
   const from = u.hex;
   u.hex = hex;

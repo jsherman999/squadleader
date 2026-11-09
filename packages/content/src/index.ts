@@ -4,24 +4,36 @@
  */
 import boardA from '../boards/A.json';
 import boardB from '../boards/B.json';
+import boardC from '../boards/C.json';
+import boardD from '../boards/D.json';
+import boardE from '../boards/E.json';
 import tables from '../rules/tables.json';
 import units from '../rules/units.json';
 import weapons from '../rules/weapons.json';
 import vehicles from '../rules/vehicles.json';
 import armor from '../rules/armor.json';
+import artillery from '../rules/artillery.json';
 import s1 from '../scenarios/s1.json';
 import s2 from '../scenarios/s2.json';
 import s3 from '../scenarios/s3.json';
 import s4 from '../scenarios/s4.json';
 
-export const rawBoards: Readonly<Record<string, unknown>> = { A: boardA, B: boardB };
+export const rawBoards: Readonly<Record<string, unknown>> = { A: boardA, B: boardB, C: boardC, D: boardD, E: boardE };
 
-export const rawRules: { readonly units: unknown; readonly weapons: unknown; readonly tables: unknown; readonly vehicles: unknown; readonly armor: unknown } = {
+export const rawRules: {
+  readonly units: unknown;
+  readonly weapons: unknown;
+  readonly tables: unknown;
+  readonly vehicles: unknown;
+  readonly armor: unknown;
+  readonly artillery: unknown;
+} = {
   units,
   weapons,
   tables,
   vehicles,
   armor,
+  artillery,
 };
 
 /** Scenarios in play order. */

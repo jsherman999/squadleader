@@ -18,6 +18,7 @@ import {
 import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
 import { reveal, smokeMf } from './special';
+import { illuminated } from './night';
 
 /** MF a unit may spend this Movement Phase (§5.41–5.44, §5.7). */
 export function mfAllowance(ctx: Ctx, s: GameState, u: Unit): { mf: number; parts: string[] } {
@@ -52,6 +53,8 @@ function checkMover(ctx: Ctx, s: GameState, u: Unit | undefined): asserts u is U
   if (u.firedPhase === 'prepFire') throw new RuleError(`${unitLabel(ctx, u)} fired in the Prep Fire Phase and may not move`, '§4.3');
   if (u.moveDone) throw new RuleError(`${unitLabel(ctx, u)} has finished moving`, '§19.2');
   if (inMelee(s, u.hex)) throw new RuleError(`${unitLabel(ctx, u)} is locked in melee`, '§20.8');
+  if (u.riding) throw new RuleError(`${unitLabel(ctx, u)} is riding a vehicle; unload it first`, '§31.4');
+  if (u.debarked && u.moved) throw new RuleError(`${unitLabel(ctx, u)} got off a vehicle and may move only one hex`, '§31.4');
 }
 
 /** Move a stack of units one hex (§5, §19.4). */
@@ -63,7 +66,17 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
   const from = movers[0]!.hex;
   if (movers.some((u) => u.hex !== from)) throw new RuleError('Units moving together must start in the same hex', '§19.4');
   if (range(from, to) !== 1) throw new RuleError('Units move one hex at a time');
-  if (enemiesIn(s, to, s.phasing).length || Object.values(s.vehicles).some((v) => v.hex === to && v.side !== s.phasing)) throw new RuleError('Infantry may enter an enemy-occupied hex only in the Advance Phase', '§5.6');
+  // Bumping into hidden enemies stops the move in the last hex (§42.5).
+  const foes = enemiesIn(s, to, s.phasing);
+  const foeVehicles = Object.values(s.vehicles).filter((v) => v.hex === to && v.side !== s.phasing);
+  if ((foes.length || foeVehicles.length) && [...foes, ...foeVehicles].every((x) => x.hidden)) {
+    reveal(ctx, s, to, emit, 'enemy units walked into them');
+    for (const u of movers) u.moveDone = true;
+    s.moving = s.moving.filter((id) => !ids.includes(id));
+    emit({ kind: 'info', text: `${movers.map((u) => unitLabel(ctx, u)).join(', ')} run into hidden enemy in ${hexLabel(ctx, to)} and stop (§42.5)`, side: s.phasing, units: [...ids], hexes: [to] });
+    return;
+  }
+  if (foes.length || foeVehicles.length) throw new RuleError('Infantry may enter an enemy-occupied hex only in the Advance Phase', '§5.6');
 
   // A new group finishes the previous one (§19.2, §19.4).
   const continuing = s.moving.length > 0 && ids.every((id) => s.moving.includes(id));
@@ -91,8 +104,13 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
     if (cost.mf > left + 1e-9) throw new RuleError(`${unitLabel(ctx, u)} has ${left} MF left; entering ${hexLabel(ctx, to)} costs ${cost.mf} (${cost.parts.join(', ')})`, '§5.5');
   }
   const open = isOpenGround(ctx, to);
-  // Moving gives a concealed stack away (§25.4, §25.42).
-  reveal(ctx, s, from, emit, 'moved');
+  // Moving gives a concealed stack away (§25.4, §25.42); at night only hidden units, or into a lit hex the enemy sees (§49.4).
+  if (!ctx.scenario.night) reveal(ctx, s, from, emit, 'moved');
+  else {
+    for (const u of movers) u.hidden = false;
+    const lit = illuminated(s, to) && Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && ctx.los(e.hex, to).clear);
+    if (lit) for (const u of movers) u.concealed = false;
+  }
   for (const u of movers) {
     u.noConceal = true;
     u.hex = to;

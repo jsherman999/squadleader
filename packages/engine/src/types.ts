@@ -79,6 +79,14 @@ export interface Unit {
   smokeMade: boolean;
   /** Arrived by sewer into an enemy-held entrance this player turn (§27.7). */
   sewerAssault: boolean;
+  /** Hidden initial placement: off the board for the enemy until revealed (§42). */
+  hidden?: boolean;
+  /** Riding on this vehicle (§31). */
+  riding?: string;
+  /** Got off a vehicle this Movement Phase: one hex more at most (§31.4). */
+  debarked?: boolean;
+  /** Fired from a halftrack: open to fire at +2 until the next enemy fire phase ends (§47.7). */
+  exposed?: boolean;
 }
 
 /** A tank or self-propelled gun (§28). JSON-serializable. */
@@ -117,6 +125,8 @@ export interface Vehicle {
   /** Crew exposed after using the all-round MG (§34.8). */
   ce: boolean;
   smokeUsed: boolean;
+  /** Hidden initial placement (§42.7). */
+  hidden?: boolean;
 }
 
 export interface Wreck {
@@ -130,6 +140,25 @@ export interface AfvAssault {
   readonly unit: string;
   readonly vehicle: string;
   readonly from: HexKey;
+}
+
+/** An offboard artillery module and where its fire stands (§45–46). */
+export interface Battery {
+  readonly id: string;
+  readonly side: SideId;
+  readonly mm: number;
+  readonly missions: number;
+  used: number;
+  /** Radio contact this Rally Phase, and who has it (§46.1). */
+  contact: boolean;
+  tried: boolean;
+  leader: string | null;
+  /** Artillery request, spotting round or fire for effect on the map (§46.1–46.4). */
+  mode: 'idle' | 'request' | 'sr' | 'ffe';
+  hex: HexKey | null;
+  smoke: boolean;
+  /** One operation per Rally Phase (§46.3). */
+  acted: boolean;
 }
 
 export interface Weapon {
@@ -236,6 +265,12 @@ export interface GameState {
   /** Hexes each vehicle occupied during this Movement Phase, start included (§36.1, Defensive Fire). */
   vtracks: Record<string, HexKey[]>;
   afvAssaults: AfvAssault[];
+  /** Night (§49): this game turn's visibility range, starshells in the air, and hexes that showed gun flashes. */
+  nightVis?: number;
+  starshells?: { hex: HexKey; side: SideId }[];
+  starshellsLeft?: Record<SideId, number>;
+  flashes?: { now: HexKey[]; prev: HexKey[] };
+  batteries?: Battery[];
   /** Test hook: dice values used before the PRNG. Never set in normal play. */
   diceQueue?: number[];
   winner?: SideId | 'draw';
@@ -297,6 +332,17 @@ export type Action =
   | { readonly type: 'discharge'; readonly vehicle: string }
   /** Repair a vehicle's main gun or MGs in the Rally Phase (§38.1). */
   | { readonly type: 'vrepair'; readonly vehicle: string }
+  /** A leader with a radio tries to get through to the batteries (§46.11–46.12). */
+  | { readonly type: 'radio'; readonly battery: string; readonly unit: string }
+  /** Place a request, correct the spotting round, fire for effect or move it (§46.3). */
+  | { readonly type: 'arty'; readonly battery: string; readonly op: 'request' | 'correct' | 'ffe' | 'move' | 'cancel'; readonly hex?: HexKey; readonly smoke?: boolean }
+  /** Infantry climb onto a vehicle in its hex, or get off it (§31.3–31.4). */
+  | { readonly type: 'board'; readonly units: readonly string[]; readonly vehicle: string }
+  | { readonly type: 'unload'; readonly units: readonly string[]; readonly vehicle: string }
+  /** A squad or crew pushes an AT gun one hex (§48.4). */
+  | { readonly type: 'push'; readonly unit: string; readonly gun: string; readonly to: HexKey }
+  /** A leader fires a starshell at the end of the Rally Phase (§49.6). */
+  | { readonly type: 'starshell'; readonly unit: string; readonly hex: HexKey }
   | { readonly type: 'endPhase' };
 
 // ---- Events ------------------------------------------------------------------

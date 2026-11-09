@@ -5,7 +5,8 @@ import type { Emit } from './common';
 
 /** A building is controlled by the side with an unbroken unit in it and no enemy in any of its hexes. */
 export function controller(s: GameState, hexes: readonly string[]): SideId | undefined {
-  const present = hexes.flatMap((h) => unitsIn(s, h));
+  // Riders on vehicles do not hold buildings.
+  const present = hexes.flatMap((h) => unitsIn(s, h)).filter((u) => !u.riding);
   const sides = new Set(present.map((u) => u.side));
   if (sides.size !== 1) return undefined;
   const side = [...sides][0]!;

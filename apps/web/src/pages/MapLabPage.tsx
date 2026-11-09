@@ -15,10 +15,16 @@ import { TopBar } from '../ui/TopBar';
 type Mode = 'inspect' | 'los' | 'viewshed';
 type Level = 'auto' | 'lower' | 'upper';
 
+const LAYOUTS: Record<string, { board: string; x: number; y: number }[]> = {
+  BA: [{ board: 'B', x: 0, y: 0 }, { board: 'A', x: 0, y: 1 }],
+  CD: [{ board: 'C', x: 0, y: 0 }, { board: 'D', x: 0, y: 1 }],
+  DE: [{ board: 'D', x: 0, y: 0 }, { board: 'E', x: 0, y: 1 }],
+};
+
 export function MapLabPage() {
-  const [boards, setBoards] = useState<'A' | 'B' | 'BA'>('A');
+  const [boards, setBoards] = useState<string>('A');
   const map = useMemo(
-    () => mapFor(boards === 'BA' ? [{ board: 'B', x: 0, y: 0 }, { board: 'A', x: 0, y: 1 }] : [{ board: boards, x: 0, y: 0 }]),
+    () => mapFor(LAYOUTS[boards] ?? [{ board: boards, x: 0, y: 0 }]),
     [boards],
   );
   const [view, setView] = useState<ViewMode>(loadViewMode);
@@ -148,10 +154,15 @@ export function MapLabPage() {
             Eyes <kbd>E</kbd>
           </button>
           <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
-          <select className="auto-select" value={boards} onChange={(e) => setBoards(e.target.value as 'A' | 'B' | 'BA')} aria-label="Boards" title="Boards">
+          <select className="auto-select" value={boards} onChange={(e) => setBoards(e.target.value)} aria-label="Boards" title="Boards">
             <option value="A">City A</option>
             <option value="B">City B</option>
             <option value="BA">City B + A</option>
+            <option value="C">Country C: Kolkhoz Ridge</option>
+            <option value="D">Country D: Station Hill</option>
+            <option value="E">Country E: Forest Edge</option>
+            <option value="CD">Country C + D</option>
+            <option value="DE">Country D + E</option>
           </select>
         </div>
       </TopBar>

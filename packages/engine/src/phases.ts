@@ -9,6 +9,8 @@ import { doRout, pendingRouts } from './rules/rout';
 import { evaluateVictory } from './rules/victory';
 import { armCharges, clearSmoke, expireCharges, gainConcealment, returnLostUnits, revealAdjacent, setupConcealment } from './rules/special';
 import { displaceOverrun, endFirePhase, resetVehicles, resolveAfvAssaults } from './rules/armor';
+import { clearStarshells, rollNightVisibility, rotateFlashes } from './rules/night';
+import { endRally, fireForEffect, spottingRounds } from './rules/artillery';
 
 export function sideName(s: GameState, id: SideId): string {
   return s.sides.find((x) => x.id === id)?.name ?? id;
@@ -39,12 +41,14 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
     u.noConceal = false;
     u.smokeMade = false;
     u.sewerAssault = false;
+    u.debarked = false;
   }
   for (const w of Object.values(s.weapons)) {
     w.usedThisTurn = false;
     w.repairTried = false;
   }
   resetVehicles(s);
+  rotateFlashes(s);
   s.tracks = {};
   s.moving = [];
   s.attacks = [];
@@ -58,6 +62,7 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
 
 function endPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
   gainConcealment(ctx, s, emit);
+  clearStarshells(s);
   if (s.half === 0) {
     s.half = 1;
     s.phasing = otherSide(s, ctx.scenario.moveFirst);
@@ -126,11 +131,14 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
         return;
       }
       for (const u of Object.values(s.units)) u.dm = false; // §14.6
+      rollNightVisibility(ctx, s, emit);
+      endRally(s, emit);
       s.phase = 'prepFire';
       s.awaiting = s.phasing;
       s.attacks = [];
       announce(s, emit);
       clearSmoke(ctx, s, s.phasing, emit);
+      fireForEffect(ctx, s, s.phasing, emit);
       return;
     case 'prepFire':
       endFirePhase(s, 'prepFire');
@@ -147,6 +155,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       s.awaiting = other;
       s.attacks = [];
       announce(s, emit);
+      fireForEffect(ctx, s, other, emit);
       return;
     case 'defensiveFire':
       endFirePhase(s, 'defensiveFire');
@@ -180,6 +189,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
     case 'advance':
       berserkAdvance(ctx, s, emit);
       revealAdjacent(ctx, s, emit);
+      spottingRounds(ctx, s, emit);
       s.phase = 'closeCombat';
       s.awaiting = s.phasing;
       purgeBrokenInMelee(ctx, s, emit);

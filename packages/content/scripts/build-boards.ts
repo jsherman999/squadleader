@@ -399,8 +399,268 @@ function cityB(): AsciiBoardSpec {
   };
 }
 
+
+// ---- Countryside boards ---------------------------------------------------------------------
+
+interface Blob {
+  c: number;
+  k: number;
+  /** Radius in hexes; edges are roughened. */
+  r: number;
+}
+
+interface Hill {
+  c: number;
+  k: number;
+  /** Radius of level 1, 2, 3 ... around the summit. */
+  radii: number[];
+}
+
+interface Village {
+  c: number;
+  k: number;
+  landmarks: { cells: [number, number][]; ch: string; style?: 'house' | 'barn' | 'block' | 'factory' | 'church' | 'hall' }[];
+  opts: FabricOptions;
+}
+
+interface CountrySpec {
+  id: string;
+  name: string;
+  seed: number;
+  roads: RoadSpec[];
+  hills: Hill[];
+  woods: Blob[];
+  wheat: Blob[];
+  villages: Village[];
+  /** Hexsides that must be cliffs, besides every drop of two levels. */
+  cliffs?: string[];
+  walls?: string[];
+  shellholes?: [number, number][];
+  /** Chance a wheatfield edge gets a hedge. */
+  fieldHedges: number;
+}
+
+const cellExists = (c: number, k: number) => c >= 0 && c < 33 && k >= 0 && k <= (c % 2 === 0 ? 9 : 10);
+
+function countryBoard(spec: CountrySpec): AsciiBoardSpec {
+  const rnd = mulberry32(spec.seed);
+  const g = new Grid();
+  const noise = (c: number, k: number, salt: number) => mulberry32(spec.seed * 7919 + c * 131 + k * 17 + salt * 1009)();
+  const isRoad = new Set(spec.roads.flatMap((r) => r.cells.map((x) => `${x.c},${x.k}`)));
+  const reserved = new Set<string>(isRoad);
+  const reserve = (cells: [number, number][]) => cells.forEach(([c, k]) => reserved.add(`${c},${k}`));
+  const styles: Record<string, 'house' | 'barn' | 'block' | 'factory' | 'church' | 'hall'> = {};
+  const hedges: string[] = [];
+
+  // Village landmarks first, then their houses along the roads.
+  for (const v of spec.villages) {
+    for (const l of v.landmarks) {
+      // Roads win: a landmark loses any cell a road runs through.
+      const cells = l.cells.filter(([c, k]) => !isRoad.has(`${c},${k}`));
+      if (!cells.length) continue;
+      for (const [c, k] of cells) g.set(c, k, l.ch);
+      reserve(cells);
+      if (l.style) styles[`${cells[0]![0]},${cells[0]![1]}`] = l.style;
+    }
+  }
+  for (const v of spec.villages) hedges.push(...townFabric(g, isRoad, reserved, reserve, rnd, { c: v.c, k: v.k }, v.opts));
+
+  const inBlob = (b: Blob, c: number, k: number, salt: number) => cellRange([b.c, b.k], [c, k]) <= b.r + (noise(c, k, salt) - 0.5) * 1.6;
+  for (let k = 0; k <= 10; k++)
+    for (let c = 0; c < 33; c++) {
+      if (!cellExists(c, k) || reserved.has(`${c},${k}`)) continue;
+      if (spec.woods.some((b) => inBlob(b, c, k, 1))) g.set(c, k, 'T');
+      else if (spec.wheat.some((b) => inBlob(b, c, k, 2))) g.set(c, k, 'y');
+    }
+  for (const [c, k] of spec.shellholes ?? []) if (!reserved.has(`${c},${k}`) && g.rows[k]![c] === '.') g.set(c, k, 'o');
+
+  // Elevation: nested, roughened rings around each summit.
+  const levels = Array.from({ length: 11 }, () => Array.from({ length: 33 }, () => 0));
+  for (let k = 0; k <= 10; k++)
+    for (let c = 0; c < 33; c++) {
+      if (!cellExists(c, k)) continue;
+      for (const h of spec.hills) {
+        const d = cellRange([h.c, h.k], [c, k]) + (noise(c, k, 3) - 0.5) * 1.2;
+        const lv = h.radii.filter((r) => d <= r).length;
+        levels[k]![c] = Math.max(levels[k]![c]!, lv);
+      }
+    }
+  // A drop of two or more levels between neighbours is a cliff (§44.1).
+  const cliffs = [...(spec.cliffs ?? [])];
+  const dirs = ['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const;
+  for (let k = 0; k <= 10; k++)
+    for (let c = 0; c < 33; c++) {
+      if (!cellExists(c, k)) continue;
+      for (const d of dirs) {
+        const n = neighborCell({ c, k }, d);
+        if (!cellExists(n.c, n.k)) continue;
+        if (levels[k]![c]! - levels[n.k]![n.c]! >= 2) cliffs.push(side(c, k, d));
+      }
+    }
+  // Hedges along some field edges.
+  for (let k = 0; k <= 10; k++)
+    for (let c = 0; c < 33; c++) {
+      if (!cellExists(c, k) || g.rows[k]![c] !== 'y') continue;
+      for (const d of ['N', 'NE', 'SE'] as const) {
+        const n = neighborCell({ c, k }, d);
+        if (!cellExists(n.c, n.k) || g.rows[n.k]![n.c] === 'y' || isRoad.has(`${n.c},${n.k}`)) continue;
+        if (noise(c, k, 10 + dirs.indexOf(d)) < spec.fieldHedges) hedges.push(side(c, k, d));
+      }
+    }
+  return {
+    id: spec.id,
+    name: spec.name,
+    kind: 'country',
+    seed: spec.seed,
+    rows: g.done(),
+    levels: levels.map((r) => r.join('')),
+    roads: spec.roads,
+    hedges: [...new Set(hedges)],
+    ...(spec.walls ? { walls: spec.walls } : {}),
+    cliffs: [...new Set(cliffs)],
+    styles,
+  };
+}
+
+const VILLAGE: FabricOptions = { landmarks: [], minDensity: 0, falloff: 0.2, stone: 0.15, infillRadius: 2, gardens: 0.12 };
+
+/** Country 1: a kolkhoz on the slope of a long ridge, wheat in the valleys, a highway across. */
+function country1(): AsciiBoardSpec {
+  return countryBoard({
+    id: 'C',
+    name: 'Kolkhoz Ridge',
+    seed: 4301,
+    roads: [
+      { kind: 'paved', cells: route([0, 6], [9, 6], [16, 5], [24, 6], [32, 6]), offStart: true, offEnd: true },
+      { kind: 'dirt', cells: route([16, 5], [16, 8], [15, 10]), offEnd: true },
+      { kind: 'dirt', cells: route([16, 5], [17, 2], [19, 0]), offEnd: true },
+      { kind: 'dirt', cells: route([24, 6], [28, 9], [29, 10]), offEnd: true },
+    ],
+    hills: [
+      { c: 7, k: 2, radii: [5, 2.6] },
+      { c: 19, k: 1, radii: [5.5, 3, 1.2] },
+      { c: 28, k: 2, radii: [3] },
+    ],
+    woods: [
+      { c: 30, k: 1, r: 2 },
+      { c: 2, k: 9, r: 1.8 },
+      { c: 11, k: 1, r: 1.2 },
+      { c: 23, k: 9, r: 1.3 },
+    ],
+    wheat: [
+      { c: 5, k: 7, r: 2.6 },
+      { c: 27, k: 4, r: 1.6 },
+      { c: 10, k: 9, r: 1.6 },
+      { c: 21, k: 8, r: 1.8 },
+    ],
+    villages: [
+      {
+        c: 16,
+        k: 6,
+        landmarks: [
+          { cells: [[13, 6], [14, 6], [13, 7]], ch: 'K', style: 'barn' },
+          { cells: [[18, 6], [18, 7]], ch: 'S', style: 'hall' },
+          { cells: [[14, 4], [15, 4]], ch: 'M', style: 'factory' },
+        ],
+        opts: { ...VILLAGE, landmarks: ['K', 'S', 'M'] },
+      },
+    ],
+    shellholes: [[9, 4], [20, 4], [25, 3], [12, 8], [4, 4], [29, 7]],
+    fieldHedges: 0.45,
+  });
+}
+
+/** Country 2: a rail halt at the foot of a three-level hill, fields and a wooded flank. */
+function country2(): AsciiBoardSpec {
+  return countryBoard({
+    id: 'D',
+    name: 'Station Hill',
+    seed: 4307,
+    roads: [
+      { kind: 'paved', cells: route([0, 5], [7, 4], [12, 5], [18, 7], [32, 7]), offStart: true, offEnd: true },
+      { kind: 'dirt', cells: route([12, 5], [12, 0]), offEnd: true },
+      { kind: 'dirt', cells: route([18, 7], [22, 4], [24, 2], [26, 0]), offEnd: true },
+      { kind: 'dirt', cells: route([7, 4], [6, 8], [5, 10]), offEnd: true },
+    ],
+    hills: [{ c: 24, k: 3, radii: [6.2, 4, 2] }],
+    woods: [
+      { c: 30, k: 3, r: 2.2 },
+      { c: 1, k: 1, r: 1.6 },
+      { c: 16, k: 1, r: 1.3 },
+    ],
+    wheat: [
+      { c: 4, k: 7, r: 2.4 },
+      { c: 15, k: 9, r: 2.4 },
+      { c: 8, k: 1, r: 1.8 },
+      { c: 27, k: 9, r: 1.8 },
+    ],
+    villages: [
+      {
+        c: 11,
+        k: 5,
+        landmarks: [
+          { cells: [[9, 6], [10, 6], [11, 7]], ch: 'R', style: 'hall' },
+          { cells: [[13, 4]], ch: 'W', style: 'block' },
+          { cells: [[8, 3], [9, 3]], ch: 'G', style: 'factory' },
+        ],
+        opts: { ...VILLAGE, landmarks: ['R', 'W', 'G'], stone: 0.3 },
+      },
+      {
+        c: 24,
+        k: 3,
+        landmarks: [{ cells: [[24, 3], [25, 3]], ch: 'F', style: 'house' }],
+        opts: { ...VILLAGE, landmarks: ['F'], minDensity: 0, infillRadius: 0, gardens: 0.5 },
+      },
+    ],
+    shellholes: [[20, 4], [22, 6], [26, 5], [19, 2], [17, 5], [28, 6], [23, 1]],
+    fieldHedges: 0.3,
+  });
+}
+
+/** Country 3: forest and a cliff-edged plateau in the west, a church village in the east. */
+function country3(): AsciiBoardSpec {
+  return countryBoard({
+    id: 'E',
+    name: 'Forest Edge',
+    seed: 4313,
+    roads: [
+      { kind: 'dirt', cells: route([0, 7], [8, 7], [14, 5], [22, 5], [32, 4]), offStart: true, offEnd: true },
+      { kind: 'dirt', cells: route([22, 5], [23, 10]), offEnd: true },
+      { kind: 'dirt', cells: route([14, 5], [13, 0]), offEnd: true },
+    ],
+    hills: [
+      { c: 5, k: 2, radii: [4.2, 3.6] },
+      { c: 18, k: 9, radii: [3] },
+    ],
+    woods: [
+      { c: 3, k: 3, r: 2.4 },
+      { c: 9, k: 1, r: 2 },
+      { c: 2, k: 9, r: 2 },
+      { c: 30, k: 9, r: 1.5 },
+    ],
+    wheat: [
+      { c: 16, k: 2, r: 2.2 },
+      { c: 11, k: 9, r: 1.8 },
+      { c: 29, k: 1, r: 2 },
+    ],
+    villages: [
+      {
+        c: 25,
+        k: 5,
+        landmarks: [
+          { cells: [[25, 6], [26, 6], [26, 7]], ch: 'C', style: 'church' },
+          { cells: [[27, 4]], ch: 'P', style: 'hall' },
+        ],
+        opts: { ...VILLAGE, landmarks: ['C', 'P'], stone: 0.3, falloff: 0.16 },
+      },
+    ],
+    shellholes: [[12, 6], [16, 6], [19, 4]],
+    fieldHedges: 0.5,
+  });
+}
+
 const outDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'boards');
-for (const spec of [cityA(), cityB()]) {
+for (const spec of [cityA(), cityB(), country1(), country2(), country3()]) {
   const board = parseBoard(buildBoard(spec));
   for (const issue of lintBoard(board)) console.warn(`${board.id} ${issue.where}: ${issue.message}`);
   writeFileSync(join(outDir, `${board.id}.json`), JSON.stringify(board, null, 1) + '\n');

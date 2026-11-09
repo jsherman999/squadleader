@@ -176,5 +176,5 @@ export function doRout(ctx: Ctx, s: GameState, unitId: string, to: HexKey | unde
 
 /** Broken units of a side that still have to rout. */
 export function pendingRouts(ctx: Ctx, s: GameState, side: string): Unit[] {
-  return allUnits(s, side).filter((u) => mustRout(ctx, s, u));
+  return allUnits(s, side).filter((u) => !u.riding && mustRout(ctx, s, u));
 }

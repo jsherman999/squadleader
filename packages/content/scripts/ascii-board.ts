@@ -60,6 +60,8 @@ export interface AsciiBoardSpec {
   walls?: string[];
   hedges?: string[];
   cliffs?: string[];
+  /** Optional elevation grid (11 rows × 33 chars, '0'–'3' or '.'), applied on top of any terrain. */
+  levels?: string[];
   sewers?: string[];
   roads?: RoadSpec[];
   styles?: Record<string, 'house' | 'barn' | 'block' | 'factory' | 'church' | 'hall'>;
@@ -111,6 +113,8 @@ export function buildBoard(spec: AsciiBoardSpec): BoardDef {
         h.t = 'stoneBuilding';
         h.b = buildingIds.get(`${c},${k}`)!;
       } else if (x !== '.' && x !== '=') throw new Error(`${spec.id}: unknown char '${x}' at ${id}`);
+      const lv = spec.levels?.[k]?.[c];
+      if (lv && lv >= '1' && lv <= '3') h.lv = Number(lv);
       if (Object.keys(h).length) hexes[id] = h;
     }
   }

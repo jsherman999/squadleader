@@ -5,7 +5,7 @@
  * dice are rolled; it also powers the fire calculator and odds preview.
  * resolveFire() rolls, checks breakdown and applies the results.
  */
-import { hexDistance, hexKey, hexToPixel, hexesInRange, parseHexKey, type HexKey } from '@squadwar/hex';
+import { hexDistance, hexKey, hexToPixel, hexesInRange, neighbor as neighborOf, hexsideKey as hexsideKeyOf, parseHexKey, type HexKey } from '@squadwar/hex';
 import { checkLos } from '@squadwar/los';
 import type { Ctx } from '../ctx';
 import { losFrom } from '../ctx';
@@ -28,7 +28,8 @@ import {
 import { RuleError, type FireUnit, type GameState, type Phase, type SideId, type Unit } from '../types';
 import { applyHexResults } from './morale';
 import { canOperateSpecial, reveal, smokeOnLine } from './special';
-import { chargeVsVehicles, fireOnExposedCrews } from './armor';
+import { chargeVsVehicles, fireOnExposedCrews, inArc, mgVsHalftracks } from './armor';
+import { nightSight, noteFlash } from './night';
 import type { Emit } from './common';
 
 export interface FireContribution {
@@ -111,6 +112,11 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     if (phase === 'prepFire' && u.berserk) throw new RuleError('Berserk units may not Prep Fire', '§18.42');
     if (phase === 'advancingFire' && u.firedPhase === 'prepFire') throw new RuleError('Units that Prep Fired may not fire again', '§4.5');
     if (!f.inherent && !f.weapons.length) throw new RuleError(`${unitLabel(ctx, u)} fires nothing`);
+    if (u.riding) {
+      const kind = ctx.data.vehicles[s.vehicles[u.riding]?.type ?? '']?.kind;
+      if (kind !== 'halftrack') throw new RuleError('Riders on a tank or SP gun cannot fire', '§31.5');
+      if (f.weapons.some((id) => s.weapons[id] && weaponType(ctx, s.weapons[id]!).kind !== 'LMG')) throw new RuleError('From a halftrack only inherent fire and LMGs', '§47.4');
+    }
     const st = squadType(ctx, u);
     const lt = leaderType(ctx, u);
     if (f.inherent) {
@@ -157,16 +163,23 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
         fp /= 2;
         notes.push('½ leader manning MG (§17.3)');
       }
-      if (r <= 1) {
+      if (r === 1 && downCliff(ctx, u.hex, target)) {
+        fp *= 3;
+        notes.push('×3 point blank down a cliff (§44.1)');
+      } else if (r <= 1) {
         fp *= 2;
         notes.push(r === 0 ? '×2 point blank, same hex (§27.7)' : '×2 point blank (§9.1)');
       } else if (r > printedRange) {
         fp /= 2;
         notes.push(`½ long range ${r} > ${printedRange} (§9.2)`);
       }
+      const ride = u.riding ? s.vehicles[u.riding] : undefined;
       if (phase === 'advancingFire' && u.moved) {
         fp /= 2;
         notes.push('½ moving fire (§9.3)');
+      } else if (ride?.moved) {
+        fp /= 2;
+        notes.push('½ the halftrack moved (§47.5)');
       }
       contributions.push({ unit: u.id, ...(weapon ? { weapon } : {}), hex: u.hex, base, fp, notes });
     };
@@ -201,6 +214,7 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     if (h === target) continue;
     const l = ctx.los(h, target);
     if (!l.clear) throw new RuleError(`No line of sight from ${hexLabel(ctx, h)}: ${l.reason}`, '§7');
+    if (ctx.scenario.night && nightSight(ctx, s, h, target) === 'none') throw new RuleError(`Too dark: ${hexLabel(ctx, target)} is beyond this turn's night visibility (${s.nightVis ?? '?'} hexes) and not lit or flashing`, '§49.1');
   }
 
   const flamethrower = contributions.some((c) => c.weapon && weaponType(ctx, s.weapons[c.weapon]!).kind === 'FT');
@@ -281,6 +295,17 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
   };
 }
 
+/** A drop of a cliff hexside from a higher firer to an adjacent target (§44.1). */
+function downCliff(ctx: Ctx, from: HexKey, to: HexKey): boolean {
+  const a = ctx.map.hexes[from];
+  const b = ctx.map.hexes[to];
+  if (!a || !b || a.level <= b.level) return false;
+  for (const d of [0, 1, 2, 3, 4, 5] as const) {
+    if (hexKey(neighborOf(a.hex, d)) === to) return !!ctx.map.hexsides[hexsideKeyOf(a.hex, d)]?.cliff;
+  }
+  return false;
+}
+
 function fmtFp(x: number): string {
   return Number.isInteger(x) ? String(x) : x.toFixed(2).replace(/0+$/, '');
 }
@@ -318,6 +343,8 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
     }
   }
   const units: TargetUnit[] = [];
+  // At night, a target seen only by its gun flashes is area fire (§49.2).
+  const nightArea = !!ctx.scenario.night && firerHexes.length > 0 && firerHexes.every((f) => nightSight(ctx, s, f, hex) === 'flash');
   // A vehicle or wreck in the hex just before the target acts like a wall (§32.3); vehicles that just moved don't (§32.6).
   const screened = firerHexes.every((f) => {
     const hs = losFrom(ctx, f, hex).hexes;
@@ -335,7 +362,17 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
   // A flamethrower in the target hex draws fire: −1 (§22.7).
   const ftHere = unitsIn(s, hex).some((u) => carried(s, u).some((w) => weaponType(ctx, w).kind === 'FT'));
   for (const u of affected.values()) {
-    const area = u.concealed && !(tracked.has(u.id) && !u.concealed);
+    // Riders: halftracks shield them unless they fired or the firer is adjacent and higher (§47.6–47.8); on tanks +2 through the arc (§32.1).
+    const ride = u.riding ? s.vehicles[u.riding] : undefined;
+    if (ride) {
+      const kind = ctx.data.vehicles[ride.type]?.kind;
+      const above = firerHexes.some((f) => hexDistance(parseHexKey(f), parseHexKey(hex)) === 1 && (ctx.map.hexes[f]?.level ?? 0) > (ctx.map.hexes[hex]?.level ?? 0));
+      if (kind === 'halftrack' && !u.exposed && !above) continue;
+      const shield = kind === 'halftrack' ? !above : firerHexes.every((f) => inArc(ride.hex, ride.facing, f));
+      units.push({ unit: u.id, drm: shield ? 2 : 0, notes: [shield ? (kind === 'halftrack' ? '+2 behind the halftrack’s armour (§47.7)' : '+2 riding, fired on through the covered arc (§32.1)') : 'riding: no cover'] });
+      continue;
+    }
+    const area = ((u.concealed || u.hidden) && !(tracked.has(u.id) && !u.concealed)) || nightArea;
     if (flamethrower) {
       units.push({ unit: u.id, drm: 0, notes: ['no modifiers for flamethrowers (§22.2)'], ...(area ? { area } : {}) });
       continue;
@@ -355,6 +392,13 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
     if (shelter(u)) {
       drm += 1;
       notes.push('+1 beside an AFV or wreck (§32.5)');
+    }
+    // AT gun shields protect their crews from fire through the covered arc (§48).
+    const gun = ctx.data.units[u.type]?.kind === 'crew' ? Object.values(s.vehicles).find((g) => g.hex === hex && g.side === u.side && ctx.data.vehicles[g.type]?.kind === 'gun') : undefined;
+    if (gun && firerHexes.every((f) => inArc(gun.hex, gun.facing, f))) {
+      const sh = ctx.data.vehicles[gun.type]!.shield ?? 2;
+      drm += sh;
+      notes.push(`+${sh} gun shield (§48)`);
     }
     if (sideDrm) notes.push(sideNote);
     if (leaderDrm) notes.push(`${leaderDrm > 0 ? '+' : ''}${leaderDrm} leader`);
@@ -440,6 +484,8 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     const u = s.units[f.unit]!;
     // Two big MGs forfeit the squad's own fire for the turn (§17.2).
     if (!f.inherent && f.weapons.length === 2) u.usedInherent = true;
+    // Firing from a halftrack exposes the riders (§47.7).
+    if (u.riding) u.exposed = true;
   }
   if (leaderId) {
     const L = s.units[leaderId]!;
@@ -447,6 +493,7 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     L.firedPhase = s.phase;
   }
   for (const h of a.firerHexes) s.attacks.push(`${h}>${target}`);
+  for (const h of a.firerHexes) noteFlash(s, h);
 
   // Smoke: one die after the fire roll (§24.6–24.7).
   const smokeDie = a.smoke ? d6(s) : 0;
@@ -506,6 +553,9 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
 
   // Crews riding exposed get shot at too (§34.8).
   if (!a.flamethrower) fireOnExposedCrews(ctx, s, target, a.side, a.column, dr + smokeDie, emit);
+  // MMGs and HMGs in normal range hit halftracks automatically and roll to kill (§47.6).
+  const heavy = a.contributions.some((c) => c.weapon && ['MMG', 'HMG'].includes(weaponType(ctx, s.weapons[c.weapon]!).kind) && hexDistance(parseHexKey(c.hex), parseHexKey(target)) <= weaponType(ctx, s.weapons[c.weapon]!).range);
+  if (heavy) mgVsHalftracks(ctx, s, target, a.side, a.firerHexes[0]!, dr, emit);
   // Desperation morale marker for everyone fired on (§14.6).
   if (a.column >= 0) for (const o of outcomes) for (const r of o.results) if (s.units[r.unit]) s.units[r.unit]!.dm = true;
   for (const o of outcomes) {

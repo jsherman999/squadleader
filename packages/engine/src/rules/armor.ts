@@ -16,6 +16,8 @@ import { eliminate } from './common';
 import { iftLookup, resultText, targetUnits } from './fire';
 import { applyHexResults, moraleOf } from './morale';
 import { canOperateSpecial, reveal, smokeAt, smokeOnLine } from './special';
+import { nightSight, noteFlash } from './night';
+import { carryRiders, dismountAll, gunCrew } from './transport';
 
 export const FACING_NAMES = ['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N'] as const;
 
@@ -129,6 +131,9 @@ export function vehicleStepCost(ctx: Ctx, s: GameState, v: Vehicle, to: HexKey):
   if (side?.cliff) return { mp: Infinity, parts: ['cliff hexside'], risk: false };
   if (b.terrain === 'water') return { mp: Infinity, parts: ['water'], risk: false };
   if (b.terrain === 'stoneBuilding') return { mp: Infinity, parts: ['stone building (§30.1)'], risk: false };
+  const kind = vehicleType(ctx, v).kind;
+  if (kind === 'gun') return { mp: Infinity, parts: ['AT guns are pushed by their crew (§48.4)'], risk: false };
+  if (kind === 'halftrack' && (b.terrain === 'woods' || b.terrain === 'woodBuilding')) return { mp: Infinity, parts: ['halftracks may not enter woods or buildings (§30 chart)'], risk: false };
   const parts: string[] = [];
   const blockers = vehiclesIn(s, to).filter((x) => x.id !== v.id);
   const wrecks = wrecksIn(s, to);
@@ -205,6 +210,7 @@ export function vehicleMove(ctx: Ctx, s: GameState, id: string, to: HexKey, emit
   // Facing after entering: the hex moved into stays in the covered arc, turned the least.
   if (!inArc(from, v.facing, to)) v.facing = d;
   (s.vtracks[v.id] ??= [from]).push(to);
+  carryRiders(s, v);
   emit({
     kind: 'move',
     text: `${vehicleLabel(ctx, v)} ${hexLabel(ctx, from)} → ${hexLabel(ctx, to)} (${cost.parts.join(', ')}; ${v.mpSpent}/${vehicleType(ctx, v).mp} MP${firstHex && v.mpSpent > vehicleType(ctx, v).mp ? ', one hex always allowed (§30.3)' : ''})`,
@@ -216,7 +222,13 @@ export function vehicleMove(ctx: Ctx, s: GameState, id: string, to: HexKey, emit
   if (cost.risk) breakdownRoll(ctx, s, v, emit);
   if (!s.vehicles[v.id]) return;
   const foes = enemiesIn(s, to, v.side);
-  if (foes.length && !v.overran) overrun(ctx, s, v, emit);
+  // An overrun wrecks any AT gun in the hex (§48.64).
+  const guns = enemyVehiclesIn(s, to, v.side).filter((x) => vehicleType(ctx, x).kind === 'gun');
+  if ((foes.length || guns.length) && !v.overran && vehicleType(ctx, v).kind !== 'halftrack') {
+    for (const gun of guns) destroyVehicle(ctx, s, gun, `overrun by ${vehicleLabel(ctx, v)}`, emit, 'none');
+    if (foes.length) overrun(ctx, s, v, emit);
+    else v.overran = true;
+  } else if (foes.length && !v.overran && vehicleType(ctx, v).mg360 > 0) overrun(ctx, s, v, emit);
   if (s.vehicles[v.id] && mpLeft(ctx, s.vehicles[v.id]!) <= 0) s.vehicles[v.id]!.moveDone = true;
 }
 
@@ -244,6 +256,16 @@ export function faceVehicle(ctx: Ctx, s: GameState, id: string, facing: number, 
     v.facing = facing;
     v.dfPivot = true;
     emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} pivots to ${FACING_NAMES[facing]} (+4 to hit this phase, case I)`, side: v.side, hexes: [v.hex] });
+    return;
+  }
+  if (t.kind === 'gun') {
+    // The crew turns its gun in the Movement Phase: +3 to hit in Advancing Fire, like a pivoting SP gun (§48.5).
+    if (s.phase !== 'movement' || v.side !== s.phasing || s.awaiting !== s.phasing) throw new RuleError('Guns are turned in the Movement Phase or Defensive Fire', '§48.5');
+    const crew = gunCrew(ctx, s, v);
+    if (!crew || crew.mfSpent > 0) throw new RuleError('Its crew must be with it and not have moved', '§48.5');
+    v.facing = facing;
+    v.pivoted = true;
+    emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} is turned to face ${FACING_NAMES[facing]} (§48.5)`, side: v.side, hexes: [v.hex], fx: { vehicles: [v.id] } });
     return;
   }
   checkVehicleTurn(ctx, s, v);
@@ -300,11 +322,14 @@ export function destroyVehicle(ctx: Ctx, s: GameState, v: Vehicle, reason: strin
   const t = vehicleType(ctx, v);
   delete s.vehicles[v.id];
   delete s.vtracks[v.id];
-  s.wrecks.push({ hex: v.hex, type: v.type, side: v.side });
+  if (t.kind !== 'gun') s.wrecks.push({ hex: v.hex, type: v.type, side: v.side });
+  // Riders go down with it (§31.8, §47.3).
+  for (const u of Object.values(s.units)) if (u.riding === v.id) eliminate(ctx, s, u, `aboard ${vehicleLabel(ctx, v)} when it was destroyed (§31.8)`, emit);
   s.afvAssaults = s.afvAssaults.filter((x) => x.vehicle !== v.id);
   const loss = (s.losses[v.side] ??= { squads: 0, leaders: 0 });
   loss.vehicles = (loss.vehicles ?? 0) + 1;
-  emit({ kind: 'eliminated', text: `${vehicleLabel(ctx, v)} in ${hexLabel(ctx, v.hex)} ${crew === 'abandon' ? 'is abandoned' : 'is destroyed'}: ${reason}`, side: v.side, hexes: [v.hex], fx: { vehicle: v.id, wreck: true } });
+  emit({ kind: 'eliminated', text: `${vehicleLabel(ctx, v)} in ${hexLabel(ctx, v.hex)} ${crew === 'abandon' ? 'is abandoned' : 'is destroyed'}: ${reason}`, side: v.side, hexes: [v.hex], fx: { vehicle: v.id, wreck: t.kind !== 'gun' } });
+  if (t.kind === 'gun') return;
   let survive = crew === 'abandon';
   if (crew === 'roll') {
     const [a, b] = roll2d6(s);
@@ -348,7 +373,7 @@ function overrun(ctx: Ctx, s: GameState, v: Vehicle, emit: Emit): void {
   v.overran = true;
   const lost = (v.gun !== 'ok' ? 1 : 0) + (v.mg !== 'ok' || t.mgCA + t.mg360 === 0 ? 1 : 0);
   if (lost >= 2 && t.gun) return;
-  const base = ctx.data.armor.overrun.tank ?? 16;
+  const base = t.kind === 'halftrack' ? (ctx.data.armor.overrun.halftrack ?? 8) : (ctx.data.armor.overrun.tank ?? 16);
   const fp = lost ? base / 2 : base;
   const [d1, d2] = roll2d6(s);
   const dr = d1 + d2;
@@ -530,6 +555,8 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   const r = range(v.hex, req.target);
   if (r > 0 && !ctx.los(v.hex, req.target).clear) throw new RuleError(`No line of sight: ${ctx.los(v.hex, req.target).reason}`, '§7');
   const smoke = r > 0 && smokeOnLine(ctx, s, v.hex, req.target);
+  const sight = nightSight(ctx, s, v.hex, req.target, !!req.vs && !!s.vehicles[req.vs]?.moved);
+  if (sight === 'none') throw new RuleError(`Too dark: beyond this turn's night visibility (${s.nightVis ?? '?'} hexes)`, '§49.1');
   const trace: string[] = [];
   const dfMoving = (hex: HexKey) => s.phase === 'defensiveFire' && Object.entries(s.tracks).some(([id, steps]) => s.units[id] && s.units[id]!.side !== v.side && steps.some((st) => st.hex === hex));
   const infantryHere = () => {
@@ -537,6 +564,7 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
     if (!there.units.some((x) => s.units[x.unit]?.side !== v.side)) throw new RuleError('No enemy infantry there (pick a vehicle to shoot at instead)');
     return there.units;
   };
+  if (t.kind === 'gun' && !gunCrew(ctx, s, v)) throw new RuleError('Only its crew can fire an AT gun', '§48.8');
   if (req.weapon === 'main') {
     if (!t.gun) throw new RuleError(`${t.name} has no main gun`);
     if (v.gun !== 'ok') throw new RuleError(`The main gun is ${v.gun}`, '§38.1');
@@ -571,6 +599,15 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
       const tv = s.vehicles[req.vs];
       if (!tv || tv.hex !== req.target || tv.side === v.side) throw new RuleError('No such enemy vehicle there');
       const tt = vehicleType(ctx, tv);
+      if (tt.kind === 'gun') {
+        // AT guns: their own To Hit row, no terrain; any hit of 37mm or more destroys them (§48.1–48.2).
+        const hitNumber = ctx.data.armor.toHit.rows.atGun![band]![russian]!;
+        const hitDrm = drms.reduce((a, x) => a + x.n, 0);
+        trace.push(`${t.name} at ${vehicleLabel(ctx, tv)}, range ${r}: AT gun row, To Hit ${hitNumber} (§48.2)`);
+        for (const x of drms) trace.push(`${x.n > 0 ? '+' : ''}${x.n} ${x.why}`);
+        trace.push(t.gun >= 37 ? 'A hit destroys the gun (§48.1); HE also hits the crew' : 'Under 37mm: a hit leaves the gun intact (§48.1)');
+        return { vehicle: v.id, side: v.side, target: req.target, weapon: 'main', range: r, trace, smoke, hitNumber, hitDrm, targetType: 'atGun', vs: tv.id, ammo: t.heOnly ? 'HE' : (req.ammo ?? 'HE'), aspect: 'front', kill: t.gun >= 37 ? 99 : -99, killDrm: 0, killColumn: 'auto', ...(turnTo !== undefined ? { turnTo } : {}) };
+      }
       if (s.phase === 'defensiveFire' && tv.moved) drms.push({ n: D.moving!, why: 'moving target (case A)' });
       const ammo = t.heOnly ? 'HE' : (req.ammo ?? 'AP');
       if (t.heOnly && req.ammo === 'AP') throw new RuleError(`${t.name} fires HE only`, '§33.6');
@@ -677,6 +714,15 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   const v = s.vehicles[req.vehicle]!;
   const t = vehicleType(ctx, v);
   v.firedPhase ??= s.phase;
+  noteFlash(s, v.hex);
+  if (t.kind === 'gun') {
+    const crew = gunCrew(ctx, s, v);
+    if (crew) {
+      crew.firedPhase = s.phase;
+      crew.usedInherent = true;
+    }
+  }
+  dismountAll(ctx, s, v, 'it fired', emit);
   if (a.turnTo !== undefined) v.facing = a.turnTo;
   const trace = [...a.trace];
   const shooter = { hex: v.hex, kind: a.weapon === 'main' ? 'GUN' : 'VMG', unit: v.id };
@@ -711,7 +757,10 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
       outcomes.push({ hex: req.target, penetration: false, results: [{ unit: tv.id, result: kill ? 'KIA' : '-' }] });
       emit({ kind: 'fire', text, trace, side: v.side, dice, from: v.hex, to: req.target, hexes: [req.target], fx: { firerHexes: [v.hex], targets: [req.target], kinds: ['GUN'], shooters: [shooter], outcomes, hit, kill, vs: tv.id } });
       if (kill) destroyVehicle(ctx, s, tv, `${t.gun}mm ${a.ammo} from ${vehicleLabel(ctx, v)}`, emit, 'roll');
-      else if (tv.immobilized) crewCheck(ctx, s, tv, 'hit while immobilized', emit);
+      else {
+        dismountAll(ctx, s, tv, 'it was hit', emit);
+        if (tv.immobilized) crewCheck(ctx, s, tv, 'hit while immobilized', emit);
+      }
       afterMain(ctx, s, v, raw, emit);
       return;
     } else {
@@ -852,6 +901,7 @@ export function analyzeAntiTank(ctx: Ctx, s: GameState, ids: readonly string[], 
   if (u.firedPhase && u.firedPhase !== s.phase) throw new RuleError('All of a unit’s fire is in one phase', 'Q&A 8.2');
   const kind = weaponType(ctx, w).kind;
   if (r > 0 && !ctx.los(hex, v.hex).clear) throw new RuleError('No line of sight', '§7');
+  if (nightSight(ctx, s, hex, v.hex, v.moved) === 'none') throw new RuleError('Too dark to see it', '§49.1');
   const aspect = hitAspect(v, hex);
   if (kind === 'FT') {
     if (!canOperateSpecial(ctx, u)) throw new RuleError('Only assault engineers or −2/−3 leaders operate a flamethrower', '§22.4');
@@ -1050,6 +1100,7 @@ export function resolveAfvAssaults(ctx: Ctx, s: GameState, emit: Emit): void {
 export function vehicleRepair(ctx: Ctx, s: GameState, id: string, emit: Emit): void {
   const v = s.vehicles[id];
   if (!v || v.side !== s.awaiting || s.phase !== 'rally') throw new RuleError('Repairs are made in your Rally Phase', '§38.1');
+  if (vehicleType(ctx, v).kind === 'gun' && !gunCrew(ctx, s, v)) throw new RuleError('An unbroken crew must be with the gun to repair it', '§48.3');
   if (v.repairTried) throw new RuleError('Already tried this Rally Phase');
   if (v.gun !== 'malfunctioned' && v.mg !== 'malfunctioned') throw new RuleError('Nothing to repair');
   v.repairTried = true;
@@ -1097,6 +1148,7 @@ export function resetVehicles(s: GameState): void {
 /** End of a fire phase: crews exposed to the side that just fired are buttoned up again (§34.8); phase-scoped markers clear. */
 export function endFirePhase(s: GameState, phase: Phase): void {
   const firing = phase === 'defensiveFire' ? s.sides.find((x) => x.id !== s.phasing)!.id : s.phasing;
+  for (const u of Object.values(s.units)) if (u.exposed && u.side !== firing && u.firedPhase !== phase) u.exposed = false;
   for (const v of Object.values(s.vehicles)) {
     v.mainTarget = null;
     if (v.ce && v.side !== firing) v.ce = false;
@@ -1111,6 +1163,19 @@ export function fireOnExposedCrews(ctx: Ctx, s: GameState, hex: HexKey, side: Si
     const res = iftLookup(ctx, column, dr + 2);
     emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} has its crew exposed: ${dr} +2 → ${resultText(res)}${res === 'KIA' ? '' : ' (only a KIA counts, §34.8)'}`, side, hexes: [hex] });
     if (res === 'KIA') crewCheck(ctx, s, v, 'crew hit while exposed', emit);
+  }
+}
+
+/** MMG/HMG fire on a halftrack: the MG column of the AFV Kill Table with the same roll (§47.6). */
+export function mgVsHalftracks(ctx: Ctx, s: GameState, hex: HexKey, side: SideId, from: HexKey, dr: number, emit: Emit): void {
+  for (const v of enemyVehiclesIn(s, hex, side)) {
+    const t = vehicleType(ctx, v);
+    if (t.kind !== 'halftrack') continue;
+    const aspect = hitAspect(v, from);
+    const k = killNumber(ctx, 'MG', aspect);
+    const kill = dr + t.armor <= k;
+    emit({ kind: 'info', text: `Machine guns rake ${vehicleLabel(ctx, v)} (${aspect}): ${dr} ${t.armor} vs ${k}: ${kill ? 'knocked out' : 'it holds'} (§47.6)`, side, hexes: [hex] });
+    if (kill) destroyVehicle(ctx, s, v, 'machine-gun fire', emit, 'roll');
   }
 }
 

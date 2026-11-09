@@ -1,0 +1,16 @@
+{
+  "module": {
+    "german": [80, 80, 80, 100, 120, 150],
+    "russian": [70, 80, 80, 120, 120, 150],
+    "american": [80, 80, 100, 100, 150, 150]
+  },
+  "contact": {
+    "german": [[1939, 7]],
+    "american": [[1939, 9]],
+    "russian": [[1941, 5], [1942, 6], [1943, 7]]
+  },
+  "maintain": -2,
+  "onTarget": { "german": 2, "american": 2, "russian": 1 },
+  "correction": 3,
+  "vehicles": { "nonArmored": -3, "openTop": -1, "tank": 1, "spg": 2 }
+}

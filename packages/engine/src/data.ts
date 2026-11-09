@@ -43,7 +43,7 @@ export const WeaponTypeSchema = z
   .object({
     id: z.string(),
     nation: Nation,
-    kind: z.enum(['LMG', 'MMG', 'HMG', 'FT', 'DC', 'PF', 'BAZ']),
+    kind: z.enum(['LMG', 'MMG', 'HMG', 'FT', 'DC', 'PF', 'BAZ', 'RADIO']),
     name: z.string(),
     fp: z.number(),
     range: z.number().int(),
@@ -63,7 +63,7 @@ export const VehicleTypeSchema = z
   .object({
     id: z.string(),
     nation: Nation,
-    kind: z.enum(['tank', 'spg']),
+    kind: z.enum(['tank', 'spg', 'halftrack', 'gun']),
     name: z.string(),
     /** Movement points (§28.1). */
     mp: z.number(),
@@ -88,6 +88,8 @@ export const VehicleTypeSchema = z
     rof: z.number().int().optional(),
     /** German smoke dischargers (§41.4). */
     smokeDischarger: z.boolean().optional(),
+    /** AT gun crew protection, added to attacks on the crew through the covered arc (§48). */
+    shield: z.number().int().optional(),
   })
   .strict();
 export type VehicleType = z.infer<typeof VehicleTypeSchema>;
@@ -116,9 +118,27 @@ export const ArmorTablesSchema = z
     panzerfaust: z.object({ range: z.number().int(), toHit: z.array(Pair) }).strict(),
     bazooka: z.object({ range: z.number().int(), toHit: z.array(Pair), outOfAmmo: z.number().int() }).strict(),
     mgRange: z.number().int(),
+    /** Riders per vehicle (§31.1). */
+    capacity: z.object({ units: z.number().int(), squads: z.number().int() }).strict(),
   })
   .strict();
 export type ArmorTables = z.infer<typeof ArmorTablesSchema>;
+
+export const ArtilleryTablesSchema = z
+  .object({
+    /** Calibre per die roll 1–6, by nation (§45.2). */
+    module: z.record(z.string(), z.array(z.number())),
+    /** Radio contact number by nation, as [from year, value] (§46.11). */
+    contact: z.record(z.string(), z.array(z.tuple([z.number(), z.number()]))),
+    maintain: z.number(),
+    /** Initial spotting round lands on target at or under (§46.21). */
+    onTarget: z.record(z.string(), z.number()),
+    correction: z.number(),
+    /** Artillery barrage vs. vehicles (§46.54). */
+    vehicles: z.record(z.string(), z.number()),
+  })
+  .strict();
+export type ArtilleryTables = z.infer<typeof ArtilleryTablesSchema>;
 
 const IftResult = z.union([z.literal('KIA'), z.literal('M'), z.literal('-'), z.number().int().min(1).max(4)]);
 export type IftResult = 'KIA' | 'M' | '-' | number;
@@ -186,6 +206,8 @@ const UnitEntry = z
     hex: z.string().optional(),
     names: z.array(z.string()).optional(),
     weapons: z.array(z.string()).optional(),
+    /** Hidden initial placement (§42). */
+    hidden: z.boolean().optional(),
     /** Vehicles: the covered arc, as its two hexsides, e.g. "N-NE" (§29.4). */
     facing: z.enum(['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N']).optional(),
   })
@@ -256,6 +278,13 @@ export const ScenarioSchema = z
     fanatic: z.array(z.object({ side: z.string(), building: z.string() }).strict()).optional(),
     /** Sewer movement allowed (§27). */
     sewers: z.boolean().optional(),
+    /** Night scenario (§49), with starshells per side. */
+    night: z.boolean().optional(),
+    starshells: z.record(z.string(), z.number().int().min(0)).optional(),
+    /** Wheatfields in season (§44.24); defaults from the date (June–October). */
+    wheat: z.boolean().optional(),
+    /** Offboard artillery modules (§45): calibre and fire missions, rolled at the start when not given. */
+    artillery: z.array(z.object({ side: z.string(), mm: z.number().optional(), missions: z.number().int().optional() }).strict()).optional(),
   })
   .strict();
 export type Scenario = z.infer<typeof ScenarioSchema>;
@@ -266,9 +295,10 @@ export interface RulesData {
   readonly vehicles: Readonly<Record<string, VehicleType>>;
   readonly tables: Tables;
   readonly armor: ArmorTables;
+  readonly artillery: ArtilleryTables;
 }
 
-export function parseRulesData(raw: { units: unknown; weapons: unknown; tables: unknown; vehicles: unknown; armor: unknown }): RulesData {
+export function parseRulesData(raw: { units: unknown; weapons: unknown; tables: unknown; vehicles: unknown; armor: unknown; artillery: unknown }): RulesData {
   const units = z.array(UnitTypeSchema).parse(raw.units);
   const weapons = z.array(WeaponTypeSchema).parse(raw.weapons);
   const vehicles = z.array(VehicleTypeSchema).parse(raw.vehicles);
@@ -282,6 +312,7 @@ export function parseRulesData(raw: { units: unknown; weapons: unknown; tables: 
     vehicles: Object.fromEntries(vehicles.map((v) => [v.id, v])),
     tables,
     armor,
+    artillery: ArtilleryTablesSchema.parse(raw.artillery),
   };
 }
 

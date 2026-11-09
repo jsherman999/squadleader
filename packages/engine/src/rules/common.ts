@@ -21,6 +21,9 @@ export function eliminate(ctx: Ctx, s: GameState, u: Unit, reason: string, emit:
 export function breakUnit(ctx: Ctx, s: GameState, u: Unit, emit: Emit): void {
   const label = unitLabel(ctx, u);
   u.broken = true;
+  // Broken riders jump off a tank or SP gun; in a halftrack they may stay (§31.6, §47.9).
+  const ride = u.riding ? s.vehicles[u.riding] : undefined;
+  if (ride && ctx.data.vehicles[ride.type]?.kind !== 'halftrack') delete u.riding;
   const dropped = carried(s, u);
   for (const w of dropped) w.owner = null;
   u.weapons = [];

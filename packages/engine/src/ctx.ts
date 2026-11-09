@@ -16,8 +16,23 @@ export interface Ctx {
   los(from: HexKey, to: HexKey): LosResult;
 }
 
+/** Wheatfields stand from June to October (§44.24). */
+export function wheatInSeason(scenario: Scenario): boolean {
+  if (scenario.wheat !== undefined) return scenario.wheat;
+  const months = ['jun', 'jul', 'aug', 'sep', 'oct'];
+  const d = scenario.date.toLowerCase();
+  return months.some((m) => d.includes(m));
+}
+
 export function makeCtx(scenario: Scenario, data: RulesData, boards: Readonly<Record<string, BoardDef>>): Ctx {
-  const map = composeMap(scenario.layout, boards);
+  // Out of season, wheatfields are open ground (§44.24).
+  const season = wheatInSeason(scenario);
+  const used = season
+    ? boards
+    : Object.fromEntries(
+        Object.entries(boards).map(([k, b]) => [k, { ...b, hexes: Object.fromEntries(Object.entries(b.hexes).map(([id, h]) => [id, h.t === 'wheat' ? { ...h, t: undefined } : h])) }]),
+      );
+  const map = composeMap(scenario.layout, used as Readonly<Record<string, BoardDef>>);
   const zones: Record<SideId, Set<HexKey>> = {};
   for (const side of scenario.sides) {
     const set = new Set<HexKey>();
