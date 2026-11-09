@@ -7,7 +7,7 @@ import { DIRECTIONS, directionTo, hexKey, hexsideKey, neighbor, parseHexKey, typ
 import type { Ctx } from '../ctx';
 import { losFrom } from '../ctx';
 import { d6, roll2d6 } from '../rng';
-import { carried, enemiesIn, hexLabel, hexTem, isLeader, leaderDrmFor, leaderType, range, squadType, unitLabel } from '../queries';
+import { carried, enemiesIn, hexLabel, hexTem, isLeader, leaderDrmFor, leaderType, range, squadType, stackingProblem, unitLabel } from '../queries';
 import { RuleError, type Bunker, type Fortifications, type GameState, type Reserve, type SideId, type Unit, type Vehicle } from '../types';
 import type { Emit } from './common';
 import { eliminate } from './common';
@@ -20,12 +20,13 @@ import { crewCheck, destroyVehicle, iftColumn, immobilize, inArc, vehicleLabel, 
 
 export function setupFortifications(ctx: Ctx, s: GameState): void {
   const f = ctx.scenario.fortifications;
-  if (!f) return;
   const key = (id: string) => {
     const k = ctx.map.byId[id];
     if (!k) throw new Error(`${ctx.scenario.id}: bad fortification hex ${id}`);
     return k;
   };
+  if (ctx.scenario.rubble?.length) s.rubble = ctx.scenario.rubble.map(key);
+  if (!f) return;
   const side = (id: string) => {
     const [h, d] = id.split('/');
     const k = key(h!);
@@ -284,6 +285,8 @@ export function enterMap(ctx: Ctx, s: GameState, ids: readonly string[], hex: He
     s.units[u.id] = nu;
     for (const w of res.weapons.filter((x) => x.owner === u.id)) s.weapons[w.id] = { ...w, hex };
   }
+  const crowded = stackingProblem(ctx, s, hex, s.phasing);
+  if (crowded) throw new RuleError(crowded, '§6.1');
   const left = res.units.filter((u) => !ids.includes(u.id));
   s.reserves = (s.reserves ?? []).filter((r) => r !== res);
   if (left.length) s.reserves.push({ ...res, units: left, weapons: res.weapons.filter((w) => left.some((u) => u.id === w.owner)) });

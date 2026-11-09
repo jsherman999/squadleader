@@ -1,0 +1,241 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s12",
+  "title": "Twin Villages in the Snow",
+  "date": "December 1944",
+  "location": "Krinkelt",
+  "briefing": "The winter offensive has broken through the forest to the east. Two panzer grenadier companies with a pair of Panzer IVs come down the road into a snowbound farming village held by a thin American rifle company. The defenders have felled trees across the roads, one anti-tank gun and a mortar section; they must hold until the rest of the division gets back behind them.",
+  "rulesLevel": 63,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "us",
+  "moveFirst": "ger",
+  "snow": true,
+  "concealment": {
+    "us": 3
+  },
+  "smoke": {
+    "ger": 2
+  },
+  "fortifications": {
+    "roadblocks": [
+      "C-W7/NE",
+      "C-R3/N",
+      "C-Q8/S"
+    ]
+  },
+  "sides": [
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up first, anywhere in columns J–X. The mortar fires at targets 10 or more hexes away: directly where its crew can see, or on a spot called by Lieutenant Garner over his radio (§63).",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "J",
+            "X"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "C-S7",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "C-S7",
+          "weapons": [
+            "us-radio"
+          ],
+          "names": [
+            "Lt. Garner"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-Q3",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-O5",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-L81",
+          "hex": "C-O5",
+          "names": [
+            "Sgt. Doyle"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-O7"
+        },
+        {
+          "type": "us-666",
+          "hex": "C-U6"
+        },
+        {
+          "type": "us-57at",
+          "hex": "C-T7",
+          "facing": "NE-SE",
+          "hidden": true
+        },
+        {
+          "type": "us-246",
+          "hex": "C-T7",
+          "hidden": true
+        },
+        {
+          "type": "us-mortar81",
+          "hex": "C-K4"
+        },
+        {
+          "type": "us-246",
+          "hex": "C-K4"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns BB–GG. Moves first.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "BB",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "C-CC7",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-CC7"
+        },
+        {
+          "type": "ger-L102",
+          "hex": "C-CC7",
+          "names": [
+            "Hptm. Wendt"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-DD3",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-DD3"
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-DD3",
+          "names": [
+            "Lt. Sauer"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-BB9",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "C-BB9",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-BB9",
+          "names": [
+            "Fw. Kranz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-EE6"
+        },
+        {
+          "type": "ger-pz4f2",
+          "hex": "C-DD7",
+          "names": [
+            "Dora"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-pz4f2",
+          "hex": "C-EE8",
+          "names": [
+            "Emil"
+          ],
+          "facing": "SW-NW"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 8, they control at least three of the four farm buildings (barn, school, mill, farmhouse). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Americans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "C-O7",
+          "name": "Barn"
+        },
+        {
+          "hex": "C-S7",
+          "name": "School"
+        },
+        {
+          "hex": "C-O5",
+          "name": "Mill"
+        },
+        {
+          "hex": "C-Q3",
+          "name": "Farmhouse"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–63: the full Game Set III, adding snow (§61), roadblocks (§62) and on-board artillery (§63).",
+    "Snow: movement costs double except along roads, and minefields attack at +1 (§61).",
+    "Roadblocks of felled trees close the roads at W7/X6, R3/R2 and Q8/Q9 (§62)."
+  ]
+}

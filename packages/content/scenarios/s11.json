@@ -1,0 +1,301 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s11",
+  "title": "Boats on the Waal",
+  "date": "September 1944",
+  "location": "Nijmegen",
+  "briefing": "The bridges must be taken from both ends. A parachute battalion paddles across the river in canvas assault boats under the guns of the far bank, lands in the morning mist and goes straight for the railway village that guards the bridge approach. However many boats reach the shore each turn, that is how many squads get ashore.",
+  "rulesLevel": 60,
+  "layout": [
+    {
+      "board": "D",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 3
+  },
+  "smoke": {
+    "us": 2
+  },
+  "landing": {
+    "side": "us",
+    "mist": [
+      "D-A9",
+      "D-A10",
+      "D-B8",
+      "D-B9",
+      "D-C9",
+      "D-C10",
+      "D-D8",
+      "D-D9",
+      "D-E9",
+      "D-E10",
+      "D-F8",
+      "D-F9",
+      "D-G9",
+      "D-G10",
+      "D-H8",
+      "D-H9",
+      "D-I9",
+      "D-I10",
+      "D-J8",
+      "D-J9",
+      "D-K9",
+      "D-K10",
+      "D-L8",
+      "D-L9",
+      "D-M9",
+      "D-M10",
+      "D-N8",
+      "D-N9",
+      "D-O9",
+      "D-O10",
+      "D-P8",
+      "D-P9",
+      "D-Q9",
+      "D-Q10",
+      "D-R8",
+      "D-R9",
+      "D-S9",
+      "D-S10",
+      "D-T8",
+      "D-T9",
+      "D-U9",
+      "D-U10",
+      "D-V8",
+      "D-V9",
+      "D-W9",
+      "D-W10",
+      "D-X8",
+      "D-X9",
+      "D-Y9",
+      "D-Y10",
+      "D-Z8",
+      "D-Z9",
+      "D-AA9",
+      "D-AA10",
+      "D-BB8",
+      "D-BB9",
+      "D-CC9",
+      "D-CC10",
+      "D-DD8",
+      "D-DD9",
+      "D-EE9",
+      "D-EE10",
+      "D-FF8",
+      "D-FF9",
+      "D-GG9",
+      "D-GG10"
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, in rows 1–7 of board D.",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            1,
+            7
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "D-J6",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "D-J6",
+          "names": [
+            "Oblt. Riedel"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-K6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-M7",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "D-M7",
+          "names": [
+            "Fw. Danner"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-N4"
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-I6"
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-O6",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "D-O6",
+          "names": [
+            "Uffz. Gast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "All American units start in the boats. In each Movement Phase they land along the south edge of the board and stop there; the boats carry 2d6 squads a turn (leaders are extra). The bank is misty until a 1 is rolled at the start of a turn (§60).",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            9,
+            10
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "weapons": [
+            "us-mmg"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-666",
+          "weapons": [
+            "us-baz"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-666",
+          "count": 6,
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-847",
+          "weapons": [
+            "us-dc"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L102",
+          "names": [
+            "Maj. Cook"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L91",
+          "names": [
+            "Lt. Sims"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L81",
+          "names": [
+            "Sgt. Muszynski"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "D",
+            "edge": "S"
+          }
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 7, they control at least three of the four village buildings (station, freight shed, inn, chapel). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "D-J6",
+          "name": "Station"
+        },
+        {
+          "hex": "D-K6",
+          "name": "Freight shed"
+        },
+        {
+          "hex": "D-M7",
+          "name": "Inn"
+        },
+        {
+          "hex": "D-N4",
+          "name": "Chapel"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–60: adds river crossings (§60). The Waal flows past the south edge of the board.",
+    "September: the wheatfields are still standing (§44.24)."
+  ]
+}

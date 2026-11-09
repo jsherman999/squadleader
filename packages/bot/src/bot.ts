@@ -43,7 +43,7 @@ import {
   type Unit,
 } from '@squadwar/engine';
 import { chanceAtMost, hexId, leaderNote, objectiveNear, pct, stackName, terrainNote, unitList, type Decision, type Rationale } from './explain';
-import { canOperateSpecial, isSewerEntrance } from '@squadwar/engine';
+import { canOperateSpecial, fortMoveCost, isSewerEntrance } from '@squadwar/engine';
 import { afvAssaultTarget, antiTankDecision, vehicleFireDecision, vehicleMoveDecision, vehicleRepairDecision } from './armor';
 import { artilleryDecision, starshellDecision } from './support';
 
@@ -83,7 +83,7 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
     case 'advancingFire':
       return detonateDecision(ctx, s, side) ?? antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.05) ?? fireDecision(ctx, s, side, 0.05, false);
     case 'movement':
-      return chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? vehicleMoveDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
+      return enterDecision(ctx, s, side) ?? chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? vehicleMoveDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
     case 'advance':
       return advanceDecision(ctx, s, side);
     default:
@@ -217,6 +217,31 @@ function sewerDecision(ctx: Ctx, s: GameState, side: string): Decision | undefin
         focus: { from: h, to: best.hex },
       },
     };
+  }
+  return undefined;
+}
+
+/** Reinforcements come on at the entry hex nearest the objectives (§60). */
+function enterDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  for (const r of s.reserves ?? []) {
+    if (r.side !== side || r.turn > s.turn) continue;
+    const objs = ctx.objectives.flatMap((o) => o.hexes);
+    const open = r.hexes.filter((h) => !enemiesIn(s, h, side).length && !Object.values(s.vehicles).some((v) => v.hex === h && v.side !== side));
+    const best = open.sort((a, b) => Math.min(...objs.map((o) => range(o, a))) - Math.min(...objs.map((o) => range(o, b))) || a.localeCompare(b));
+    // Up to two squads and a leader per hex; landings are limited by the boats (§60.3).
+    const limit = s.landing?.[side] ?? 99;
+    const squads = r.units.filter((u) => !isLeader(ctx, u)).slice(0, Math.min(2, limit));
+    const leaders = r.units.filter((u) => isLeader(ctx, u)).slice(0, 1);
+    const group = [...squads, ...leaders];
+    if (!group.length) continue;
+    for (const h of best) {
+      const a: Action = { type: 'enter', units: group.map((u) => u.id), hex: h };
+      if (!legal(ctx, s, a)) continue;
+      return {
+        action: a,
+        why: { goal: `Bring ${group.length} unit${group.length > 1 ? 's' : ''} on at ${hexId(ctx, h)}`, reasons: ['The entry hex nearest the objectives that the enemy does not hold.', ...(s.landing?.[side] !== undefined ? [`The boats can still land ${limit} squads this turn (§60.3).`] : [])], weight: 'key', focus: { to: h } },
+      };
+    }
   }
   return undefined;
 }
@@ -530,7 +555,7 @@ function pathTo(ctx: Ctx, s: GameState, from: HexKey, goals: Set<HexKey>, side: 
     for (const d of DIRECTIONS) {
       const nk = hexKey(neighbor(parseHexKey(cur), d));
       if (!ctx.map.hexes[nk] || done.has(nk)) continue;
-      const c = moveCost(ctx, cur, nk).mf;
+      const c = moveCost(ctx, cur, nk).mf + fortMoveCost(s, cur, nk).mf;
       if (!Number.isFinite(c)) continue;
       const enemyThere = enemiesIn(s, nk, side).length > 0;
       if (enemyThere && !goals.has(nk)) continue;

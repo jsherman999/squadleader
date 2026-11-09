@@ -46,3 +46,7 @@ export {
   type AntiTankAnalysis,
   type MpCost,
 } from './rules/armor';
+export { fortMoveCost, hasWire, inTrench, bunkerAt, onFire, rubbled, roadblockBetween, edgeHexes, reservesOf } from './rules/western';
+export { blastArea, contactValue } from './rules/artillery';
+export { illuminated, nightSight } from './rules/night';
+export { riders, gunCrew } from './rules/transport';

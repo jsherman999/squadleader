@@ -1,0 +1,255 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s10",
+  "title": "Rubble",
+  "date": "September 1944",
+  "location": "Brest",
+  "briefing": "The port's garrison has orders to fight for every street. An American infantry company with a Sherman and a 105mm assault tank works its way into the old town from the east. Every high-explosive round brings walls down and sets roofs alight; by evening the town hall may be a heap of stone and the timber barn a bonfire.",
+  "rulesLevel": 59,
+  "layout": [
+    {
+      "board": "A",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 4
+  },
+  "smoke": {
+    "us": 3
+  },
+  "artillery": [
+    {
+      "side": "us"
+    }
+  ],
+  "rubble": [
+    "A-R3",
+    "A-M3",
+    "A-I4"
+  ],
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns H–AA. Two squads carry panzerfausts (§37).",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "H",
+            "AA"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "A-Y2",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "A-Y2",
+          "names": [
+            "Hptm. Albers"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-Q2",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "A-Q2",
+          "names": [
+            "Fw. Pohl"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-W5",
+          "weapons": [
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-X4",
+          "weapons": [
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-V3",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-V3",
+          "names": [
+            "Uffz. Thiel"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "A-R5"
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, anywhere in columns CC–GG. Moves first.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "CC",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "A-CC6",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "A-CC6"
+        },
+        {
+          "type": "us-L102",
+          "hex": "A-CC6",
+          "weapons": [
+            "us-radio"
+          ],
+          "names": [
+            "Capt. Mercer"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "A-CC2",
+          "weapons": [
+            "us-ft"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "A-CC2",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-L81",
+          "hex": "A-CC2",
+          "names": [
+            "Sgt. Novak"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "A-DD7",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "A-DD7"
+        },
+        {
+          "type": "us-L91",
+          "hex": "A-DD7",
+          "names": [
+            "Lt. Hale"
+          ]
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "hex": "A-EE8"
+        },
+        {
+          "type": "us-L80",
+          "hex": "A-EE8",
+          "names": [
+            "Sgt. Lucero"
+          ]
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "A-FF6",
+          "names": [
+            "Brute"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "us-m4105",
+          "hex": "A-GG7",
+          "names": [
+            "Hammer"
+          ],
+          "facing": "SW-NW"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 8, they control at least three of the four strongpoints (factory, church, town hall, timber barn). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. A rubbled building still counts. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "A-Y2",
+          "name": "Factory"
+        },
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-O6",
+          "name": "Town hall"
+        },
+        {
+          "hex": "A-W5",
+          "name": "Timber barn"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–59: adds rubble (§58) and fire (§59). Weeks of shelling have already brought down the houses at R3, M3 and I4. High-explosive kills and charges can bring a building down or set it alight; fire spreads at the end of each player turn.",
+    "The M4 (105) fires HEAT as well as HE (§63). Captain Mercer has a radio to the corps artillery (§45–46)."
+  ]
+}

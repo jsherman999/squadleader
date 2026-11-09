@@ -1,0 +1,301 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s9",
+  "title": "The Fort",
+  "date": "October 1944",
+  "location": "Metz",
+  "briefing": "The ring of forts around Metz has held the Third Army for a month. An assault company with two Shermans and an engineer platoon goes in against an outlying works: an old ironworks wrapped in wire, mined on its approaches, with two concrete bunkers covering the gate road. The engineers must breach the wire and blow the bunkers before the infantry can clear the halls.",
+  "rulesLevel": 56,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 3
+  },
+  "smoke": {
+    "us": 3
+  },
+  "fortifications": {
+    "wire": [
+      "B-Q3",
+      "B-Q4",
+      "B-Q7",
+      "B-R6",
+      "B-R2"
+    ],
+    "trenches": [
+      "B-T5",
+      "B-W5",
+      "B-X5"
+    ],
+    "mines": [
+      {
+        "side": "ger",
+        "hex": "B-Q5",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "B-P7",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "B-R3",
+        "factors": 4
+      }
+    ],
+    "bunkers": [
+      {
+        "side": "ger",
+        "hex": "B-R5",
+        "capacity": 2,
+        "ca": 5,
+        "nca": 7,
+        "facing": "SW-NW"
+      },
+      {
+        "side": "ger",
+        "hex": "B-T1",
+        "capacity": 1,
+        "ca": 3,
+        "nca": 5,
+        "facing": "SW-NW"
+      }
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns R–GG. The wire, trenches, minefields and bunkers are printed on the map; the Americans see the mines only when they find them (§55.1).",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "R",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "B-R5",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "B-R5",
+          "names": [
+            "Lt. Brenner"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-T1",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-T5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "B-T5",
+          "names": [
+            "Fw. Mertens"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-T2",
+          "weapons": [
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-S4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-U6",
+          "weapons": [
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "B-U6",
+          "names": [
+            "Uffz. Kohl"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-Y2"
+        },
+        {
+          "type": "ger-pak40",
+          "hex": "B-X5",
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-247",
+          "hex": "B-X5"
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, anywhere in columns A–M. Moves first. The engineers carry a demolition charge and a flamethrower; in Prep Fire a squad can cut wire or clear mines in its own hex (§53.5, §55.5).",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "M"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "B-M7",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "B-M7"
+        },
+        {
+          "type": "us-L102",
+          "hex": "B-M7",
+          "names": [
+            "Capt. Royce"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "B-L6",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "B-L6",
+          "weapons": [
+            "us-ft"
+          ]
+        },
+        {
+          "type": "us-L81",
+          "hex": "B-L6",
+          "names": [
+            "Sgt. Banks"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "B-M5",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "B-M5"
+        },
+        {
+          "type": "us-L91",
+          "hex": "B-M5",
+          "names": [
+            "Lt. Price"
+          ]
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "hex": "B-L1"
+        },
+        {
+          "type": "us-L80",
+          "hex": "B-L1",
+          "names": [
+            "Sgt. Weller"
+          ]
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "B-K7",
+          "names": [
+            "Iron Duke"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "B-J6",
+          "names": [
+            "Iron Lady"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 8, they control at least three of the four works buildings (great hall, rolling mill, boiler house, works office). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "B-T2",
+          "name": "Great hall"
+        },
+        {
+          "hex": "B-Y2",
+          "name": "Rolling mill"
+        },
+        {
+          "hex": "B-U6",
+          "name": "Boiler house"
+        },
+        {
+          "hex": "B-S4",
+          "name": "Works office"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–56: adds barbed wire (§53), entrenchments (§54), minefields (§55) and bunkers (§56).",
+    "Bunkers: the heavy bunker at R5 is +5 through its covered arc and +7 elsewhere; the light bunker at T1 is +3/+5.",
+    "October: no standing wheat (§44.24)."
+  ]
+}

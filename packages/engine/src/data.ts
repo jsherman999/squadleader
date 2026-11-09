@@ -313,6 +313,8 @@ export const ScenarioSchema = z
       })
       .strict()
       .optional(),
+    /** Buildings already in ruins at the start (§58), by display id. */
+    rubble: z.array(z.string()).optional(),
     /** Snow (§61). */
     snow: z.boolean().optional(),
     /** River crossing (§60): the side lands at most 2d6 squads a turn; these hexes are misty until a 1 is rolled. */

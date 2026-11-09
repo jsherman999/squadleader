@@ -8,7 +8,7 @@ describe('§50 Americans', () => {
   it('American squads rally at full morale even when fired on', () => {
     const ctx = testCtx({}, {}, { rulesLevel: 63 });
     const s = blankState(ctx, 'rally');
-    s.sides = [{ id: 'rus', nation: 'russian', name: 'Soviet' }, { id: 'ger', nation: 'american', name: 'American' }] as never;
+    (s as { sides: unknown }).sides = [{ id: 'rus', nation: 'russian', name: 'Soviet' }, { id: 'ger', nation: 'american', name: 'American' }];
     const sq = put(ctx, s, 'us-666', 'K5', { broken: true, dm: true, side: 'ger' });
     put(ctx, s, 'us-L91', 'K5', { side: 'ger' });
     s.diceQueue = [3, 3];

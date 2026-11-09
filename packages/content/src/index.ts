@@ -20,6 +20,11 @@ import s4 from '../scenarios/s4.json';
 import s5 from '../scenarios/s5.json';
 import s6 from '../scenarios/s6.json';
 import s7 from '../scenarios/s7.json';
+import s8 from '../scenarios/s8.json';
+import s9 from '../scenarios/s9.json';
+import s10 from '../scenarios/s10.json';
+import s11 from '../scenarios/s11.json';
+import s12 from '../scenarios/s12.json';
 
 export const rawBoards: Readonly<Record<string, unknown>> = { A: boardA, B: boardB, C: boardC, D: boardD, E: boardE };
 
@@ -40,4 +45,4 @@ export const rawRules: {
 };
 
 /** Scenarios in play order. */
-export const rawScenarios: readonly unknown[] = [s1, s2, s3, s4, s5, s6, s7];
+export const rawScenarios: readonly unknown[] = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12];
