@@ -1,0 +1,65 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+.btn {
+  background: var(--c-panel-3);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover:not(:disabled) {
+  background: #3a4238;
+  border-color: var(--c-brass-dim);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--c-brass-dim);
+  border-color: var(--c-brass);
+  color: #15181a;
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--c-brass);
+}
+.btn.active {
+  border-color: var(--c-brass);
+  box-shadow: inset 0 0 0 1px var(--c-brass);
+}
+.stencil {
+  font-family: var(--font-stencil);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dim {
+  color: var(--c-text-dim);
+}
+.faint {
+  color: var(--c-text-faint);
+}
+.mono {
+  font-family: var(--font-mono);
+}

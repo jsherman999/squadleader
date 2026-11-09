@@ -1,0 +1,46 @@
+/* Squad War design tokens: "field desk and printed map". */
+:root {
+  /* UI chrome */
+  --c-bg: #15181a;
+  --c-panel: #1f2420;
+  --c-panel-2: #272d27;
+  --c-panel-3: #313830;
+  --c-line: #3c443a;
+  --c-text: #e7e3d6;
+  --c-text-dim: #a8a796;
+  --c-text-faint: #757564;
+  --c-brass: #c9a75d;
+  --c-brass-dim: #8a7341;
+  --c-accent: #d8c58b;
+  --c-ok: #7fb069;
+  --c-warn: #e0a84b;
+  --c-bad: #d0604d;
+  --c-info: #7aa6c2;
+
+  /* Nationalities */
+  --c-ger: #9eb6c4;
+  --c-ger-dark: #4d6574;
+  --c-rus: #c79a63;
+  --c-rus-dark: #7a5530;
+  --c-us: #9fbf6a;
+  --c-us-dark: #56702f;
+
+  /* Map print colors */
+  --map-open: #e6e2c3;
+  --map-woods: #5f8a46;
+  --map-wood-bldg: #9a6a43;
+  --map-stone-bldg: #8f8f8a;
+  --map-road: #f1ead2;
+  --map-hill1: #d8c08a;
+  --map-hill2: #c09a5e;
+  --map-hill3: #9a7442;
+
+  --font-ui: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-cond: 'Roboto Condensed', 'Arial Narrow', 'Segoe UI', sans-serif;
+  --font-stencil: 'Black Ops One', 'Impact', 'Arial Black', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --radius: 6px;
+  --gap: 8px;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
