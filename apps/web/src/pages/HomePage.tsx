@@ -1,3 +1,5 @@
+import { allScenarios } from '../game/scenarios';
+import { useSession } from '../game/session';
 import { go } from '../router';
 
 export function HomePage() {
@@ -9,6 +11,17 @@ export function HomePage() {
         <nav className="home-menu">
           <button className="btn primary" onClick={() => go('play')}>
             Play a scenario
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              const sc = allScenarios()[0]!;
+              useSession.getState().start(sc.id, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as const])));
+              go('battle');
+            }}
+            title="The computer plays both sides and explains every move"
+          >
+            Watch AI vs AI (tutor)
           </button>
           <button className="btn" onClick={() => go('lab')}>
             Map &amp; line-of-sight lab

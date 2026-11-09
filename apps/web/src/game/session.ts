@@ -6,7 +6,8 @@
 import { create } from 'zustand';
 import type { HexKey } from '@squadwar/hex';
 import { createGame, tryAction, type Action, type Ctx, type GameEvent, type GameState, type SideId } from '@squadwar/engine';
-import { chooseAction } from '@squadwar/bot';
+import { decide, type Rationale } from '@squadwar/bot';
+import { putGame } from './library';
 import { ctxFor } from './scenarios';
 
 export type Controller = 'human' | 'bot';
@@ -23,6 +24,14 @@ export interface SaveFile {
   readonly seed: number;
   readonly controllers: Record<SideId, Controller>;
   readonly actions: Action[];
+  /** The bot's reasoning for each action (null for human actions). Optional in older saves. */
+  readonly notes?: (Rationale | null)[];
+  /** Library id, set once the game is in the library. */
+  readonly id?: string;
+  /** Short result line when the game is over. */
+  readonly result?: string;
+  readonly winner?: SideId;
+  readonly turn?: number;
   readonly savedAt: string;
 }
 
@@ -50,6 +59,10 @@ interface SessionState {
   seed: number;
   controllers: Record<SideId, Controller>;
   actions: Action[];
+  /** The bot's reasoning for each action (undefined for human actions). */
+  notes: (Rationale | undefined)[];
+  /** Library id of this game once saved there. */
+  libraryId?: string;
   /** states[i] is the state after i actions. */
   states: GameState[];
   events: LoggedEvent[];
@@ -67,7 +80,7 @@ interface SessionState {
   switchPlan(i: number): void;
   start(scenarioId: string, controllers: Record<SideId, Controller>, seed?: number): void;
   load(save: SaveFile): void;
-  dispatch(a: Action): boolean;
+  dispatch(a: Action, note?: Rationale): boolean;
   undo(): void;
   clearError(): void;
   select(hex: HexKey | undefined, units?: string[]): void;
@@ -75,9 +88,30 @@ interface SessionState {
   setTarget(hex: HexKey | undefined): void;
   stepBot(): boolean;
   save(): SaveFile | undefined;
+  /** Store the game in the browser's library; returns its id. */
+  saveToLibrary(): Promise<string | undefined>;
 }
 
 let eventN = 0;
+
+/** Rebuild every state and event of a saved game by replaying its actions. */
+export function replaySave(save: SaveFile): { states: GameState[]; events: LoggedEvent[]; rolled: boolean[] } {
+  const ctx = ctxFor(save.scenario);
+  const first = createGame(ctx, save.seed);
+  const states = [first.state];
+  const events: LoggedEvent[] = first.events.map((e) => ({ ...e, n: eventN++, action: -1 }));
+  const rolled: boolean[] = [];
+  let s = first.state;
+  save.actions.forEach((a, i) => {
+    const r = tryAction(ctx, s, a);
+    if (!r.ok) throw new Error(`The save does not replay at action ${i + 1}: ${r.error}`);
+    s = r.state;
+    states.push(s);
+    events.push(...r.events.map((e) => ({ ...e, n: eventN++, action: i })));
+    rolled.push(hasDice(r.events));
+  });
+  return { states, events, rolled };
+}
 
 function hasDice(events: readonly GameEvent[]): boolean {
   return events.some((e) => e.dice && e.dice.length > 0);
@@ -87,6 +121,7 @@ export const useSession = create<SessionState>((set, get) => ({
   seed: 1,
   controllers: {},
   actions: [],
+  notes: [],
   states: [],
   events: [],
   rolled: [],
@@ -101,6 +136,8 @@ export const useSession = create<SessionState>((set, get) => ({
       seed,
       controllers,
       actions: [],
+      notes: [],
+      libraryId: undefined,
       states: [first.state],
       events: first.events.map((e) => ({ ...e, n: eventN++, action: -1 })),
       rolled: [],
@@ -113,25 +150,14 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   load(save) {
-    const ctx = ctxFor(save.scenario);
-    const first = createGame(ctx, save.seed);
-    const states = [first.state];
-    const events: LoggedEvent[] = first.events.map((e) => ({ ...e, n: eventN++, action: -1 }));
-    const rolled: boolean[] = [];
-    let s = first.state;
-    save.actions.forEach((a, i) => {
-      const r = tryAction(ctx, s, a);
-      if (!r.ok) throw new Error(`save does not replay at action ${i}: ${r.error}`);
-      s = r.state;
-      states.push(s);
-      events.push(...r.events.map((e) => ({ ...e, n: eventN++, action: i })));
-      rolled.push(hasDice(r.events));
-    });
+    const { states, events, rolled } = replaySave(save);
     set({
       scenarioId: save.scenario,
       seed: save.seed,
       controllers: save.controllers,
       actions: [...save.actions],
+      notes: save.actions.map((_, i) => save.notes?.[i] ?? undefined),
+      libraryId: save.id,
       states,
       events,
       rolled,
@@ -187,7 +213,7 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ plan: { ...plan, active: i, states } });
   },
 
-  dispatch(a) {
+  dispatch(a, note) {
     const st = get();
     if (!st.scenarioId) return false;
     const ctx = ctxFor(st.scenarioId);
@@ -215,6 +241,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const idx = st.actions.length;
     set({
       actions: [...st.actions, a],
+      notes: [...st.notes, note],
       states: [...st.states, r.state],
       events: [...st.events, ...r.events.map((e) => ({ ...e, n: eventN++, action: idx }))],
       rolled: [...st.rolled, hasDice(r.events)],
@@ -240,6 +267,7 @@ export const useSession = create<SessionState>((set, get) => ({
     if (!n || st.rolled[n - 1]) return;
     set({
       actions: st.actions.slice(0, -1),
+      notes: st.notes.slice(0, -1),
       states: st.states.slice(0, -1),
       events: st.events.filter((e) => e.action < n - 1),
       rolled: st.rolled.slice(0, -1),
@@ -272,15 +300,37 @@ export const useSession = create<SessionState>((set, get) => ({
     const cur = st.states[st.states.length - 1]!;
     if (cur.phase === 'gameOver' || st.controllers[cur.awaiting] !== 'bot') return false;
     const ctx = ctxFor(st.scenarioId);
-    const a = chooseAction(ctx, cur);
-    if (get().dispatch(a)) return true;
-    return get().dispatch({ type: 'endPhase' });
+    const d = decide(ctx, cur);
+    if (get().dispatch(d.action, d.why)) return true;
+    const err = get().error;
+    return get().dispatch({ type: 'endPhase' }, { goal: 'End the phase', reasons: [`The chosen action was refused: ${err ?? 'not legal'}.`], weight: 'routine' });
+  },
+
+  async saveToLibrary() {
+    const save = get().save();
+    if (!save) return undefined;
+    const id = await putGame(save);
+    if (get().scenarioId === save.scenario && get().seed === save.seed) set({ libraryId: id });
+    return id;
   },
 
   save() {
     const st = get();
     if (!st.scenarioId) return undefined;
-    return { format: 'squadwar-save@1', scenario: st.scenarioId, seed: st.seed, controllers: st.controllers, actions: st.actions, savedAt: new Date().toISOString() };
+    const last = st.states[st.states.length - 1];
+    return {
+      format: 'squadwar-save@1',
+      scenario: st.scenarioId,
+      seed: st.seed,
+      controllers: st.controllers,
+      actions: st.actions,
+      ...(st.notes.some(Boolean) ? { notes: st.notes.map((n) => n ?? null) } : {}),
+      ...(st.libraryId ? { id: st.libraryId } : {}),
+      ...(last?.result ? { result: last.result } : {}),
+      ...(last?.winner ? { winner: last.winner } : {}),
+      ...(last ? { turn: last.turn } : {}),
+      savedAt: new Date().toISOString(),
+    };
   },
 }));
 

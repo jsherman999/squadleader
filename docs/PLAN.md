@@ -19,6 +19,7 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 | M3 Infantry core | Done | §1–21 engine with rules traces, scenario 1, saves and replays, battle screen for hot-seat and vs. bot. The heuristic bot was pulled forward from M7 so that bot-vs-bot soak tests exist (nightly workflow). |
 | M4 Planner and first playable | Done | Move Planner (alternatives, exposure badges, expected breaks, commit or revert), danger map, fire odds and suggested targets, Assisted automation. The planner allows only dice-free actions, so it can't reveal future rolls. Before the Movement Phase it runs as a rehearsal. |
 | M5 3D view | Done | 3D landscape built from the board data (ADR 0005): painted ground, extruded buildings with hip roofs, instanced trees, walls and hedges, counter standees. 2D, 3D and split views share every overlay. 3D LOS ray between eye heights, draped viewshed, Eyes (leader POV) with rules-decided enemy visibility. Quality presets and a height slider. |
+| Tutor mode | Done | Added on request after M5: AI vs AI play with pause, step and speed; the bot explains every decision (goal, reasons with odds and rule references, options weighed, a lesson); finished games go to a saved-game library; Review steps through any saved game decision by decision, with the outcome and map highlights, and lets you take over either side from any point (ADR 0006). |
 | M6–M12 | Not started | |
 
 Deviations from this plan so far:

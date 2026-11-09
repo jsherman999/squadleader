@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
 import { leaderRating } from '@squadwar/engine';
 import { allScenarios, rulesData } from '../game/scenarios';
+import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '../game/library';
+import { useReview } from '../game/review';
 import { loadAutosave, useSession, type Controller, type SaveFile } from '../game/session';
 import { go } from '../router';
 import { TopBar } from '../ui/TopBar';
@@ -20,6 +22,32 @@ export function PlayPage() {
     useSession.getState().start(chosen, controllers);
     go('battle');
   };
+  const watch = () => {
+    useSession.getState().start(chosen, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as Controller])));
+    go('battle');
+  };
+  const [games, setGames] = useState<GameSummary[]>();
+  const [libError, setLibError] = useState<string>();
+  const refresh = useCallback(() => {
+    listGames()
+      .then(setGames)
+      .catch((e: Error) => setLibError(e.message));
+  }, []);
+  useEffect(refresh, [refresh]);
+  const review = (save: SaveFile) => {
+    try {
+      useReview.getState().open(save);
+      go('review');
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const withGame = (id: string, fn: (g: SaveFile) => void) => {
+    getGame(id)
+      .then((g) => (g ? fn(g) : setLibError('That game is no longer in the library.')))
+      .catch((e: Error) => setLibError(e.message));
+  };
+  const reviewFile = useRef<HTMLInputElement>(null);
   const resume = (save: SaveFile) => {
     try {
       useSession.getState().load(save);
@@ -83,6 +111,9 @@ export function PlayPage() {
             <button className="btn primary big" onClick={start}>
               Start game
             </button>
+            <button className="btn big" onClick={watch} title="Both sides played by the computer, with the reasoning behind every move">
+              Watch AI vs AI
+            </button>
             {auto && auto.scenario === chosen && (
               <button className="btn big" onClick={() => resume(auto)}>
                 Continue saved game ({auto.actions.length} actions)
@@ -103,6 +134,70 @@ export function PlayPage() {
             />
           </div>
           {error && <p className="warn">{error}</p>}
+          <h3 className="panel-h">Saved games</h3>
+          <p className="small dim">
+            Finished AI vs AI games are saved here automatically; use Save in a game to add others. Review steps through a game move by move, with the reasoning behind each
+            computer decision.
+          </p>
+          {libError && <p className="warn small">{libError}</p>}
+          {games && games.length === 0 && <p className="small faint">No saved games yet.</p>}
+          {games && games.length > 0 && (
+            <table className="library">
+              <tbody>
+                {games.map((g) => {
+                  const scn = scenarios.find((x) => x.id === g.scenario);
+                  const vs = Object.values(g.controllers).every((c) => c === 'bot') ? 'AI vs AI' : Object.values(g.controllers).every((c) => c === 'human') ? 'Hot-seat' : 'vs computer';
+                  return (
+                    <tr key={g.id}>
+                      <td>
+                        <strong>{scn?.title ?? g.scenario}</strong>
+                        <span className="small dim block">
+                          {vs} · {new Date(g.savedAt).toLocaleString()} · {g.actions} moves{g.explained ? `, ${g.explained} explained` : ''}
+                        </span>
+                        <span className="small block">{g.result ?? (g.turn ? `In progress, turn ${g.turn}` : 'In progress')}</span>
+                      </td>
+                      <td className="library-actions">
+                        <button className="btn tiny primary" onClick={() => withGame(g.id, review)}>
+                          Review
+                        </button>
+                        {!g.result && (
+                          <button className="btn tiny" onClick={() => withGame(g.id, resume)}>
+                            Continue
+                          </button>
+                        )}
+                        <button className="btn tiny" onClick={() => withGame(g.id, (sv) => downloadSave(sv, `squadwar-${sv.scenario}-${g.id}.json`))}>
+                          Download
+                        </button>
+                        <button
+                          className="btn tiny"
+                          onClick={() => {
+                            if (window.confirm('Delete this saved game?')) deleteGame(g.id).then(refresh, (e: Error) => setLibError(e.message));
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          <div className="play-actions">
+            <button className="btn" onClick={() => reviewFile.current?.click()}>
+              Review a save file…
+            </button>
+            <input
+              ref={reviewFile}
+              type="file"
+              accept="application/json"
+              hidden
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (f) review(JSON.parse(await f.text()) as SaveFile);
+              }}
+            />
+          </div>
         </section>
       </main>
     </div>

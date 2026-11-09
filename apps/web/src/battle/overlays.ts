@@ -1,5 +1,6 @@
 import { hexToPixel, parseHexKey, type HexKey, type Vec2 } from '@squadwar/hex';
-import type { Ctx, GameEvent, GameState } from '@squadwar/engine';
+import type { Rationale } from '@squadwar/bot';
+import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
 import { hexFill, hexOutline, type Pen } from '../draw/pen';
 import type { PathStep } from './pathing';
 
@@ -62,4 +63,38 @@ export function drawTracks(pen: Pen, s: GameState): void {
       pen.circle({ x: p.x, y: p.y + 0.3 }, 3.5, { color: st.open ? 0xff7a5a : 0xe0c070, alpha: 0.9 });
     }
   }
+}
+
+const TUTOR = 0x7ad3ff;
+
+/** What a bot decision was about: its route, target or goal (tutor mode). */
+export function drawFocus(pen: Pen, note: Rationale | undefined, action: Action | undefined): void {
+  const f = note?.focus;
+  if (!f && !action) return;
+  if (f?.goal) {
+    hexOutline(pen, parseHexKey(f.goal), TUTOR, 0.9, 3, 0.16);
+    pen.text(at(f.goal), 'goal', { size: 10, color: TUTOR, lift: 1.6 });
+  }
+  if (action?.type === 'fire') {
+    const src = f?.from ? [f.from] : [];
+    for (const h of src) {
+      pen.line([at(h), at(action.target)], { width: 7, color: 0x101410, alpha: 0.55 });
+      pen.line([at(h), at(action.target)], { width: 3.5, color: 0xffb04a });
+    }
+    hexFill(pen, parseHexKey(action.target), 0xff5a46, 0.2);
+    hexOutline(pen, parseHexKey(action.target), 0xff5a46, 1, 4);
+    if (f?.from) hexOutline(pen, parseHexKey(f.from), 0xffb04a, 1, 3);
+    return;
+  }
+  if (f?.path && f.from) {
+    const pts = [at(f.from), ...f.path.map(at)];
+    pen.line(pts, { width: 6, color: 0x101410, alpha: 0.45 });
+    pen.line(pts, { width: 3, color: TUTOR, alpha: 0.9 }, [9, 6]);
+  }
+  if (f?.from && f.to) {
+    pen.line([at(f.from), at(f.to)], { width: 7, color: 0x101410, alpha: 0.6 });
+    pen.line([at(f.from), at(f.to)], { width: 4, color: action?.type === 'advance' ? 0xffd060 : TUTOR });
+    pen.circle(at(f.to), 6, { color: action?.type === 'advance' ? 0xffd060 : TUTOR }, { width: 1.5, color: 0x101410 });
+  }
+  if (f?.from) hexOutline(pen, parseHexKey(f.from), action?.type === 'rally' ? 0x7fd06a : 0xf0c66b, 1, 3.5);
 }

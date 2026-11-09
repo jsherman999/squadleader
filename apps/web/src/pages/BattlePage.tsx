@@ -20,12 +20,15 @@ import { ActionPanel } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader } from '../battle/firers';
 import { LogPanel } from '../battle/LogPanel';
-import { drawFireLines, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawTracks } from '../battle/overlays';
+import { drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawTracks } from '../battle/overlays';
 import { groupPath } from '../battle/pathing';
 import { PhaseRibbon } from '../battle/PhaseRibbon';
 import { StackPanel } from '../battle/StackPanel';
 import { ctxFor } from '../game/scenarios';
+import { downloadSave } from '../game/library';
+import { useReview } from '../game/review';
 import { useSession } from '../game/session';
+import { WhyCard } from '../tutor/WhyCard';
 import { go } from '../router';
 import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
@@ -35,6 +38,19 @@ import { loadViewMode, MapViews, nextViewMode, setViewMode, type OverlayLayers, 
 import { ViewToggle } from '../views/ViewToggle';
 
 const FIRE = new Set(['prepFire', 'defensiveFire', 'advancingFire']);
+
+type Speed = 'slow' | 'normal' | 'fast' | 'max';
+/** Pause after a key decision in AI vs AI; routine steps go four times faster. */
+const SPEED_MS: Record<Speed, number> = { slow: 2400, normal: 900, fast: 200, max: 0 };
+
+function loadSpeed(): Speed {
+  try {
+    const v = localStorage.getItem('squadwar:speed');
+    return v === 'slow' || v === 'fast' || v === 'max' ? v : 'normal';
+  } catch {
+    return 'normal';
+  }
+}
 
 export function BattlePage() {
   const session = useSession();
@@ -83,6 +99,9 @@ function Battle() {
   const [losA, setLosA] = useState<HexKey>();
   const [view, setView] = useState<ViewMode>(loadViewMode);
   const [povHex, setPovHex] = useState<HexKey>();
+  const aiVsAi = Object.values(session.controllers).every((c) => c === 'bot');
+  const [paused, setPaused] = useState(false);
+  const [speed, setSpeed] = useState<Speed>(loadSpeed);
   const human = session.controllers[s.awaiting] === 'human';
   const sideName = (id: string) => s.sides.find((x) => x.id === id)?.name ?? id;
   const sel = session.selection;
@@ -105,12 +124,43 @@ function Battle() {
     });
   }, [renderer, map]);
 
-  // Bot turns.
+  // Bot turns. In AI vs AI the pace follows the speed setting and pauses longer after key decisions.
+  const lastNote = session.notes[session.notes.length - 1];
   useEffect(() => {
-    if (human || real.phase === 'gameOver' || plan) return;
-    const t = setTimeout(() => session.stepBot(), 280);
+    if (human || real.phase === 'gameOver' || plan || (aiVsAi && paused)) return;
+    const base = aiVsAi ? SPEED_MS[speed] : 280;
+    const delay = aiVsAi && lastNote?.weight !== 'key' ? base / 4 : base;
+    const t = setTimeout(() => session.stepBot(), delay);
     return () => clearTimeout(t);
-  }, [real, human, session, plan]);
+  }, [real, human, session, plan, aiVsAi, paused, speed, lastNote]);
+
+  // Finished AI vs AI games go to the library for review.
+  useEffect(() => {
+    if (!aiVsAi || real.phase !== 'gameOver' || session.libraryId) return;
+    session
+      .saveToLibrary()
+      .then(() => setNotice('Game saved to your library. Review it from here or from the scenario page.'))
+      .catch((e: Error) => setNotice(`Could not save to the library: ${e.message}`));
+  }, [aiVsAi, real.phase, session]);
+
+  /** The bot decision the tutor shows: the latest one while paused in AI vs AI, else the latest key one. */
+  const tutor = useMemo(() => {
+    const n = session.actions.length;
+    const anyStep = aiVsAi && paused;
+    for (let i = n - 1; i >= Math.max(0, n - 80); i--) {
+      const note = session.notes[i];
+      if (!note || (!anyStep && note.weight !== 'key')) continue;
+      return { i, note, action: session.actions[i]!, before: session.states[i]!, events: session.events.filter((e) => e.action === i) };
+    }
+    return undefined;
+  }, [session.actions, session.notes, session.states, session.events, paused, aiVsAi]);
+
+  const openReview = useCallback(() => {
+    const save = session.save();
+    if (!save) return;
+    useReview.getState().open(save, Math.max(0, save.actions.length - 1));
+    go('review');
+  }, [session]);
 
   // Assisted automation: end phases with no decision to make.
   useEffect(() => {
@@ -195,6 +245,7 @@ function Battle() {
         }
       },
       top: (pen, v) => {
+        if (tutor && (aiVsAi || !human)) drawFocus(pen, tutor.note, tutor.action);
         drawSelection(pen, sel.hex, session.target, groupHexes);
         if (movePreview) drawPath(pen, movePreview.from, movePreview.path, movePreview.reachable);
         if (session.target && firers.length) drawFireLines(pen, ctx, groupHexes, session.target);
@@ -202,7 +253,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -317,7 +368,10 @@ function Battle() {
       if ((e.target as HTMLElement | null)?.closest('input, select, textarea')) return;
       if (e.key === ' ') {
         e.preventDefault();
-        endPhase();
+        if (aiVsAi) setPaused((p) => !p);
+        else endPhase();
+      } else if ((e.key === 'n' || e.key === 'N') && aiVsAi) {
+        session.stepBot();
       } else if (e.key === 'z' || e.key === 'Z') {
         if (canUndo) session.undo();
       } else if (e.key === '3') {
@@ -347,18 +401,18 @@ function Battle() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endPhase, canUndo, session, human, povHex]);
+  }, [endPhase, canUndo, session, human, povHex, aiVsAi]);
 
 
   const exportSave = () => {
     const save = session.save();
-    if (!save) return;
-    const blob = new Blob([JSON.stringify(save, null, 1)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `squadwar-${save.scenario}-t${s.turn}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    if (save) downloadSave(save, `squadwar-${save.scenario}-t${s.turn}.json`);
+  };
+  const saveToLibrary = () => {
+    session
+      .saveToLibrary()
+      .then(() => setNotice('Saved to your library (scenario page → Saved games).'))
+      .catch((e: Error) => setNotice(`Could not save: ${e.message}`));
   };
 
   const hoverInfo = hover ? describeHex(map, hover) : undefined;
@@ -375,7 +429,45 @@ function Battle() {
               ? 'Game over'
               : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`}
         </span>
-        <span className={`awaiting ${human ? 'you' : 'bot'}`}>{human ? `${sideName(s.awaiting)} to act` : `${sideName(s.awaiting)} (bot) thinking…`}</span>
+        {s.phase !== 'gameOver' && (
+          <span className={`awaiting ${human ? 'you' : 'bot'}`}>
+            {human ? `${sideName(s.awaiting)} to act` : aiVsAi && paused ? 'Paused' : `${sideName(s.awaiting)} (bot) thinking…`}
+          </span>
+        )}
+        {aiVsAi && (
+          <>
+            <button className={`btn ${paused ? 'active' : ''}`} onClick={() => setPaused(!paused)} disabled={real.phase === 'gameOver'} title="Pause or resume (Space)">
+              {paused ? '▶ Resume' : '❚❚ Pause'}
+            </button>
+            <button className="btn" onClick={() => session.stepBot()} disabled={!paused || real.phase === 'gameOver'} title="One decision (N)">
+              Step <kbd>N</kbd>
+            </button>
+            <select
+              className="auto-select"
+              value={speed}
+              onChange={(e) => {
+                const v = e.target.value as Speed;
+                setSpeed(v);
+                try {
+                  localStorage.setItem('squadwar:speed', v);
+                } catch {
+                  // ignore
+                }
+              }}
+              title="Game speed"
+              aria-label="Game speed"
+            >
+              <option value="slow">Slow</option>
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+              <option value="max">Max</option>
+            </select>
+          </>
+        )}
+        <button className="btn" onClick={openReview} disabled={!session.actions.length} title="Step through this game with the reasoning behind each move">
+          Review
+        </button>
+        {!aiVsAi && (
         <button
           className={`btn ${plan ? 'active' : ''}`}
           disabled={!human && !plan}
@@ -384,15 +476,18 @@ function Battle() {
         >
           Plan <kbd>P</kbd>
         </button>
+        )}
         <button className={`btn ${threat ? 'active' : ''}`} onClick={() => setThreat(!threat)} title="Shade hexes by defensive-fire danger (T)">
           Danger <kbd>T</kbd>
         </button>
         <button className={`btn ${losMode ? 'active' : ''}`} onClick={() => (setLosMode(!losMode), setLosA(undefined))} title="Check line of sight (L)">
           LOS <kbd>L</kbd>
         </button>
-        <button className="btn" disabled={!canUndo} onClick={() => session.undo()} title="Undo the last action (only before dice are rolled)">
-          Undo <kbd>Z</kbd>
-        </button>
+        {!aiVsAi && (
+          <button className="btn" disabled={!canUndo} onClick={() => session.undo()} title="Undo the last action (only before dice are rolled)">
+            Undo <kbd>Z</kbd>
+          </button>
+        )}
         <button
           className={`btn ${povHex ? 'active' : ''}`}
           disabled={!povHex && !(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex))}
@@ -405,9 +500,10 @@ function Battle() {
         <button className="btn" onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
           ?
         </button>
-        <button className="btn" onClick={exportSave} title="Download a save file">
+        <button className="btn" onClick={saveToLibrary} title="Save this game to your library">
           Save
         </button>
+        {!aiVsAi && (
         <select
           className="auto-select"
           value={automation}
@@ -426,9 +522,12 @@ function Battle() {
           <option value="assisted">Assisted</option>
           <option value="manual">Manual</option>
         </select>
-        <button className="btn primary" disabled={!human || s.phase === 'gameOver' || !!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
-          End phase <kbd>Space</kbd>
-        </button>
+        )}
+        {!aiVsAi && (
+          <button className="btn primary" disabled={!human || s.phase === 'gameOver' || !!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
+            End phase <kbd>Space</kbd>
+          </button>
+        )}
       </TopBar>
       <div className="battle">
         <PhaseRibbon ctx={ctx} s={s} />
@@ -487,7 +586,8 @@ function Battle() {
                   {[
                     ['Click', 'Select a hex and its units; click again elsewhere to move, target or advance'],
                     ['Shift-click', 'Add an adjacent hex to the fire group, or move onto your own stack'],
-                    ['Space', 'End the phase'],
+                    ['Space', 'End the phase (in AI vs AI: pause or resume)'],
+                    ['N', 'AI vs AI, paused: play one decision'],
                     ['P', 'Plan moves without committing (rehearsal before your Movement Phase)'],
                     ['T', 'Danger map: chance a moving squad breaks under defensive fire'],
                     ['L', 'Line-of-sight check between two hexes'],
@@ -546,8 +646,11 @@ function Battle() {
                 <button className="btn primary" onClick={() => go('play')}>
                   New game
                 </button>
+                <button className="btn primary" onClick={openReview}>
+                  Review the game
+                </button>
                 <button className="btn" onClick={exportSave}>
-                  Save replay
+                  Download
                 </button>
               </div>
             </div>
@@ -580,6 +683,16 @@ function Battle() {
                 {...(human && (s.phase === 'movement' || s.phase === 'setup') ? { onTransfer: (w: string, to: string | null) => session.dispatch({ type: 'transfer', weapon: w, to }) } : {})}
               />
             </>
+          )}
+          {tutor && (
+            <WhyCard
+              ctx={ctx}
+              s={tutor.before}
+              note={tutor.note}
+              actor="bot"
+              events={tutor.events}
+              title={aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision'}
+            />
           )}
           <h3 className="panel-h">Combat log</h3>
           <LogPanel events={session.events} />

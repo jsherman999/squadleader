@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LoggedEvent } from '../game/session';
 
-const ICON: Record<string, string> = {
+export const ICON: Record<string, string> = {
   phase: '▸',
   fire: '✸',
   morale: '◆',
