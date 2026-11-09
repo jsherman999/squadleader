@@ -4,7 +4,7 @@
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** planning only. No code has been written yet. Open questions are in [§13](#13-open-questions-defaults-assumed-until-answered). Companion documents:
+**Status:** planning only. No code has been written yet. Decisions and open questions are in [§13](#13-decisions-and-open-questions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -25,27 +25,27 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 10. [Milestones](#10-milestones)
 11. [Testing strategy](#11-testing-strategy)
 12. [Risks and mitigations](#12-risks-and-mitigations)
-13. [Open questions](#13-open-questions-defaults-assumed-until-answered)
+13. [Decisions and open questions](#13-decisions-and-open-questions)
 14. [Appendix: data schema sketches](#14-appendix-data-schema-sketches)
 
 ---
 
 ## 1. Summary
 
-- **Platform:** a TypeScript browser app that runs locally and can be installed as a PWA. It needs no server. The only exception is an optional local relay for LLM calls.
+- **Platform:** browser only, by the owner's decision. A TypeScript app that can be installed as a PWA. Everything runs client-side: rules engine, 3D, AI bot and saves. The only network traffic is to the LLM provider the player picks. Nothing in the feature set needs a server or a desktop build.
 - **Rules:** a pure, deterministic rules engine. It covers the rulebook's sequence of play, §1–§63, the optional rules, Design-Your-Own and the Campaign Game. Rules unlock in the same building-block order the rulebook uses for its programmed instruction.
 - **One terrain model:** each board is stored once, as vector data. That one source draws the 2D board art, drives the LOS geometry and builds the 3D landscape. What you see in 3D is exactly what the rules compute.
 - **The seven requested features:**
 
 | # | Request | Feature in this plan | Spec |
 |---|---|---|---|
-| 1 | Pick two points, see if LOS exists, draw the line and show the obstruction | **LOS Inspector**, plus elevation profile and viewshed | [§7.2](#72-feature-1--los-inspector) |
-| 2 | Map out moves in advance, check movement points, then revert | **Move Planner**, a sandbox branch of the game state | [§7.3](#73-feature-2--move-planner-what-if-and-revert) |
-| 3 | Top-down zoomable map plus a rotatable, zoomable 3D landscape | **2D Board** and **3D Terrain View**, synced | [§7.1](#71-top-down-board-2d), [§7.4](#74-feature-3--3d-landscape-view) |
-| 4 | Show fire travelling from source to target during fire phases | **Fire Director** (tracers, shells, impacts) | [§7.5](#75-feature-4--fire-director-animated-fire) |
-| 5 | POV of a leader or moving vehicle, including incoming fire | **POV Cam** (watch only, no gameplay) | [§7.6](#76-feature-5--pov-cam) |
-| 6 | User enters an LLM API key, picks provider and model; the LLM is the opponent | **LLM Opponent** (tool-calling agent, fog of war) | [§7.7](#77-feature-6--llm-opponent) |
-| 7 | Optional automation to streamline phases | **Automation Levels** and **Standing Orders** | [§7.8](#78-feature-7--automation) |
+| 1 | Pick two points, see if LOS exists, draw the line and show the obstruction | **LOS Inspector**, plus elevation profile and viewshed | [§7.2](#72-feature-1-los-inspector) |
+| 2 | Map out moves in advance, check movement points, then revert | **Move Planner**, a sandbox branch of the game state | [§7.3](#73-feature-2-move-planner-what-if-and-revert) |
+| 3 | Top-down zoomable map plus a rotatable, zoomable 3D landscape | **2D Board** and **3D Terrain View**, synced | [§7.1](#71-top-down-board-2d), [§7.4](#74-feature-3-3d-landscape-view) |
+| 4 | Show fire travelling from source to target during fire phases | **Fire Director** (tracers, shells, impacts) | [§7.5](#75-feature-4-fire-director-animated-fire) |
+| 5 | POV of a leader or moving vehicle, including incoming fire | **POV Cam** (watch only, no gameplay) | [§7.6](#76-feature-5-pov-cam) |
+| 6 | User enters an LLM API key, picks provider and model; the LLM is the opponent | **LLM Opponent** (tool-calling agent, fog of war) | [§7.7](#77-feature-6-llm-opponent) |
+| 7 | Optional automation to streamline phases | **Automation Levels** and **Standing Orders** | [§7.8](#78-feature-7-automation) |
 
 - **First playable** is milestone M4: infantry hot-seat play on an original city board, with the LOS Inspector and Move Planner. Later milestones add 3D, animated fire, the LLM opponent, armor, POV and the rest of the rules (see [§10](#10-milestones)).
 
@@ -58,7 +58,7 @@ The project uses the rulebook's game mechanics. Everything you see on screen is 
 | Area | Approach |
 |---|---|
 | **Rules mechanics** (sequence of play, movement factors, LOS, fire, morale, rout, rally, close combat, AFVs, artillery, …) | Implemented from the supplied rulebook. Help text is paraphrased in our own words, with § cross-references so players can check their own copy. |
-| **Numeric tables** (Infantry Fire Table, Close Combat Table, To Hit, AFV Kill, terrain DRMs and MF costs) | The rulebook PDF doesn't include them; they're on the *Quick Reference Data Card*. The owner supplied a photo of the card's infantry side, transcribed in **[REFERENCE_TABLES.md](REFERENCE_TABLES.md)**. Those values are the engine's defaults. The vehicle side (To Hit, AFV Kill) is still needed ([REFERENCE_TABLES §10](REFERENCE_TABLES.md#10-still-missing)). The engine is fully table-driven, and an in-app **Rules Data editor** lets the owner check or adjust any value. |
+| **Numeric tables and unit data** (Infantry Fire Table, Close Combat Table, To Hit, AFV Kill, terrain DRMs, MF and MP costs, artillery tables, unit factors) | **Complete.** Transcribed in **[REFERENCE_TABLES.md](REFERENCE_TABLES.md)** from three sources: the owner's photos of both sides of the *Quick Reference Data Card*, the tables embedded as images in the rulebook PDF, and the rulebook's Point Value Chart counter art. These are the engine's default values. The engine is fully table-driven, and an in-app **Rules Data editor** lets the owner check or adjust any value. |
 | **Boards** | **Original** geomorphic boards drawn in the classic printed-hex style: hex IDs, center dots, color-coded terrain, three shaded hill levels with crest lines, and walls and hedges on hexsides. They are *not* copies of the published boards. |
 | **Scenarios** | **Original** set of 12 scenarios. They teach the rules in the same order as the rulebook's programmed instruction and are set in other historical WWII engagements. We also add the rulebook's Design-Your-Own random generator and a full scenario editor. The published scenario cards are not reproduced. |
 | **Name and art** (title, counters, UI, audio) | Original. The published game's name is not used in the app. |
@@ -70,14 +70,14 @@ The project uses the rulebook's game mechanics. Everything you see on screen is 
 
 ### 3.1 Game modes
 
-- **vs. LLM**: the human plays one side and an LLM plays the other ([§7.7](#77-feature-6--llm-opponent)).
+- **vs. LLM**: the human plays one side and an LLM plays the other ([§7.7](#77-feature-6-llm-opponent)).
 - **vs. Bot**: a built-in scripted AI. It works offline, needs no key, and is the fallback when an LLM fails.
 - **Hot-seat**: two humans at one screen. A "hide my side" curtain covers hidden placement and concealment.
 - **Spectate**: LLM vs. LLM, LLM vs. Bot, or Bot vs. Bot. Useful for fun, balance testing and soak tests.
 - **Tutorial track**: scenarios 1–12 in programmed-instruction order. Each one shows a "new rules in this scenario" briefing.
 - **Design-Your-Own**: random scenario generation (Game Set IV).
 - **Campaign**: a persistent leader identity carried across scenarios (Game Set IV).
-- **Online PvP** is deferred. The event-sourced engine makes it a natural later addition ([§13](#13-open-questions-defaults-assumed-until-answered)).
+- **Online play against other people** is out of scope (owner's decision).
 
 ### 3.2 Play styles
 
@@ -158,15 +158,14 @@ flowchart LR
 | Persistence | IndexedDB via Dexie; JSON export and import | Saves, replays, profiles, campaign files. |
 | Audio | Howler.js | Positional-ish SFX, ambience. |
 | Tests | Vitest, fast-check (property tests), Playwright (end-to-end and visual) | See [§11](#11-testing-strategy). |
-| Packaging | Static site (GitHub Pages) and PWA; Tauri desktop build is optional later | Zero install. |
+| Packaging | Static site (GitHub Pages) and PWA, works offline except LLM calls | Zero install; browser only. |
 
 ### 4.4 Repository layout (planned)
 
 ```
 squadleader/
 ├─ apps/
-│  ├─ web/              # React app: battle screen, editors, settings
-│  └─ relay/            # optional tiny local Node relay for LLM calls (CORS / key isolation)
+│  └─ web/              # React app: battle screen, editors, settings
 ├─ packages/
 │  ├─ hex/              # hex math, coordinates, board composition (geomorphic butting)
 │  ├─ terrain/          # vector terrain model, board loader, derived hex attributes
@@ -277,9 +276,9 @@ Each rule section maps to a module of pure functions. Every function is document
 
 `packages/tables` holds the Infantry Fire Table, Close Combat Table, To Hit and AFV Kill tables, terrain DRMs and MF costs, the support-weapon chart, artillery module tables, and the Design-Your-Own charts. All are versioned JSON validated by Zod.
 
-- **Default values:** transcribed from the owner's Quick Reference Data Card ([REFERENCE_TABLES.md](REFERENCE_TABLES.md)).
-  - Values marked ⚠️ there are inferred and get confirmed before M3.
-  - Tables still missing (To Hit, AFV Kill) block armor work in M9, not the first playable.
+- **Default values:** transcribed in [REFERENCE_TABLES.md](REFERENCE_TABLES.md) from both sides of the owner's Quick Reference Data Card, the rulebook's embedded tables and its counter roster.
+  - The data is complete.
+  - A few items marked ⚠️ are interpretation checks, scheduled at the milestone that uses them.
 - **Variant table sets:** the *Crescendo of Doom* card has a different Close Combat Table and different IFT HE pairings. It can be added as a variant set for future expansion rules, selected per scenario.
 - The **Rules Data editor** shows each table as an editable grid. Next to it is a probability heat-map of the outcome distribution (2d6 combined with DRMs), so you can see what a change does to the odds.
 - Saves record the table-set hash, so replays reproduce exactly.
@@ -348,7 +347,7 @@ Every resolution emits a human-readable trace shown in the combat log. For examp
 - **Reciprocity:** the result is the same in both directions (§43.8). Tests enforce this.
 - **Marginal LOS:** if the line only grazes a symbol, it's flagged as *marginal*. Per §7.1 the line blocks only if the obstacle shows on *both* sides of the string. A ruling switch chooses whether marginal lines are clear, blocked or decided by a die roll (the rulebook's "friendly roll of the die").
 - **Viewshed mode (`V`):** from one hex, shade every hex visible from it, or every hex that can see it. On a 4-board map this is about 1,300 LOS checks, computed in the worker in well under a frame budget. The display is cached and updates incrementally.
-- **3D view:** the same LOS appears as a ray at eye heights, with the obstruction glowing ([§7.4](#74-feature-3--3d-landscape-view)).
+- **3D view:** the same LOS appears as a ray at eye heights, with the obstruction glowing ([§7.4](#74-feature-3-3d-landscape-view)).
 
 **Algorithm (rules-faithful, categorical, not raycast realism):**
 
@@ -538,7 +537,10 @@ POV Cam is a **watch-only** camera: no game actions can be taken from it.
 - **Remember on this device** is opt-in and stores the key in IndexedDB, with a plain-language warning that browser storage is not a vault.
 - The key never goes into saves, replays, logs or error reports.
 - A Content-Security-Policy `connect-src` limits network calls to the selected provider's domain.
-- **Optional `apps/relay`:** a small local Node relay. It keeps the key out of the browser and handles providers that block browser (CORS) calls. Anthropic's API allows browser calls only with an explicit opt-in, which the official SDK exposes as `dangerouslyAllowBrowser`; verify the current flag at implementation time.
+- **Calls go straight from the browser to the provider.** No relay server is needed:
+  - Anthropic allows browser calls with an explicit opt-in, which the official SDK exposes as `dangerouslyAllowBrowser`. Verify the current flag at implementation time.
+  - OpenAI, Gemini and OpenRouter accept browser calls.
+  - Local servers such as Ollama need their allowed-origins setting to include the app's address. The settings panel explains this when *Test connection* fails.
 
 #### Agent design
 
@@ -816,25 +818,32 @@ Sizes are relative: S, M, L, XL. Each milestone ends with a playable or demoable
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Rules ambiguity and interactions across 63 sections | Wrong results; player distrust | Rules traces on every result; rulings registry; conformance suite; the rulebook's Q&A appendix applied by default |
-| Transcription errors or gaps in the numeric tables (infantry side transcribed; vehicle side not yet supplied) | Wrong odds; armor blocked | Table-driven engine; ⚠️ markers in REFERENCE_TABLES.md; a test checks the IFT against the rulebook's §10.6 example; Rules Data editor with probability previews; request the card's vehicle side before M9 |
+| Transcription errors in the rules data | Wrong odds | Table-driven engine; two independent sources cross-checked (the card and the rulebook's own table images agree for To Hit, AFV Kill, counter battery and artillery-vs-vehicles); conformance tests against the rulebook's worked examples; Rules Data editor with probability previews |
 | LOS edge cases (grazing lines, odd symbol shapes) | Disputes | Exact vector geometry with tolerance; *marginal* flag; ruling switch; profile view to make the result understandable |
 | Content workload (boards and 12 scenarios) | Schedule | Board editor and procedural assist; start with 2 boards; scenario editor; bot soak for balance |
 | LLM play quality, latency and cost | Weak or slow opponent | Engine-computed candidates (`list_options`); Standing Orders; economy mode; caching; budgets; scripted fallback |
-| API key exposure in the browser | Security | Memory-only default; opt-in persistence with warning; CSP; optional local relay |
+| API key exposure in the browser | Security | Memory-only default; opt-in persistence with warning; CSP limiting calls to the chosen provider; key never written to saves or logs |
 | 3D performance on modest hardware | Choppy view | Instancing, LOD, presets; 2D is always available |
 | Scope creep (armor, artillery, campaign) | Never ships | Milestone gates; first playable at M4 before 3D and AI |
 
 ---
 
-## 13. Open questions (defaults assumed until answered)
+## 13. Decisions and open questions
+
+### Decided by the owner
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Platform | **Browser only**, provided it can be complete. It can: every feature in this plan runs client-side (§1). |
+| 2 | Multiplayer | **No online play** against other people. Modes are hot-seat, vs. LLM, vs. bot and spectate. |
+| 3 | Rules data | Owner supplied both sides of the Quick Reference Data Card. Data is now complete ([REFERENCE_TABLES.md](REFERENCE_TABLES.md)). |
+| 4 | LLM providers | **Anthropic, OpenAI, Gemini, OpenRouter, local.** |
+| 5 | API key storage | **Memory-only by default**, with an opt-in "remember on this device". |
+
+### Still open (defaults assumed)
 
 | # | Question | Default assumed |
 |---|---|---|
-| 1 | Platform: browser app (installable PWA), or do you want a desktop build too? | Browser and PWA; desktop via Tauri later if wanted |
-| 2 | Multiplayer: is hot-seat plus LLM or bot enough, or do you want online human-vs-human? | Hot-seat, LLM and bot first; online after M12 |
-| 3 | Can you photograph the **vehicle side** of the Quick Reference Data Card (To Hit and AFV Kill tables) and the bottom strip of the infantry side? See [REFERENCE_TABLES §10](REFERENCE_TABLES.md#10-still-missing). | Infantry side as transcribed; armor waits for the vehicle side |
-| 4 | LLM providers: Anthropic, OpenAI, Gemini, OpenRouter, local. Add or remove any? | All five |
-| 5 | API key persistence: memory-only by default, OK? | Yes, with opt-in "remember" |
 | 6 | Dice: digital only, or also physical-dice entry? | Both (digital default) |
 | 7 | 3D unit style: tokens (counter standees) first, miniatures later? | Yes |
 | 8 | First playable scope: infantry §1–21 (scenario 1) at M4? | Yes |

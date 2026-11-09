@@ -1,6 +1,6 @@
 # Fire & Maneuver *(working title)*
 
-A browser game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
+A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
 **Status: planning.** No code yet.
 
@@ -8,7 +8,7 @@ A browser game of WWII squad-level tactical hex combat. It follows the mechanics
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | Full project plan: architecture, feature specs, milestones, testing, risks, open questions |
 | [docs/RULES_COVERAGE.md](docs/RULES_COVERAGE.md) | Every rulebook section (§1–63, optional rules, Game Set IV), mapped to an engine module and a milestone |
-| [docs/REFERENCE_TABLES.md](docs/REFERENCE_TABLES.md) | Quick Reference Data Card transcription: the engine's default tables, plus what's still missing |
+| [docs/REFERENCE_TABLES.md](docs/REFERENCE_TABLES.md) | Complete rules data: both sides of the Quick Reference Data Card, the rulebook's embedded tables and the unit roster |
 
 ## Planned features
 

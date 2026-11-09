@@ -9,7 +9,7 @@ This document maps every section of the supplied 4th Edition rulebook to an engi
 - Optional rules are per-game switches.
 - Interpretation calls live in the rulings registry (`docs/rulings.md`, created at M3).
 
-**Automation levels** referred to below are Manual (0), Assisted (1), Streamlined (2) and Delegated (3). They're defined in [PLAN.md §7.8](PLAN.md#78-feature-7--automation).
+**Automation levels** referred to below are Manual (0), Assisted (1), Streamlined (2) and Delegated (3). They're defined in [PLAN.md §7.8](PLAN.md#78-feature-7-automation).
 
 ---
 
@@ -55,12 +55,12 @@ This document maps every section of the supplied 4th Edition rulebook to an engi
 
 | § | Topic | Notes | MS |
 |---|---|---|---|
-| 28 | AFVs | Vehicle classes (tank, SP gun, halftrack); armor factors front and side; gun; turret type; MP; MG armament (§28.4). Data from vehicle counters (still needed). | M9 |
+| 28 | AFVs | Vehicle classes (tank, SP gun, halftrack); armor factors front and side; gun; turret type; MP; MG armament (§28.4). Vehicle data comes from the rulebook's counter roster ([REFERENCE_TABLES §16](REFERENCE_TABLES.md#16-unit-roster-from-the-rulebooks-point-value-chart-counter-art-p-34-)); armor is modeled by kill-number modifiers (§33.41). | M9 |
 | 29 | Vehicle stacking and placement | Facing and **covered arc**; stacking. Drives the POV turret limit and 3D turret orientation. | M9 |
 | 30 | Vehicle movement | MP costs by terrain; pivoting (§30.4–30.5); entering enemy hexes (§30.7). Immediate defensive fire during the move (§16.7). | M9 |
 | 31 | Transporting infantry, tanks and SP guns | Riders; loading and unloading costs; Stacking §6.1 rows for "on AFV" and "on truck". | M9 |
 | 32 | AFVs as cover | Vehicles don't block LOS (§32.3, §32.6); infantry beneath gets +1; crossing an AFV counter cancels the moving-in-open DRM (§32.7). | M9 |
-| 33 | AFV combat | Two steps (§33.3): **To Hit** (range, target, case DRMs A–I; *table needed*), then **AFV Kill** (gun vs. armor factor, hit-location DRMs; *table needed*). Hull-down. Crew counters. Gun FX: miss, ricochet, penetration. | M9 |
+| 33 | AFV combat | Two steps (§33.3): **To Hit** (range band × target type; black or red numbers by nationality; case DRMs A–K; unmodified-2 third-die rule, §33.32), then **AFV Kill** (weapon and ammunition × facing, plus per-vehicle modifiers, §33.41). Both tables are in REFERENCE_TABLES §10–11. Hull-down. Crew counters. Gun FX: miss, ricochet, penetration. | M9 |
 | 34 | AFVs vs. infantry | HE on the IFT using the column's HE-equivalent; vehicle MG fire; CE (crew exposed). | M9 |
 | 35 | Overruns | 16 FP (tanks, SP guns) or 8 FP (halftracks); −5 vs. trucks and jeeps; defensive fire against the overrunning AFV. | M9 |
 | 36 | Infantry vs. AFVs | Defensive Fire Phase method (§36.1); close assault in close combat. | M9 |
