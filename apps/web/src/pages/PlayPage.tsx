@@ -1,24 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
-import { leaderRating } from '@squadwar/engine';
-import { allScenarios, rulesData } from '../game/scenarios';
+import { leaderRating, parseScenario } from '@squadwar/engine';
+import { allScenarios, customScenarios, registerScenario, removeScenario, rulesData, scenarioById } from '../game/scenarios';
 import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '../game/library';
 import { useReview } from '../game/review';
 import { loadAutosave, useSession, type Controller, type SaveFile } from '../game/session';
-import { go } from '../router';
+import { go, useRoute } from '../router';
 import { useLlm } from '../game/llm';
 import { LlmSettings } from '../ui/LlmSettings';
 import { TopBar } from '../ui/TopBar';
 
 export function PlayPage() {
-  const scenarios = allScenarios();
-  const [chosen, setChosen] = useState(scenarios[0]!.id);
-  const sc = scenarios.find((s) => s.id === chosen)!;
+  const [, wanted] = useRoute();
+  const auto = loadAutosave();
+  const [customs, setCustoms] = useState(() => {
+    // A saved game of a custom scenario brings the scenario back with it.
+    if (auto?.scenarioData && !scenarioById(auto.scenario)) {
+      try {
+        registerScenario(parseScenario(auto.scenarioData));
+      } catch {
+        // An autosave from an older version: skip.
+      }
+    }
+    return customScenarios();
+  });
+  const builtIn = allScenarios();
+  const scenarios = [...builtIn, ...customs];
+  const [chosen, setChosen] = useState(() => (wanted && scenarios.some((s) => s.id === wanted) ? wanted : scenarios[0]!.id));
+  const sc = scenarios.find((s) => s.id === chosen) ?? scenarios[0]!;
   const [controllers, setControllers] = useState<Record<SideId, Controller>>(() =>
     Object.fromEntries(sc.sides.map((s) => [s.id, s.id === sc.victory.side ? 'human' : 'bot'])),
   );
+  // Side ids differ between scenarios: keep choices for sides that exist, default the rest.
+  useEffect(() => {
+    setControllers((c) => Object.fromEntries(sc.sides.map((s) => [s.id, c[s.id] ?? (s.id === sc.victory.side ? 'human' : 'bot')])));
+  }, [sc]);
   const [error, setError] = useState<string>();
-  const auto = loadAutosave();
   const file = useRef<HTMLInputElement>(null);
   const [llmOpen, setLlmOpen] = useState(false);
   const llmCfg = useLlm((l) => l.config);
@@ -26,11 +43,11 @@ export function PlayPage() {
   const usesLlm = Object.values(controllers).includes('llm');
   const start = () => {
     useLlm.getState().reset();
-    useSession.getState().start(chosen, controllers);
+    useSession.getState().start(sc.id, controllers);
     go('battle');
   };
   const watch = () => {
-    useSession.getState().start(chosen, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as Controller])));
+    useSession.getState().start(sc.id, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as Controller])));
     go('battle');
   };
   const [games, setGames] = useState<GameSummary[]>();
@@ -68,8 +85,35 @@ export function PlayPage() {
       <TopBar title="Choose a scenario" />
       <main className="play">
         <aside className="scenario-list">
-          {scenarios.map((s, i) => (
-            <button key={s.id} className={`scenario-item ${s.id === chosen ? 'active' : ''}`} onClick={() => setChosen(s.id)}>
+          {customs.length > 0 && <h3 className="panel-h scenario-group">Your scenarios</h3>}
+          {customs.map((s) => (
+            <div key={s.id} className={`scenario-item custom ${s.id === sc.id ? 'active' : ''}`}>
+              <button className="scenario-pick" onClick={() => setChosen(s.id)}>
+                <span className="scenario-no stencil">★</span>
+                <span>
+                  <strong>{s.title}</strong>
+                  <span className="dim small block">
+                    {s.date} · {s.turns} turns
+                  </span>
+                </span>
+              </button>
+              <button
+                className="btn tiny ghost"
+                title="Remove this scenario from your list"
+                aria-label={`Remove ${s.title}`}
+                onClick={() => {
+                  removeScenario(s.id);
+                  setCustoms(customScenarios());
+                  if (s.id === sc.id) setChosen(builtIn[0]!.id);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {customs.length > 0 && <h3 className="panel-h scenario-group">Scenarios</h3>}
+          {builtIn.map((s, i) => (
+            <button key={s.id} className={`scenario-item ${s.id === sc.id ? 'active' : ''}`} onClick={() => setChosen(s.id)}>
               <span className="scenario-no stencil">{i + 1}</span>
               <span>
                 <strong>{s.title}</strong>
@@ -136,7 +180,7 @@ export function PlayPage() {
             <button className="btn big" onClick={watch} title="Both sides played by the computer, with the reasoning behind every move">
               Watch AI vs AI
             </button>
-            {auto && auto.scenario === chosen && (
+            {auto && auto.scenario === sc.id && (
               <button className="btn big" onClick={() => resume(auto)}>
                 Continue saved game ({auto.actions.length} actions)
               </button>

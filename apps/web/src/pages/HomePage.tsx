@@ -23,6 +23,9 @@ export function HomePage() {
           >
             Watch AI vs AI (tutor)
           </button>
+          <button className="btn" onClick={() => go('dyo')} title="Deal a random scenario from the Game Set IV charts">
+            Design your own
+          </button>
           <button className="btn" onClick={() => go('lab')}>
             Map &amp; line-of-sight lab
           </button>
@@ -30,7 +33,7 @@ export function HomePage() {
             Board editor
           </button>
         </nav>
-        <p className="faint home-foot">Milestone build · rules §1–21 · original boards and scenarios</p>
+        <p className="faint home-foot">Rules §1–63 · 12 scenarios, Design Your Own · original boards and scenarios</p>
       </div>
     </main>
   );

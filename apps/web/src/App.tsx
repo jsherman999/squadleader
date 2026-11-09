@@ -6,6 +6,7 @@ import { EditorPage } from './pages/EditorPage';
 import { PlayPage } from './pages/PlayPage';
 import { BattlePage } from './pages/BattlePage';
 import { ReviewPage } from './pages/ReviewPage';
+import { DyoPage } from './pages/DyoPage';
 
 export function App() {
   return (
@@ -23,5 +24,6 @@ function Page() {
   if (page === 'play') return <PlayPage />;
   if (page === 'battle') return <BattlePage />;
   if (page === 'review') return <ReviewPage />;
+  if (page === 'dyo') return <DyoPage />;
   return <HomePage />;
 }

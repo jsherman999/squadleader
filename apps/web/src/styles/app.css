@@ -1836,3 +1836,89 @@ kbd {
 .side-right > * {
   flex-shrink: 0;
 }
+
+/* ---- Custom scenarios and Design Your Own ---- */
+.scenario-group {
+  margin: 4px 0 8px;
+}
+.scenario-item.custom {
+  padding: 0 6px 0 0;
+  cursor: default;
+}
+.scenario-pick {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.dyo-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin: 8px 0 16px;
+}
+.dyo-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--c-dim);
+}
+.dyo-options select {
+  background: var(--c-panel-2);
+  color: var(--c-text);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+}
+.dyo-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 8px 0 16px;
+}
+.dyo-card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+.playing-card {
+  flex: none;
+  width: 38px;
+  height: 52px;
+  border-radius: 5px;
+  background: #f4efe2;
+  color: #1c1c1c;
+  border: 1px solid #b9b09a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1.05;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.playing-card.red {
+  color: #b3261e;
+}
+.playing-card .suit {
+  font-size: 18px;
+}
+@media (max-width: 720px) {
+  .forces {
+    grid-template-columns: 1fr;
+  }
+}

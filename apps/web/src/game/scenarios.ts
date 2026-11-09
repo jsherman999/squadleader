@@ -14,11 +14,74 @@ export function allScenarios(): Scenario[] {
   return scenarios;
 }
 
+// ---- Custom scenarios (Design Your Own, the scenario editor, campaigns) ----
+
+const CUSTOM_KEY = 'squadwar:scenarios';
+const custom = new Map<string, Scenario>();
+let customLoaded = false;
+
+function loadCustom(): void {
+  if (customLoaded) return;
+  customLoaded = true;
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY);
+    for (const x of raw ? (JSON.parse(raw) as unknown[]) : []) {
+      try {
+        const sc = parseScenario(x);
+        custom.set(sc.id, sc);
+      } catch {
+        // A stored scenario that no longer validates is skipped.
+      }
+    }
+  } catch {
+    // Storage unavailable.
+  }
+}
+
+function saveCustom(): void {
+  try {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify([...custom.values()]));
+  } catch {
+    // Storage full or unavailable: the scenario still works this session.
+  }
+}
+
+/** Add or replace a custom scenario; it is kept in this browser. */
+export function registerScenario(sc: Scenario): void {
+  loadCustom();
+  custom.set(sc.id, sc);
+  ctxCache.delete(sc.id);
+  saveCustom();
+}
+
+export function removeScenario(id: string): void {
+  loadCustom();
+  custom.delete(id);
+  ctxCache.delete(id);
+  saveCustom();
+}
+
+/** Scenarios made in this browser, newest last. */
+export function customScenarios(): Scenario[] {
+  loadCustom();
+  return [...custom.values()];
+}
+
+export function customScenario(id: string): Scenario | undefined {
+  loadCustom();
+  return custom.get(id);
+}
+
+/** Any scenario by id: built in first, then custom. */
+export function scenarioById(id: string): Scenario | undefined {
+  return allScenarios().find((s) => s.id === id) ?? customScenario(id);
+}
+
 const ctxCache = new Map<string, Ctx>();
 export function ctxFor(id: string): Ctx {
   let c = ctxCache.get(id);
   if (!c) {
-    const sc = allScenarios().find((s) => s.id === id);
+    const sc = scenarioById(id);
     if (!sc) throw new Error(`unknown scenario ${id}`);
     c = makeCtx(sc, rulesData(), allBoards());
     ctxCache.set(id, c);

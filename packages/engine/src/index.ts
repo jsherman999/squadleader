@@ -50,3 +50,4 @@ export { fortMoveCost, hasWire, inTrench, bunkerAt, onFire, rubbled, roadblockBe
 export { blastArea, contactValue } from './rules/artillery';
 export { illuminated, nightSight } from './rules/night';
 export { riders, gunCrew } from './rules/transport';
+export { designYourOwn, dyoPoints, type DyoCard, type DyoDraw, type DyoOptions, type DyoResult, type DyoRules, type DyoTerrain } from './dyo';
