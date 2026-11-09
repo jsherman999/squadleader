@@ -108,19 +108,19 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | Item | Notes | MS |
 |---|---|---|
-| Design-Your-Own: random scenario construction | Virtual 52-card deck sets defender and Allied nationality, the defender's board, length (4, 6, 8 or 10 turns), forces (Random Selection Chart), victory conditions (Random Victory Condition Chart) and points (Point Value Chart). Charts live in `tables`. | M12 |
-| Campaign Game | Personnel file; ranks with morale and leadership; Elan and Cowardice points; promotion or demotion at ±10, at most one step per scenario; KIA and a new identity; six-scenario arcs. | M12 |
+| Design-Your-Own: random scenario construction | **Done.** A shuffled 52-card deck decides the defender (black Axis, red Allied), the Allied nation (black American, red Russian; Russian unless the full rules are in play), the defender's board, the length (4, 6, 8 or 10 turns), the defending force and the victory conditions. The rulebook's charts are images we cannot read, so the force chart, the victory chart (one building, the largest building, two of the three largest, three of the five largest; some at night) and the point values are this project's own. The attacker's force is bought automatically with more points than the defender's instead of by secret bids, and both sides are set up automatically (defenders in cover by the objectives, attackers on the far half of their board). A summary page shows the cards and allows a re-deal. | M12 |
+| Campaign Game | **Done.** Personnel file per campaign; ranks Cpl. 7-0 to Maj. 10-3; élan and cowardice points read off the game record (directed fire that killed squads, rallies, close combat that cleared the hex, AFVs destroyed with or without anti-tank weapons, the winning side; breaking under fire, squads breaking with him, weapons breaking down under his direction, surrenders, total cowardice); promotion or demotion at ±10 with points carried over, one step per scenario; KIA and a new identity as a corporal; six-scenario arcs of any scenarios, including your own; campaign victory points. | M12 |
 
 ## Optional rules (per-game switches)
 
 | Rule | Notes | MS |
 |---|---|---|
-| 8.7 Predesignated attacks | All attacks declared before any resolution. | M3 |
-| 16 Semi-simultaneous movement and defensive fire | Defender fires during movement at tracked hexes. MG lines of fire are fixed once established (§16.5–16.6). Defensive fire is still allowed after movement (§16.8). Implemented through **Standing Orders** and prompts. | M7 |
-| 17.5 (optional) MG penetration vs. moving targets | Penetration hits moving targets in any hex whose two non-adjacent sides the LOS crosses. | M8 |
-| 25.4 Concealment while moving | Kept if no enemy has LOS to any hex moved through. | M8 |
-| 59.1 Woods and grain fires | June–October only; spread rolls. | M11 |
-| TI counters | Temporarily-immobilized reminders, removed in the next Rally Phase. Automated in Assisted mode. | M11 |
+| 8.7 Predesignated attacks | Not offered: attacks are resolved one at a time with re-targeting allowed (the non-predesignated default). | — |
+| 16 Semi-simultaneous movement and defensive fire | Not offered. Standing Orders and Delegated automation cover Defensive Fire in the normal phase. | — |
+| 17.5 (optional) MG penetration vs. moving targets | Not offered yet. | — |
+| 25.4 Concealment while moving | **Done**, chosen on the play page: a concealed stack keeps its concealment while no enemy can see the hexes it moves between. | M12 |
+| 59.1 Woods and grain fires | **Done**, chosen on the play page: from June to October flamethrowers and HE can set woods and wheat alight; fire spreads to woods on 7+ and grain on 6+. | M12 |
+| TI counters | Not shown as counters: units that dig, cut wire or clear mines simply cannot move or fire that turn. | — |
 
 ## Cross-cutting
 

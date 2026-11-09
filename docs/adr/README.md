@@ -13,3 +13,4 @@ Short records of decisions that shape the codebase. Each one says what was decid
 | [0007](0007-fire-director.md) | Fire Director: pure timeline and sampler, one clock for 2D, 3D, sound and dice; hold the board until results land | Accepted |
 | [0008](0008-llm-opponent.md) | LLM opponent: one decision per phase through engine tools, provider adapters, scripted-AI fallback, standing orders | Accepted |
 | [0009](0009-vehicles.md) | Vehicles as their own kind of piece: separate state, armour module, covered arc as a hex sector, wrecks and crews | Accepted |
+| [0010](0010-custom-scenarios.md) | Custom scenarios (Design Your Own, the editor, campaigns) are stored as scenario documents and carried inside their saves; optional rules live in the game state | Accepted |

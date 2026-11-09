@@ -2093,3 +2093,23 @@ kbd {
     grid-template-rows: auto 60vh;
   }
 }
+
+/* ---- Accessibility ---- */
+:focus-visible {
+  outline: 2px solid var(--c-brass);
+  outline-offset: 2px;
+}
+.btn:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--c-brass);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

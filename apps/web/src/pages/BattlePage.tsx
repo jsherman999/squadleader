@@ -550,6 +550,8 @@ function Battle() {
   );
 
   const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);
+  /** Keyboard cursor: Shift+arrows move it hex by hex, Enter acts on it like a click. */
+  const cursor = useRef<HexKey | undefined>(undefined);
 
   const blockers = phaseBlockers(ctx, s);
   const canUndo = plan ? (plan.slots[plan.active]?.actions.length ?? 0) > 0 : human && session.actions.length > 0 && !session.rolled[session.rolled.length - 1];
@@ -562,6 +564,27 @@ function Battle() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement | null)?.closest('input, select, textarea')) return;
+      if (e.shiftKey && e.key.startsWith('Arrow')) {
+        e.preventDefault();
+        const st = useSession.getState();
+        const start = cursor.current ?? st.selection.hex ?? Object.keys(map.hexes).sort()[Math.floor(Object.keys(map.hexes).length / 2)]!;
+        const h = map.hexes[start]!;
+        // Columns alternate up and down, so a sideways step keeps to the printed row.
+        const col = /^([A-Z]+)/.exec(h.localId)![1]!;
+        const odd = (col.length === 1 ? col.charCodeAt(0) - 65 : 26 + col.charCodeAt(0) - 65) % 2 === 1;
+        const dir = { ArrowUp: 0, ArrowDown: 3, ArrowRight: odd ? 1 : 2, ArrowLeft: odd ? 5 : 4 }[e.key];
+        if (dir === undefined) return;
+        const next = hexKey(neighbor(h.hex, DIRECTIONS[dir]!));
+        if (!map.hexes[next]) return;
+        cursor.current = next;
+        setHover(next);
+        return;
+      }
+      if (e.key === 'Enter' && !fxPlayer.busy && cursor.current) {
+        e.preventDefault();
+        onClick({ hex: cursor.current, world: hexToPixel(map.hexes[cursor.current]!.hex), shift: e.shiftKey, alt: false, ctrl: false } as PointerInfo);
+        return;
+      }
       if (e.key === ' ') {
         e.preventDefault();
         if (aiVsAi) setPaused((p) => !p);
@@ -599,7 +622,7 @@ function Battle() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endPhase, canUndo, session, human, povHex, aiVsAi]);
+  }, [endPhase, canUndo, session, human, povHex, aiVsAi, map, onClick]);
 
 
   const exportSave = () => {
@@ -813,6 +836,7 @@ function Battle() {
                     ['E', "Eyes: look from the selected unit's position (watch only)"],
                     ['Z', 'Undo the last action (only before dice are rolled)'],
                     ['Esc', 'Clear selection and tools'],
+                    ['Shift + arrows', 'Move the keyboard cursor hex by hex; Enter acts on it like a click (Shift+Enter adds to the selection)'],
                     ['Wheel / drag', 'Zoom and pan; 0 fits the board, arrows pan. In 3D, drag orbits, right-drag pans, double-click focuses a hex'],
                   ].map(([k, v]) => (
                     <tr key={k}>
@@ -844,7 +868,7 @@ function Battle() {
             </button>
           )}
           {notice && (
-            <div className="notice" onAnimationEnd={() => setNotice(undefined)}>
+            <div className="notice" role="status" aria-live="polite" onAnimationEnd={() => setNotice(undefined)}>
               {notice}
             </div>
           )}

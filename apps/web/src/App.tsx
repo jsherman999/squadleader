@@ -1,20 +1,25 @@
+import { lazy, Suspense } from 'react';
 import { useRoute } from './router';
 import { FxAudio } from './fx/FxAudio';
 import { HomePage } from './pages/HomePage';
-import { MapLabPage } from './pages/MapLabPage';
-import { EditorPage } from './pages/EditorPage';
 import { PlayPage } from './pages/PlayPage';
 import { BattlePage } from './pages/BattlePage';
-import { ReviewPage } from './pages/ReviewPage';
-import { DyoPage } from './pages/DyoPage';
-import { CampaignPage } from './pages/CampaignPage';
-import { ScenarioEditorPage } from './pages/ScenarioEditorPage';
+
+// Pages off the main play path load on demand.
+const MapLabPage = lazy(() => import('./pages/MapLabPage').then((m) => ({ default: m.MapLabPage })));
+const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
+const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
+const DyoPage = lazy(() => import('./pages/DyoPage').then((m) => ({ default: m.DyoPage })));
+const CampaignPage = lazy(() => import('./pages/CampaignPage').then((m) => ({ default: m.CampaignPage })));
+const ScenarioEditorPage = lazy(() => import('./pages/ScenarioEditorPage').then((m) => ({ default: m.ScenarioEditorPage })));
 
 export function App() {
   return (
     <>
       <FxAudio />
-      <Page />
+      <Suspense fallback={<div className="page loading dim">Loading…</div>}>
+        <Page />
+      </Suspense>
     </>
   );
 }
