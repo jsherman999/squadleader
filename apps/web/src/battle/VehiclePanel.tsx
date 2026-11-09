@@ -17,6 +17,7 @@ import {
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const FIRE = new Set(['prepFire', 'defensiveFire', 'advancingFire']);
+const KIND_NAMES: Record<string, string> = { tank: 'tank', spg: 'SP gun', halftrack: 'halftrack', gun: 'gun', truck: 'truck', jeep: 'jeep', mortar: 'mortar' };
 
 /** Orders for the selected tank or SP gun: facing, movement, gun and MG fire, repairs (§28–41). */
 export function VehiclePanel({
@@ -39,7 +40,7 @@ export function VehiclePanel({
   const t = vehicleType(ctx, v);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   const turn = (d: number) => dispatch({ type: 'face', vehicle: v.id, facing: (v.facing + d + 6) % 6 });
-  const isGun = t.kind === 'gun';
+  const isGun = t.kind === 'gun' || t.kind === 'mortar';
   const aboard = Object.values(s.units).filter((u) => u.riding === v.id);
   const status = [v.immobilized ? 'immobilized' : '', v.gun !== 'ok' ? `gun ${v.gun}` : '', v.mg !== 'ok' ? `MGs ${v.mg}` : '', v.ce ? 'crew exposed' : ''].filter(Boolean);
   const head = (
@@ -47,8 +48,10 @@ export function VehiclePanel({
       <strong>{vehicleLabel(ctx, v)}</strong>
       <span className="dim small">
         {' '}
-        {t.kind === 'tank' ? 'tank' : t.kind === 'spg' ? 'SP gun' : t.kind === 'halftrack' ? 'halftrack' : 'AT gun'} · {t.gun ? `${t.gun}mm${t.heOnly ? ' HE only' : ''}${t.lowVelocity ? ' *' : ''}` : 'no gun'} · MG {t.mgCA}/{t.mg360}
-        {isGun ? ` · ROF ${t.rof ?? 1}` : ` · ${t.mp} MP`} · arc {FACING_NAMES[v.facing]}
+        {KIND_NAMES[t.kind] ?? t.kind} · {t.gun ? `${t.gun}mm${t.heOnly ? ' HE only' : ''}${t.lowVelocity ? ' *' : ''}${t.heat ? (v.heatOut ? ' · HEAT out' : ' · HEAT') : ''}` : 'no gun'}
+        {t.mgCA || t.mg360 ? ` · MG ${t.mgCA}/${t.mg360}` : ''}
+        {isGun ? ` · ROF ${t.rof ?? 1}` : ` · ${t.mp} MP`}
+        {t.kind === 'mortar' ? ` · range ${t.minRange ?? 10}–${t.maxRange ?? 60}` : ` · arc ${FACING_NAMES[v.facing]}`}
       </span>
       {aboard.length > 0 && <div className="small">Riding: {aboard.map((u) => unitLabel(ctx, u)).join(', ')}</div>}
       {status.length > 0 && <div className="small warn">{status.join(' · ')}</div>}
@@ -95,8 +98,10 @@ export function VehiclePanel({
       return (
         <div className="actions">
           {head}
-          <p className="small dim">An AT gun is turned or pushed one hex by its crew or a squad that has not moved (§48.4–48.5). Turning it means +3 to hit in Advancing Fire.</p>
-          {facingButtons('')}
+          <p className="small dim">
+            {t.kind === 'mortar' ? 'A mortar is pushed one hex by its crew or a squad that has not moved (§63.6). It fires in any direction.' : 'An AT gun is turned or pushed one hex by its crew or a squad that has not moved (§48.4–48.5). Turning it means +3 to hit in Advancing Fire.'}
+          </p>
+          {t.kind !== 'mortar' && facingButtons('')}
           {pusher && spots.length > 0 && (
             <div className="action-btns">
               {spots.map((h) => (
@@ -156,6 +161,7 @@ export function VehiclePanel({
       if (ev.side === v.side || ev.hex !== target) continue;
       if (!t.heOnly) reqs.push({ req: { vehicle: v.id, target, weapon: 'main', vs: ev.id, ammo: 'AP' }, label: `Gun (AP) at ${vehicleLabel(ctx, ev)}` });
       reqs.push({ req: { vehicle: v.id, target, weapon: 'main', vs: ev.id, ammo: 'HE' }, label: `Gun (HE) at ${vehicleLabel(ctx, ev)}` });
+      if (t.heat && !v.heatOut) reqs.push({ req: { vehicle: v.id, target, weapon: 'main', vs: ev.id, ammo: 'HEAT' }, label: `Gun (HEAT) at ${vehicleLabel(ctx, ev)}` });
     }
     if (enemiesIn(s, target, v.side).length || (s.phase === 'defensiveFire' && Object.entries(s.tracks).some(([id, st]) => s.units[id]?.side !== v.side && st.some((x) => x.hex === target)))) {
       reqs.push({ req: { vehicle: v.id, target, weapon: 'main' }, label: 'Gun (HE) at the infantry' });
@@ -178,7 +184,13 @@ export function VehiclePanel({
   return (
     <div className="actions">
       {head}
-      {!target && <p className="small dim">Click an enemy hex to see this vehicle’s shots. Its main gun fires once per turn; MGs once each (§33.2).</p>}
+      {!target && (
+        <p className="small dim">
+          {t.kind === 'mortar'
+            ? 'Click an enemy hex 10 or more hexes away that the crew can see. For targets out of sight, a leader with a radio calls indirect fire in the Rally Phase (§63.4).'
+            : 'Click an enemy hex to see this vehicle’s shots. Its main gun fires once per turn; MGs once each (§33.2).'}
+        </p>
+      )}
       {target && <p className="small">Target {hexId(target)}</p>}
       {opts.map((o) => (
         <div key={o.label} className="action-row">

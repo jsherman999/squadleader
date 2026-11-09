@@ -23,7 +23,7 @@ import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
 import { LogPanel } from '../battle/LogPanel';
-import { drawArc, drawArtillery, drawNight, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
+import { drawArc, drawArtillery, drawNight, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks, drawWestern } from '../battle/overlays';
 import { groupPath, vehiclePath } from '../battle/pathing';
 import { VehiclePanel } from '../battle/VehiclePanel';
 import { facingAngle } from '../board/counters';
@@ -311,12 +311,14 @@ function Battle() {
   // Map-space overlays, shared by the 2D board and the 3D landscape.
   const layers: OverlayLayers = useMemo(
     () => ({
-      under: (pen) => {
+      under: (pen, v) => {
+        drawWestern(pen, ctx, fog.s, v !== '3d');
         drawNight(pen, ctx, s);
         drawObjectives(pen, ctx);
         drawSpecial(pen, s);
         drawArtillery(pen, ctx, s, viewer);
         if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
+        if (pick?.kind === 'enter') drawSetupZone(pen, (s.reserves ?? []).find((r) => r.units.some((u) => u.id === pick.units[0]))?.hexes ?? []);
         if (s.phase === 'defensiveFire') drawTracks(pen, s);
         if (dangers) {
           for (const [h, e] of dangers) {
@@ -360,7 +362,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -426,6 +428,7 @@ function Battle() {
       }
       if (pick) {
         if (pick.kind === 'arty') session.dispatch({ type: 'arty', battery: pick.battery, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) });
+        else if (pick.kind === 'enter') session.dispatch({ type: 'enter', units: pick.units, hex: h });
         else session.dispatch({ type: 'starshell', unit: pick.unit, hex: h });
         setPick(undefined);
         return;

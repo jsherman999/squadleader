@@ -109,6 +109,8 @@ export function PlayPage() {
                       {unitName(u.type)}
                       {u.names ? ` (${u.names.join(', ')})` : ''}
                       {u.weapons?.length ? ` with ${u.weapons.map((w) => rulesData().weapons[w]?.name ?? w).join(', ')}` : ''}
+                      {u.enters ? <span className="dim"> · enters turn {u.enters.turn}</span> : ''}
+                      {u.hidden ? <span className="dim"> · hidden</span> : ''}
                     </li>
                   ))}
                 </ul>

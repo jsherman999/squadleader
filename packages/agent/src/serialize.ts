@@ -4,7 +4,7 @@
  * through `visibleUnits`, the single visibility gate, so later rules that
  * hide units (concealment, hidden placement) only need to change it.
  */
-import { DIRECTIONS, DIRECTION_NAMES, hexsideKey, type HexKey } from '@squadwar/hex';
+import { DIRECTIONS, DIRECTION_NAMES, hexKey, hexsideHexes, hexsideKey, type HexKey } from '@squadwar/hex';
 import {
   FACING_NAMES,
   mpLeft as vehicleMpLeft,
@@ -158,11 +158,44 @@ function specialLines(ctx: Ctx, s: GameState, side: string): string[] {
   }
   for (const b of (s.batteries ?? []).filter((x) => x.side !== side && (x.mode === 'sr' || x.mode === 'ffe') && x.hex)) out.push(`ENEMY ARTILLERY: ${b.mode === 'sr' ? 'spotting round' : 'fire for effect'} at ${hexId(ctx, b.hex!)}.`);
   if (ctx.scenario.night) out.push(`NIGHT: visibility ${s.nightVis ?? '?'} hexes this turn (+3 for moving vehicles); starshells lit at ${(s.starshells ?? []).map((x) => hexId(ctx, x.hex)).join(', ') || 'none'}; you have ${s.starshellsLeft?.[side] ?? 0} starshells.`);
+  out.push(...westernLines(ctx, s, side));
   if (ctx.scenario.sewers) {
     const open = Object.values(ctx.map.hexes).filter((h) => h.sewer && !s.closedSewers.includes(h.key));
     out.push(`SEWER ENTRANCES: ${open.map((h) => h.id).join(' ')}${s.closedSewers.length ? `; blown shut: ${s.closedSewers.map((h) => hexId(ctx, h)).join(' ')}` : ''}`);
     const lost = s.lostInSewers.filter((l) => l.side === side);
     if (lost.length) out.push(`LOST IN THE SEWERS (back next Movement Phase): ${lost.flatMap((l) => l.units.map((u) => u.id)).join(', ')}`);
+  }
+  return out;
+}
+
+/** Fortifications, ruins, fires, weather and reinforcements (§50–63). Enemy minefields only once found. */
+function westernLines(ctx: Ctx, s: GameState, side: string): string[] {
+  const out: string[] = [];
+  const ids = (hs: readonly HexKey[]) => hs.map((h) => hexId(ctx, h)).join(', ');
+  const f = s.forts;
+  if (f) {
+    if (f.wire.length) out.push(`WIRE: ${ids(f.wire)} (entering ends the move; leaving costs a die roll of MF; a squad that does nothing else in Prep Fire may cut it, dig work=wire).`);
+    if (f.trenches.length) out.push(`ENTRENCHMENTS: ${ids(f.trenches)} (+2 vs fire and charges, +4 vs artillery and overruns, +0 vs flamethrowers; +1 MF to enter).`);
+    for (const b of f.bunkers) out.push(`BUNKER at ${hexId(ctx, b.hex)} (${b.side === side ? 'yours' : 'enemy'}): holds ${b.capacity} squad${b.capacity === 1 ? '' : 's'}, +${b.ca} against fire from its covered arc (${FACING_NAMES[b.facing]}), +${b.nca} from elsewhere.`);
+    const mines = f.mines.filter((m) => m.side === side || m.known);
+    if (mines.length) out.push(`MINEFIELDS: ${mines.map((m) => `${hexId(ctx, m.hex)} (${m.side === side ? 'yours' : 'enemy, found'}, ${m.factors} factors)`).join('; ')}. Units entering or leaving are attacked; a squad next to it may clear it in Prep Fire (dig work=mines).`);
+    const side2 = (k: string) => {
+      const { a, da } = hexsideHexes(k);
+      return `${hexId(ctx, hexKey(a))}/${DIRECTION_NAMES[da]}`;
+    };
+    if (f.roadblocks.length) out.push(`ROADBLOCKS on hexsides: ${f.roadblocks.map(side2).join(', ')} (vehicles cannot cross; infantry +1 MF).`);
+  }
+  if (s.rubble?.length) out.push(`RUBBLE (fights as a stone building, +3): ${ids(s.rubble)}.`);
+  if (s.fires?.length) out.push(`ON FIRE (blocks sight and entry; units inside must get out in the Rout Phase): ${ids(s.fires)}.`);
+  if (ctx.scenario.snow) out.push('SNOW: movement costs double except along roads; entrenching is harder; mines attack at +1.');
+  const mist = s.smoke.filter((x) => x.side === '__mist');
+  if (mist.length) out.push(`RIVER MIST on the bank (as smoke) until a 1 is rolled at the start of a turn: ${mist.length} hexes along the edge.`);
+  for (const r of (s.reserves ?? []).filter((x) => x.side === side)) {
+    const when = r.turn > s.turn ? `arrive on turn ${r.turn}` : 'may enter now';
+    const limit = s.landing?.[side];
+    out.push(
+      `${r.endsMove ? 'IN THE BOATS' : 'REINFORCEMENTS'} (${when}): ${r.units.map((u) => `${u.id}(${unitLabel(ctx, u)})`).join(' ')}. Order enter with units and an entry hex on the edge, e.g. ${hexId(ctx, r.hexes[0]!)}${r.hexes.length > 1 ? `…${hexId(ctx, r.hexes[r.hexes.length - 1]!)}` : ''}.${r.endsMove ? ' Landing ends their move.' : ''}${limit !== undefined && r.turn <= s.turn ? ` The boats can land ${limit} more squads this turn (leaders extra).` : ''}`,
+    );
   }
   return out;
 }
@@ -200,7 +233,17 @@ export function describeHexes(ctx: Ctx, s: GameState, hexes: readonly HexKey[], 
       if (wr) who.push(`${wr} wreck${wr > 1 ? 's' : ''}`);
       const hs = hexsideNotes(ctx, h);
       const sides = hs ? `, hexsides: ${hs}` : '';
-      const extra = [hx.sewer ? (s.closedSewers.includes(h) ? 'sewer entrance (blown shut)' : 'sewer entrance') : '', s.smoke.some((x) => x.hex === h) ? 'SMOKE' : ''].filter(Boolean);
+      const f = s.forts;
+      const extra = [
+        hx.sewer ? (s.closedSewers.includes(h) ? 'sewer entrance (blown shut)' : 'sewer entrance') : '',
+        s.smoke.some((x) => x.hex === h) ? 'SMOKE' : '',
+        f?.wire.includes(h) ? 'WIRE' : '',
+        f?.trenches.includes(h) ? 'ENTRENCHMENT' : '',
+        f?.bunkers.some((b) => b.hex === h) ? 'BUNKER' : '',
+        f?.mines.some((m) => m.hex === h && (m.side === viewer || m.known)) ? 'MINEFIELD' : '',
+        s.rubble?.includes(h) ? 'RUBBLE' : '',
+        s.fires?.includes(h) ? 'ON FIRE' : '',
+      ].filter(Boolean);
       return `${hx.id}: ${tem.label}, level ${hx.level}, TEM ${tem.drm >= 0 ? '+' : ''}${tem.drm}${bld ? `, ${bld.hexes.length}-hex ${bld.material} building` : ''}${sides}${extra.length ? `, ${extra.join(', ')}` : ''}${who.length ? `, units: ${who.join(' ')}` : ''}`;
     })
     .join('\n');

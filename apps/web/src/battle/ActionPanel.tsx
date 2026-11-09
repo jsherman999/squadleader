@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
   analyzeFire,
@@ -27,8 +28,11 @@ import {
 } from '@squadwar/engine';
 import { FireCalc } from './FireCalc';
 
-/** Waiting for a hex click: where to put an artillery mark or a starshell. */
-export type MapPick = { kind: 'arty'; battery: string; op: 'request' | 'correct' | 'ffe' | 'move'; smoke?: boolean } | { kind: 'starshell'; unit: string };
+/** Waiting for a hex click: where to put an artillery mark or a starshell, or where reinforcements come on. */
+export type MapPick =
+  | { kind: 'arty'; battery: string; op: 'request' | 'correct' | 'ffe' | 'move'; smoke?: boolean }
+  | { kind: 'starshell'; unit: string }
+  | { kind: 'enter'; units: string[] };
 
 export interface ActionPanelProps {
   pick?: MapPick | undefined;
@@ -89,10 +93,17 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   const ok = (a: Action) => tryAction(ctx, s, a).ok;
   const units = selected.map((id) => s.units[id]!).filter((u) => u && u.side === side);
+  const [chosen, setChosen] = useState<string[]>([]);
   const rows: React.ReactNode[] = [];
   if (pick && setPick) {
+    const text =
+      pick.kind === 'starshell'
+        ? 'Click the hex for the starshell (within 5 hexes)'
+        : pick.kind === 'enter'
+          ? 'Click a highlighted entry hex on the board edge'
+          : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`;
     rows.push(
-      <Row key="pick" text={pick.kind === 'starshell' ? 'Click the hex for the starshell (within 5 hexes)' : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`}>
+      <Row key="pick" text={text}>
         <button className="btn tiny" onClick={() => setPick(undefined)}>
           Cancel
         </button>
@@ -108,7 +119,11 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
       );
       const mark = b.mode === 'idle' ? 'nothing on the map' : `${b.mode === 'request' ? 'request' : b.mode === 'sr' ? 'spotting round' : 'fire for effect'} at ${b.hex ? hexId(b.hex) : '?'}`;
       rows.push(
-        <Row key={`bat-${b.id}`} text={`${b.mm}mm artillery · ${left} mission${left === 1 ? '' : 's'} left`} why={`Contact: ${b.contact && b.tried ? 'yes' : b.tried ? 'failed' : 'not tried'} · ${mark}`}>
+        <Row
+          key={`bat-${b.id}`}
+          text={b.onboard ? `${s.vehicles[b.onboard] ? vehicleLabel(ctx, s.vehicles[b.onboard]!) : `${b.mm}mm`} · indirect fire (§63.4)` : `${b.mm}mm artillery · ${left} mission${left === 1 ? '' : 's'} left`}
+          why={`Contact: ${b.contact && b.tried ? 'yes' : b.tried ? 'failed' : 'not tried'} · ${mark}${b.onboard ? ' · one-hex blast' : ''}`}
+        >
           {!b.tried &&
             leaders.map((L) => (
               <button key={L.id} className="btn tiny primary" onClick={() => dispatch({ type: 'radio', battery: b.id, unit: L.id })} title="Roll for radio contact (§46.11)">
@@ -179,6 +194,81 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
         </Row>,
       );
       break;
+    }
+  }
+  // Digging in, cutting wire and clearing mines instead of firing (§53.5, §54.2, §55.5).
+  if (s.phase === 'prepFire' && ctx.scenario.rulesLevel >= 53) {
+    for (const u of units) {
+      if (!squadType(ctx, u) || u.broken || u.firedPhase || u.riding) continue;
+      const btns: React.ReactNode[] = [];
+      if (ok({ type: 'dig', unit: u.id, work: 'entrench' }))
+        btns.push(
+          <button key="dig" className="btn tiny" title="2d6 (+2 in snow) of 5 or less, leader modifier applies (§54.2)" onClick={() => dispatch({ type: 'dig', unit: u.id, work: 'entrench' })}>
+            Dig in
+          </button>,
+        );
+      if (ok({ type: 'dig', unit: u.id, work: 'wire' }))
+        btns.push(
+          <button key="wire" className="btn tiny" title="2d6 at or under the squad's firepower clears it (§53.5)" onClick={() => dispatch({ type: 'dig', unit: u.id, work: 'wire' })}>
+            Cut wire
+          </button>,
+        );
+      if (ctx.scenario.rulesLevel >= 55) {
+        const seen = new Set((s.forts?.mines ?? []).filter((m) => m.side === side || m.known).map((m) => m.hex));
+        for (const h of [u.hex, ...adjacentHexes(u.hex)]) {
+          if (!ctx.map.hexes[h] || (h !== u.hex && !seen.has(h)) || !ok({ type: 'dig', unit: u.id, work: 'mines', hex: h })) continue;
+          btns.push(
+            <button key={`m-${h}`} className="btn tiny" title="2d6 at or under the squad's firepower clears a minefield there (§55.5)" onClick={() => dispatch({ type: 'dig', unit: u.id, work: 'mines', hex: h })}>
+              {h === u.hex ? 'Probe for mines' : `Clear mines ${hexId(h)}`}
+            </button>,
+          );
+        }
+      }
+      if (!btns.length) continue;
+      rows.push(
+        <Row key={`dig-${u.id}`} text={`Field work (${unitLabel(ctx, u)})`} why="Takes the squad's whole Prep Fire; it may not move afterwards.">
+          {btns}
+        </Row>,
+      );
+    }
+  }
+  // Reinforcements and river landings (§60).
+  if (s.phase === 'movement' && setPick) {
+    for (const r of (s.reserves ?? []).filter((x) => x.side === side)) {
+      if (r.turn > s.turn) {
+        rows.push(<Row key={`res-${r.turn}`} text={`Reinforcements: ${r.units.length} units`} why={`They arrive on turn ${r.turn}.`} />);
+        continue;
+      }
+      const limit = s.landing?.[side];
+      const pickHere = chosen.filter((id) => r.units.some((u) => u.id === id));
+      const squadsPicked = pickHere.filter((id) => ctx.data.units[r.units.find((u) => u.id === id)!.type]?.kind !== 'leader').length;
+      rows.push(
+        <Row
+          key={`res-${r.turn}-${r.units[0]!.id}`}
+          text={`${r.endsMove ? 'In the boats' : 'Reinforcements'}: ${r.units.length} unit${r.units.length === 1 ? '' : 's'}${limit !== undefined ? ` · boats land ${limit} more squad${limit === 1 ? '' : 's'} this turn` : ''}`}
+          why={`Pick who comes on together, then the entry hex. ${r.endsMove ? 'Landing ends their move (§60.2).' : 'They enter along the edge and may keep moving.'}`}
+        >
+          {r.units.map((u) => (
+            <button
+              key={u.id}
+              className={`btn tiny ${pickHere.includes(u.id) ? 'primary' : ''}`}
+              onClick={() => setChosen((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c.filter((x) => r.units.some((y) => y.id === x)), u.id]))}
+            >
+              {unitLabel(ctx, u)}
+            </button>
+          ))}
+          <button
+            className="btn tiny primary"
+            disabled={!pickHere.length || (limit !== undefined && squadsPicked > limit)}
+            onClick={() => {
+              setPick({ kind: 'enter', units: pickHere });
+              setChosen([]);
+            }}
+          >
+            Entry hex…
+          </button>
+        </Row>,
+      );
     }
   }
   if (flame && (s.phase === 'prepFire' || s.phase === 'defensiveFire' || s.phase === 'advancingFire')) {

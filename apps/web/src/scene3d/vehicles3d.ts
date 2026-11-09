@@ -1,4 +1,4 @@
-/** Low-poly tanks, SP guns and wrecks for the 3D landscape, turned to their facing. */
+/** Low-poly tanks, SP guns, halftracks, trucks, jeeps, guns, mortars and wrecks for the 3D landscape, turned to their facing. */
 import * as THREE from 'three';
 import type { Nation, VehicleType } from '@squadwar/engine';
 import { facingAngle } from '../board/counters';
@@ -47,6 +47,43 @@ export function vehicleModel(t: VehicleType, nation: Nation, facing: number, wre
     g.add(mesh);
     return mesh;
   };
+  if (t.kind === 'mortar') {
+    add(new THREE.CylinderGeometry(0.08, 0.09, 0.02, 12), mat(dark), -0.04, 0.01, 0);
+    const tube = add(new THREE.CylinderGeometry(0.018, 0.02, 0.26, 10), mat(paint), 0.02, 0.12, 0);
+    tube.rotation.z = -0.75;
+    for (const z of [-0.05, 0.05]) {
+      const leg = add(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), mat(dark), 0.09, 0.06, z);
+      leg.rotation.x = z > 0 ? 0.35 : -0.35;
+    }
+    g.rotation.y = -facingAngle(facing);
+    return g;
+  }
+  if (t.kind === 'truck' || t.kind === 'jeep') {
+    const truck = t.kind === 'truck';
+    const L = truck ? 0.62 : 0.4;
+    const W = truck ? 0.26 : 0.22;
+    for (const x of truck ? [-0.2, -0.08, 0.2] : [-0.12, 0.13])
+      for (const z of [-W / 2, W / 2]) {
+        const w = add(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 12), mat(dark, 0.95), x, 0.05, z);
+        w.rotation.x = Math.PI / 2;
+      }
+    add(new THREE.BoxGeometry(L, 0.04, W - 0.02), mat(dark), 0, 0.09, 0);
+    if (truck) {
+      add(new THREE.BoxGeometry(0.16, 0.12, W), mat(paint), L / 2 - 0.09, 0.17, 0);
+      add(new THREE.BoxGeometry(0.4, 0.06, W), mat(paint), -0.1, 0.14, 0);
+      if (!wreck) {
+        const tilt = add(new THREE.CylinderGeometry(W / 2, W / 2, 0.38, 12, 1, false, 0, Math.PI), mat(0x6e6a52, 0.95), -0.1, 0.17, 0);
+        tilt.rotation.z = Math.PI / 2;
+        tilt.rotation.y = Math.PI / 2;
+      }
+    } else {
+      add(new THREE.BoxGeometry(L, 0.06, W), mat(paint), 0, 0.14, 0);
+      add(new THREE.BoxGeometry(0.02, 0.07, W - 0.02), mat(dark), 0.05, 0.2, 0);
+    }
+    if (wreck) g.rotation.z = 0.08;
+    g.rotation.y = -facingAngle(facing);
+    return g;
+  }
   // Tracks and hull.
   add(new THREE.BoxGeometry(0.66, 0.06, 0.12), mat(dark, 0.95), 0, 0.03, 0.17);
   add(new THREE.BoxGeometry(0.66, 0.06, 0.12), mat(dark, 0.95), 0, 0.03, -0.17);

@@ -54,6 +54,18 @@ describe('Fire Director timeline', () => {
     }
   });
 
+  it('animates mines, collapsing buildings and fires (§55, §58, §59)', () => {
+    const before = createGame(ctx, 1).state;
+    const hex = Object.values(ctx.map.hexes).find((h) => h.building)!.key;
+    const mines: GameEvent = { kind: 'fire', text: 'Mines', dice: [2, 3], hexes: [hex], fx: { firerHexes: [], targets: [hex], kinds: ['MINE'], shooters: [], outcomes: [{ hex, penetration: false, results: [] }], mines: hex } };
+    expect(kinds(buildTimeline(ctx, before, [mines], NORMAL)!.cues).has('blast')).toBe(true);
+    const rubble: GameEvent = { kind: 'info', text: 'Collapse', hexes: [hex], fx: { rubble: hex } };
+    const tr = buildTimeline(ctx, before, [rubble], NORMAL)!;
+    expect(tr.cues.some((c) => c.kind === 'label' && c.text === 'Collapses')).toBe(true);
+    const fire: GameEvent = { kind: 'info', text: 'Fire', hexes: [hex], fx: { fire: hex } };
+    expect(kinds(buildTimeline(ctx, before, [fire], NORMAL)!.cues).has('smoke')).toBe(true);
+  });
+
   it('animates close combat', () => {
     const cc = actions.filter((a) => a.events.some((e) => e.kind === 'closeCombat'));
     expect(cc.length).toBeGreaterThan(0);

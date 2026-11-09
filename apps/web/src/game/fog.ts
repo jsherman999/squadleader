@@ -2,6 +2,7 @@
  * Fog of war for concealment (§25). A human playing against the AI sees
  * each enemy concealed stack as one "?" counter: how many units are under
  * it, what they are and what they carry stay hidden until it is revealed.
+ * Enemy minefields stay off the map until found (§55.1).
  * Hot-seat and AI-vs-AI games show everything, with concealed units badged.
  */
 import type { HexKey } from '@squadwar/hex';
@@ -24,6 +25,8 @@ export function viewerOf(controllers: Readonly<Record<string, string>>): string 
 
 export function fogOfWar(s: GameState, viewer: string | undefined): FogView {
   if (!viewer) return { s, hidden: NONE };
+  // Enemy minefields stay secret until someone walks into them (§55.1).
+  if (s.forts?.mines.some((m) => m.side !== viewer && !m.known)) s = { ...s, forts: { ...s.forts, mines: s.forts.mines.filter((m) => m.side === viewer || m.known) } };
   // Hidden initial placement (§42): the enemy is simply not on the map yet.
   const offBoard = new Set(Object.values(s.units).filter((u) => u.side !== viewer && u.hidden).map((u) => u.id));
   const offBoardVehicles = Object.values(s.vehicles).filter((v) => v.side !== viewer && v.hidden).map((v) => v.id);

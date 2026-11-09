@@ -7,13 +7,12 @@ import { DIRECTIONS, directionTo, hexKey, hexsideKey, neighbor, parseHexKey, typ
 import type { Ctx } from '../ctx';
 import { losFrom } from '../ctx';
 import { d6, roll2d6 } from '../rng';
-import { carried, enemiesIn, hexLabel, hexTem, isLeader, leaderDrmFor, leaderType, range, squadType, stackingProblem, unitLabel } from '../queries';
+import { carried, enemiesIn, hexLabel, hexTem, isLeader, leaderDrmFor, range, squadType, stackingProblem, unitLabel } from '../queries';
 import { RuleError, type Bunker, type Fortifications, type GameState, type Reserve, type SideId, type Unit, type Vehicle } from '../types';
 import type { Emit } from './common';
 import { eliminate } from './common';
 import { iftLookup, resultText } from './fire';
 import { applyHexResults } from './morale';
-import { reveal } from './special';
 import { crewCheck, destroyVehicle, iftColumn, immobilize, inArc, vehicleLabel, vehicleType, facingIndex } from './armor';
 
 // ---- Setup ---------------------------------------------------------------------------------
@@ -321,6 +320,8 @@ export function reservesOf(s: GameState, side: SideId): Reserve[] {
 export function dig(ctx: Ctx, s: GameState, unitId: string, work: 'entrench' | 'wire' | 'mines', hex: HexKey | undefined, emit: Emit): void {
   const u = s.units[unitId];
   if (!u || u.side !== s.awaiting || s.phase !== 'prepFire' || s.phasing !== u.side) throw new RuleError('This work is done in your Prep Fire Phase', '§53.5, §54.2, §55.5');
+  const level = { wire: 53, entrench: 54, mines: 55 }[work];
+  if (ctx.scenario.rulesLevel < level) throw new RuleError(`Not in this scenario (rules up to §${ctx.scenario.rulesLevel})`, `§${level}`);
   const st = squadType(ctx, u);
   if (!st || u.broken) throw new RuleError('An unbroken squad does the work');
   if (u.firedPhase || u.mfSpent > 0 || u.riding) throw new RuleError('It may not have fired or moved');
@@ -357,8 +358,6 @@ export function dig(ctx: Ctx, s: GameState, unitId: string, work: 'entrench' | '
   const ok = a + b + lead.drm <= st.fp;
   emit({ kind: 'info', text: `${unitLabel(ctx, u)} probes for mines in ${hexLabel(ctx, target)}: ${a}+${b}${lead.drm ? ` ${lead.drm}` : ''} vs ${st.fp}: ${ok ? (m ? 'cleared' : 'nothing there') : 'no luck'} (§55.5)`, side: u.side, units: [u.id], dice: [a, b], hexes: [target] });
   if (ok && m) s.forts!.mines = s.forts!.mines.filter((x) => x !== m);
-  void leaderType;
-  void reveal;
 }
 
 /** Vehicles crossing wire: tanks and SP guns flatten it, halftracks stop on it, trucks and jeeps can't enter (§53.7–53.9). */

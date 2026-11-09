@@ -169,6 +169,15 @@ export class Scene3D {
 
   // ---- Map ------------------------------------------------------------------
 
+  private snow = false;
+
+  /** Winter scenarios (§61): repaint the ground under snow. */
+  setSnow(on: boolean): void {
+    if (this.snow === on) return;
+    this.snow = on;
+    if (this.map) this.buildLandscape(this.map);
+  }
+
   setMap(map: GameMap): void {
     if (this.map === map) return;
     this.map = map;
@@ -191,7 +200,7 @@ export class Scene3D {
     const shadows = cfg.shadows > 0;
 
     const geo = terrainGeometry(map);
-    const groundTex = new THREE.CanvasTexture(paintGround(map));
+    const groundTex = new THREE.CanvasTexture(paintGround(map, this.snow));
     groundTex.colorSpace = THREE.SRGBColorSpace;
     groundTex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
     this.ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.96, metalness: 0 }));

@@ -181,6 +181,16 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
           land = start + (0.6 + targets.length * 0.13) * k;
           end = land + 1.2 * k;
         }
+        // A minefield going off under the units walking through it (§55.2, §55.6).
+        const mineHex = (fx as { mines?: HexKey }).mines;
+        if (mineHex && ctx.map.hexes[mineHex]) {
+          const at = hexPoint(ctx, mineHex, 0.1);
+          if (!opts.reducedMotion) cues.push({ kind: 'blast', t0: start, dur: 1.6 * k, at, seed: hashSeed(`mine${mineHex}${e.text}`) });
+          cues.push({ kind: 'sound', t0: start, sound: 'blast', at });
+          label(mineHex, start, 'Mines!', 'warn', 1.2);
+          land = start + 0.3 * k;
+          end = start + 1.6 * k;
+        }
         const special = shooters.find((sh) => sh.kind === 'FT' || sh.kind === 'DC' || sh.kind === 'OVR');
         if (special && farTarget) {
           const tgt = hexPoint(ctx, farTarget, 0.25);
@@ -332,7 +342,26 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         break;
       }
       case 'info': {
-        const sp = (fx as { spotting?: HexKey; starshell?: HexKey });
+        const sp = fx as { spotting?: HexKey; starshell?: HexKey; rubble?: HexKey; fire?: HexKey };
+        // A building coming down (§58.1) or catching fire (§59).
+        if (sp.rubble && ctx.map.hexes[sp.rubble]) {
+          label(sp.rubble, t, 'Collapses', 'bad', 1.6);
+          if (!opts.reducedMotion) cues.push({ kind: 'puff', t0: t, dur: 2.2 * k, at: hexPoint(ctx, sp.rubble, 0.6), size: 1.3, color: 0x9a8e7c });
+          cues.push({ kind: 'sound', t0: t, sound: 'blast', at: hexPoint(ctx, sp.rubble) });
+          cues.push({ kind: 'hit', t0: t, hex: sp.rubble, severity: 'hit' });
+          t += 0.8 * k;
+          break;
+        }
+        if (sp.fire && ctx.map.hexes[sp.fire]) {
+          label(sp.fire, t, 'Fire!', 'bad', 1.6);
+          if (!opts.reducedMotion) {
+            cues.push({ kind: 'puff', t0: t, dur: 2 * k, at: hexPoint(ctx, sp.fire, 0.4), size: 0.9, color: 0xff7a30 });
+            cues.push({ kind: 'smoke', t0: t + 0.3 * k, dur: 2 * k, at: hexPoint(ctx, sp.fire, 0.8), seed: hashSeed(`fire${sp.fire}`) });
+          }
+          cues.push({ kind: 'sound', t0: t, sound: 'flame', at: hexPoint(ctx, sp.fire) });
+          t += 0.7 * k;
+          break;
+        }
         if (sp.spotting && ctx.map.hexes[sp.spotting]) {
           label(sp.spotting, t, 'Spotting round', 'info', 1.2);
           if (!opts.reducedMotion) cues.push({ kind: 'puff', t0: t, dur: 1.2 * k, at: hexPoint(ctx, sp.spotting, 0.2), size: 0.6, color: 0x8a8070 });

@@ -8,7 +8,8 @@ export function groundPpu(map: GameMap, max = 48): number {
   return Math.min(max, 4096 / Math.max(w, h));
 }
 
-export function paintGround(map: GameMap): HTMLCanvasElement {
+/** With `snow`, everything is dusted white (§61); roads and fields still show through faintly. */
+export function paintGround(map: GameMap, snow = false): HTMLCanvasElement {
   const ppu = groundPpu(map);
   const { x0, y0, x1, y1 } = map.bounds;
   const cv = document.createElement('canvas');
@@ -148,6 +149,16 @@ export function paintGround(map: GameMap): HTMLCanvasElement {
       c.lineTo(x + dx, y + 0.1);
     }
     c.stroke();
+  }
+  if (snow) {
+    c.fillStyle = 'rgba(238,242,248,0.66)';
+    c.fillRect(x0, y0, x1 - x0, y1 - y0);
+    for (let i = 0; i < (x1 - x0) * (y1 - y0) * 3; i++) {
+      c.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.25)' : 'rgba(180,192,210,0.12)';
+      c.beginPath();
+      c.arc(x0 + rnd() * (x1 - x0), y0 + rnd() * (y1 - y0), 0.1 + rnd() * 0.4, 0, Math.PI * 2);
+      c.fill();
+    }
   }
   return cv;
 }

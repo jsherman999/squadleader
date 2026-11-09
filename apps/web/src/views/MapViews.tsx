@@ -203,6 +203,11 @@ export function MapViews(p: MapViewsProps) {
   }, [r2, show2d, hover, map]);
 
   // ---- 3D ----
+  const snow = !!units?.ctx.scenario.snow;
+  useEffect(() => {
+    s3?.setSnow(snow);
+  }, [s3, snow]);
+
   useEffect(() => {
     if (!s3 || !show3d) return;
     s3.paintOverlay((pen) => {

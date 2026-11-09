@@ -45,6 +45,13 @@ export function autoSkipReason(ctx: Ctx, s: GameState): string | undefined {
         if (!reach) continue;
         for (const t of targets) if (range(u.hex, t) <= reach && ctx.los(u.hex, t).clear) return undefined;
       }
+      // Squads caught in wire or next to a minefield they know of may clear it instead (§53.5, §55.5).
+      if (s.phase === 'prepFire' && s.forts) {
+        const f = s.forts;
+        const known = f.mines.filter((m) => m.side === side || m.known).map((m) => m.hex);
+        const work = Object.values(s.units).some((u) => u.side === side && !u.broken && !u.firedPhase && !u.riding && squadType(ctx, u) && (f.wire.includes(u.hex) || known.some((h) => range(h, u.hex) <= 1)));
+        if (work) return undefined;
+      }
       return 'no targets in sight';
     }
     case 'rout': {

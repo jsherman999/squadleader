@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decide as botDecide, type Rationale } from '@squadwar/bot';
-import { createGame, tryAction, type Action, type GameState } from '@squadwar/engine';
+import { applyAction, createGame, tryAction, type Action, type GameState } from '@squadwar/engine';
 import { invariants, scenarioCtx } from '../../bot/src/selfplay';
 import { decide, newSpend, type Spend } from './agent';
 import { actionToOrder, type GameEnv, type Order } from './orders';
@@ -374,4 +374,53 @@ describe('countryside rules for the LLM (§42–49)', () => {
     expect(kinds.has('unload')).toBe(true);
     expect(kinds.has('starshell')).toBe(true);
   }, 120_000);
+});
+
+describe('Western Front rules for the LLM (§50–63)', () => {
+  const envFor = (c: ReturnType<typeof scenarioCtx>, get: () => GameState, set: (s: GameState) => void): GameEnv => ({
+    ctx: c,
+    state: get,
+    apply: (a) => {
+      const r = tryAction(c, get(), a);
+      if (!r.ok) return { ok: false, error: r.error };
+      set(r.state);
+      return { ok: true, events: r.events };
+    },
+  });
+
+  it('boats land through enter orders; the situation lists the reserves', async () => {
+    const { executeOrder } = await import('./orders');
+    const { situation } = await import('./serialize');
+    const c = scenarioCtx(10);
+    let s = createGame(c, 3).state;
+    for (let i = 0; i < 200 && !(s.phase === 'movement' && s.awaiting === 'us'); i++) s = applyAction(c, s, { type: 'endPhase' }).state;
+    expect(situation(c, s, 'us')).toContain('IN THE BOATS');
+    expect(situation(c, s, 'ger')).not.toContain('IN THE BOATS');
+    const res = s.reserves!.find((r) => r.side === 'us')!;
+    const squad = res.units.find((u) => c.data.units[u.type]?.kind !== 'leader')!;
+    const env = envFor(c, () => s, (x) => (s = x));
+    const r = executeOrder(env, 'us', { type: 'enter', units: [squad.id], target: c.map.hexes[res.hexes[3]!]!.id, goal: 'land' });
+    expect(r.ok, r.text).toBe(true);
+    expect(s.units[squad.id]?.hex).toBe(res.hexes[3]);
+  });
+
+  it('dig orders do field work in Prep Fire; enemy minefields stay secret', async () => {
+    const { executeOrder } = await import('./orders');
+    const { situation, describeHexes } = await import('./serialize');
+    const c = scenarioCtx(8);
+    let s = createGame(c, 5).state;
+    const ger = s.forts!.mines.filter((m) => m.side === 'ger');
+    expect(ger.length).toBeGreaterThan(0);
+    const usView = situation(c, s, 'us') + describeHexes(c, s, ger.map((m) => m.hex), 'us');
+    for (const m of ger) expect(usView).not.toContain(`${c.map.hexes[m.hex]!.id} (`);
+    expect(usView).not.toContain('MINEFIELD');
+    expect(situation(c, s, 'ger')).toContain('MINEFIELDS');
+    for (let i = 0; i < 200 && !(s.phase === 'prepFire' && s.awaiting === 'us'); i++) s = applyAction(c, s, { type: 'endPhase' }).state;
+    const squad = Object.values(s.units).find((u) => u.side === 'us' && c.data.units[u.type]?.kind === 'squad')!;
+    const env = envFor(c, () => s, (x) => (s = x));
+    const r = executeOrder(env, 'us', { type: 'dig', unit: squad.id, work: 'mines', goal: 'probe' });
+    expect(r.ok, r.text).toBe(true);
+    expect(r.text).toContain('§55.5');
+    expect(actionToOrder(c, { type: 'dig', unit: squad.id, work: 'wire' })).toEqual({ type: 'dig', unit: squad.id, work: 'wire' });
+  });
 });

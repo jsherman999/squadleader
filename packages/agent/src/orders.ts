@@ -31,7 +31,9 @@ export type OrderType =
   | 'starshell'
   | 'board'
   | 'unload'
-  | 'push_gun';
+  | 'push_gun'
+  | 'enter'
+  | 'dig';
 
 export interface Order {
   readonly type: OrderType;
@@ -50,6 +52,7 @@ export interface Order {
   readonly battery?: string;
   readonly op?: 'request' | 'correct' | 'ffe' | 'move' | 'cancel';
   readonly smoke?: boolean;
+  readonly work?: 'entrench' | 'wire' | 'mines';
   readonly goal?: string;
   readonly reason?: string;
 }
@@ -90,6 +93,8 @@ const ORDER_TYPES: readonly OrderType[] = [
   'board',
   'unload',
   'push_gun',
+  'enter',
+  'dig',
 ];
 const MG = new Set(['LMG', 'MMG', 'HMG']);
 
@@ -98,12 +103,12 @@ export function orderSchema(): Record<string, unknown> {
     type: 'object',
     properties: {
       type: { type: 'string', enum: ORDER_TYPES, description: 'What to do.' },
-      units: { type: 'array', items: { type: 'string' }, description: 'Unit ids (fire: the firing units; move/advance/end_move/sewer: the group).' },
+      units: { type: 'array', items: { type: 'string' }, description: 'Unit ids (fire: the firing units; move/advance/end_move/sewer: the group; enter: reinforcements coming on together).' },
       path: { type: 'array', items: { type: 'string' }, description: 'move: hexes to enter in order, adjacent steps, e.g. ["A-BB2","A-AA2"].' },
-      target: { type: 'string', description: 'fire/smoke/place_charge: the target hex id.' },
+      target: { type: 'string', description: 'fire/smoke/place_charge: the target hex id. enter: the entry hex on the board edge. dig mines: the hex to clear (default its own).' },
       leader: { type: 'string', description: 'fire: optional leader id to direct the fire (same hex, not firing).' },
       to: { type: 'string', description: 'advance: the adjacent hex. sewer: the destination sewer entrance. transfer: receiving unit id, or "drop".' },
-      unit: { type: 'string', description: 'rally: the broken unit id. smoke/place_charge: the engineer unit id.' },
+      unit: { type: 'string', description: 'rally: the broken unit id. smoke/place_charge: the engineer unit id. dig: the squad doing the work.' },
       weapon: { type: 'string', description: 'repair/transfer/place_charge/detonate: weapon id. fire: a flamethrower id to fire it alone.' },
       vehicle: { type: 'string', description: 'vehicle_*/anti_tank/smoke_dischargers: the vehicle id (yours, or the enemy AFV for anti_tank).' },
       facing: { type: 'string', enum: [...FACING_NAMES], description: 'vehicle_face: the covered arc, as its two front hexsides.' },
@@ -113,6 +118,7 @@ export function orderSchema(): Record<string, unknown> {
       battery: { type: 'string', description: 'radio/artillery: the battery id.' },
       op: { type: 'string', enum: ['request', 'correct', 'ffe', 'move', 'cancel'], description: 'artillery: request fire, correct the spotting round, fire for effect, move the fire for effect, or call it off.' },
       smoke: { type: 'boolean', description: 'artillery ffe: smoke instead of HE.' },
+      work: { type: 'string', enum: ['entrench', 'wire', 'mines'], description: 'dig (Prep Fire, instead of firing): dig in, cut wire in its own hex, or clear mines in or next to its hex (target).' },
       goal: { type: 'string', description: 'One short line: what this order is trying to achieve.' },
       reason: { type: 'string', description: 'Why this order, with the numbers or rules that decided it.' },
     },
@@ -331,6 +337,24 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       const r = env.apply({ type: 'push', unit: o.unit, gun: o.vehicle, to: t }, n);
       return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
     }
+    case 'enter': {
+      if (!o.units?.length) return fail('enter needs units (from your reserves)');
+      const t = hex(o.target, 'target');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'enter', units: o.units, hex: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'dig': {
+      if (!o.unit || !o.work) return fail('dig needs unit and work');
+      let t: HexKey | undefined;
+      if (o.target) {
+        const k = hex(o.target, 'target');
+        if (!isKey(k)) return fail(k);
+        t = k;
+      }
+      const r = env.apply({ type: 'dig', unit: o.unit, work: o.work, ...(t ? { hex: t } : {}) }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
     case 'vehicle_repair': {
       if (!o.vehicle) return fail('vehicle_repair needs vehicle');
       const r = env.apply({ type: 'vrepair', vehicle: o.vehicle }, n);
@@ -381,6 +405,10 @@ export function actionToOrder(ctx: Ctx, a: Action): Order | undefined {
       return { type: a.type, units: a.units, vehicle: a.vehicle };
     case 'push':
       return { type: 'push_gun', unit: a.unit, vehicle: a.gun, to: hexId(ctx, a.to) };
+    case 'enter':
+      return { type: 'enter', units: a.units, target: hexId(ctx, a.hex) };
+    case 'dig':
+      return { type: 'dig', unit: a.unit, work: a.work, ...(a.hex ? { target: hexId(ctx, a.hex) } : {}) };
     case 'move':
       return { type: 'move', units: a.units, path: [hexId(ctx, a.to)] };
     case 'endMove':

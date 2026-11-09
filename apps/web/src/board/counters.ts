@@ -106,6 +106,18 @@ function drawVehicle(ctx: Ctx, v: Vehicle, nation: Nation, selected: boolean): C
     body.roundRect(-3, 5, 5, 4, 1).fill(ink);
     body.rect(1, -7, 2.5, 14).fill(mix(pal.bg, 0x000000, 0.35));
     body.moveTo(3, 0).lineTo(16, 0).stroke({ width: 2.2, color: ink });
+  } else if (t.kind === 'mortar') {
+    // Baseplate, bipod and a stubby tube pointing up the facing.
+    body.circle(-5, 0, 5).fill({ color: ink, alpha: 0.85 });
+    body.moveTo(6, -6).lineTo(1, 0).lineTo(6, 6).stroke({ width: 1.6, color: ink });
+    body.moveTo(-5, 0).lineTo(10, 0).stroke({ width: 3.2, color: ink });
+  } else if (t.kind === 'truck' || t.kind === 'jeep') {
+    const truck = t.kind === 'truck';
+    const L = truck ? 26 : 18;
+    body.roundRect(-L / 2, -6.5, L, 13, 2).fill({ color: ink, alpha: 0.85 });
+    if (truck) body.roundRect(-L / 2 + 1.5, -5, 15, 10, 1).fill(mix(pal.bg, 0xffffff, 0.2));
+    else body.roundRect(-L / 2 + 2, -4.5, 9, 9, 1).fill(mix(pal.bg, 0xffffff, 0.2));
+    for (const x of truck ? [-9, -3, 9] : [-5, 6]) for (const y of [-7.5, 7.5]) body.roundRect(x - 2.2, y - 1.3, 4.4, 2.6, 1).fill(ink);
   } else if (t.kind === 'halftrack') {
     body.roundRect(-12, -7, 24, 14, 2).fill({ color: ink, alpha: 0.85 });
     body.rect(-12, -8.5, 13, 3).fill({ color: ink, alpha: 0.95 });
@@ -124,7 +136,16 @@ function drawVehicle(ctx: Ctx, v: Vehicle, nation: Nation, selected: boolean): C
   body.rotation = facingAngle(v.facing);
   body.position.set(CS / 2, CS / 2 - 3);
   box.addChild(body);
-  const label = t.kind === 'gun' ? `${t.gun} · ROF ${t.rof ?? 1}` : t.kind === 'halftrack' ? `HT · ${t.mp}` : `${t.gun ?? '—'}${t.heOnly ? 'ᴴᴱ' : ''}${t.lowVelocity ? '*' : ''} · ${t.mp}`;
+  const label =
+    t.kind === 'gun' || t.kind === 'mortar'
+      ? `${t.gun}${t.kind === 'mortar' ? ' MTR' : ''} · ROF ${t.rof ?? 1}`
+      : t.kind === 'halftrack'
+        ? `HT · ${t.mp}`
+        : t.kind === 'truck'
+          ? `TRK · ${t.mp}`
+          : t.kind === 'jeep'
+            ? `JEEP · ${t.mp}`
+            : `${t.gun ?? '—'}${t.heOnly ? 'ᴴᴱ' : ''}${t.lowVelocity ? '*' : ''} · ${t.mp}`;
   const txt = new Text({ text: label, style: { ...tiny, fontSize: 8, fill: ink }, resolution: 4 });
   txt.anchor.set(0.5, 1);
   txt.position.set(CS / 2, CS - 2);

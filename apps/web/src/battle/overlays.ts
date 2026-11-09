@@ -1,4 +1,4 @@
-import { DIRECTIONS, hexKey, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type Vec2 } from '@squadwar/hex';
+import { DIRECTIONS, hexKey, hexsideEndpoints, hexsideHexes, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type HexsideKey, type Vec2 } from '@squadwar/hex';
 import { inArc, type Vehicle } from '@squadwar/engine';
 import type { Rationale } from '@squadwar/bot';
 import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
@@ -66,11 +66,13 @@ export function drawArtillery(pen: Pen, ctx: Ctx, s: GameState, viewer?: string)
   }
 }
 
-/** Smoke screens, placed demolition charges and blown sewer entrances (§23–27). */
+/** Smoke screens, river mist, placed demolition charges and blown sewer entrances (§23–27, §60.5). */
 export function drawSpecial(pen: Pen, s: GameState): void {
   for (const sm of s.smoke) {
     const c = at(sm.hex);
-    hexFill(pen, parseHexKey(sm.hex), 0xd8d8d0, 0.45, 0.04);
+    const mist = sm.side === '__mist';
+    hexFill(pen, parseHexKey(sm.hex), mist ? 0xdfe6ee : 0xd8d8d0, mist ? 0.38 : 0.45, 0.04);
+    if (mist) continue;
     for (const [dx, dy, r] of [
       [-0.3, -0.12, 0.34],
       [0.12, -0.3, 0.3],
@@ -94,6 +96,105 @@ export function drawSpecial(pen: Pen, s: GameState): void {
     const p = { x: c.x + 0.42, y: c.y + 0.4 };
     pen.line([{ x: p.x - 0.12, y: p.y - 0.12 }, { x: p.x + 0.12, y: p.y + 0.12 }], { width: 2.5, color: 0xd0402e });
     pen.line([{ x: p.x + 0.12, y: p.y - 0.12 }, { x: p.x - 0.12, y: p.y + 0.12 }], { width: 2.5, color: 0xd0402e });
+  }
+}
+
+const STONES: readonly [number, number, number][] = [
+  [-0.35, -0.2, 5],
+  [0.05, -0.38, 4],
+  [0.38, -0.12, 6],
+  [-0.15, 0.18, 6],
+  [0.25, 0.3, 4],
+  [-0.45, 0.32, 3.5],
+  [0.12, 0.02, 3],
+];
+const FLAMES: readonly [number, number, number][] = [
+  [-0.28, 0.2, 0.42],
+  [0.05, 0.25, 0.55],
+  [0.32, 0.22, 0.38],
+];
+
+function arcVector(h: HexKey, d: number): Vec2 {
+  const a = parseHexKey(h);
+  const p = hexToPixel(a);
+  const q = hexToPixel(neighbor(a, DIRECTIONS[d] as Direction));
+  return { x: q.x - p.x, y: q.y - p.y };
+}
+
+/** Game Set III marks (§53–62): snow, rubble, wire, entrenchments, minefields, bunkers, roadblocks and fires. */
+export function drawWestern(pen: Pen, ctx: Ctx, s: GameState, snowWash = true): void {
+  if (ctx.scenario.snow && snowWash) for (const h of Object.values(ctx.map.hexes)) hexFill(pen, h.hex, 0xf6f9fd, 0.45);
+  for (const h of s.rubble ?? []) {
+    const c = at(h);
+    hexFill(pen, parseHexKey(h), 0x6e5f50, 0.62, 0.06);
+    for (const [dx, dy, r] of STONES) pen.circle({ x: c.x + dx, y: c.y + dy }, r, { color: 0xb3a590, alpha: 0.95 }, { width: 1, color: 0x332a22, alpha: 0.8 });
+    pen.text({ x: c.x, y: c.y + 0.52 }, 'RUBBLE', { size: 9, color: 0xf3ece0 });
+  }
+  const f = s.forts;
+  if (f) {
+    for (const h of f.trenches) {
+      const c = at(h);
+      const ring = Array.from({ length: 25 }, (_, i) => {
+        const t = (i / 24) * Math.PI * 2;
+        const r = 0.5 + (i % 2 ? 0.07 : -0.07);
+        return { x: c.x + Math.cos(t) * r, y: c.y + Math.sin(t) * r };
+      });
+      pen.line(ring, { width: 5, color: 0x5a3d22, alpha: 0.85 });
+      pen.line(ring, { width: 2, color: 0xa47a4a, alpha: 0.9 });
+    }
+    for (const h of f.wire) {
+      const c = at(h);
+      for (const dy of [-0.32, 0, 0.32]) {
+        const pts: Vec2[] = [];
+        for (let i = 0; i <= 10; i++) pts.push({ x: c.x - 0.55 + i * 0.11, y: c.y + dy + (i % 2 ? 0.07 : -0.07) });
+        pen.line(pts, { width: 1.6, color: 0x2a2a2a, alpha: 0.9 });
+      }
+      for (const [dx, dy] of [[-0.3, -0.16], [0.2, -0.16], [-0.05, 0.16], [0.4, 0.16]] as const) {
+        pen.line([{ x: c.x + dx - 0.06, y: c.y + dy - 0.06 }, { x: c.x + dx + 0.06, y: c.y + dy + 0.06 }], { width: 1.6, color: 0x2a2a2a });
+        pen.line([{ x: c.x + dx + 0.06, y: c.y + dy - 0.06 }, { x: c.x + dx - 0.06, y: c.y + dy + 0.06 }], { width: 1.6, color: 0x2a2a2a });
+      }
+    }
+    for (const m of f.mines) {
+      const c = at(m.hex);
+      for (let i = 0; i < 9; i++) {
+        const t = (i / 9) * Math.PI * 2;
+        pen.circle({ x: c.x + Math.cos(t) * 0.6, y: c.y + Math.sin(t) * 0.6 }, 3.2, { color: m.known ? 0xd0402e : 0xe0a040, alpha: 0.95 }, { width: 1, color: 0x101410 });
+      }
+      pen.text({ x: c.x, y: c.y + 0.42 }, `MINES ${m.factors}`, { size: 7, color: m.known ? 0xffd8d0 : 0xffe8b8 });
+    }
+    for (const b of f.bunkers) {
+      const c = at(b.hex);
+      for (const d of [b.facing, (b.facing + 1) % 6]) {
+        const v = arcVector(b.hex, d);
+        pen.line([c, { x: c.x + v.x * 0.45, y: c.y + v.y * 0.45 }], { width: 3, color: 0xf0c66b, alpha: 0.85 });
+      }
+      pen.poly(
+        [0, 1, 2, 3, 4, 5].map((i) => ({ x: c.x + Math.cos((i * Math.PI) / 3) * 0.34, y: c.y + Math.sin((i * Math.PI) / 3) * 0.34 })),
+        { color: 0x77756c, alpha: 0.95 },
+        { width: 2.5, color: 0x24241f },
+      );
+      pen.text({ x: c.x, y: c.y + 0.5 }, `${b.capacity}+${b.ca}+${b.nca}`, { size: 7, color: 0xf2f0e6 });
+    }
+    for (const k of f.roadblocks) {
+      const { a, da } = hexsideHexes(k as HexsideKey);
+      const [p, q] = hexsideEndpoints(a, da);
+      pen.line([p, q], { width: 7, color: 0x4a3218, alpha: 0.95 });
+      for (let i = 1; i < 6; i++) {
+        const t = i / 6;
+        const m = { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
+        pen.line([{ x: m.x - 0.08, y: m.y - 0.08 }, { x: m.x + 0.08, y: m.y + 0.08 }], { width: 2, color: 0x7a5a30 });
+      }
+    }
+  }
+  for (const h of s.fires ?? []) {
+    const c = at(h);
+    hexFill(pen, parseHexKey(h), 0xe0561e, 0.32, 0.04);
+    for (const [dx, dy, ht] of FLAMES) {
+      const base = { x: c.x + dx, y: c.y + dy };
+      pen.poly([{ x: base.x - 0.13, y: base.y }, { x: base.x, y: base.y - ht }, { x: base.x + 0.13, y: base.y }], { color: 0xff8a2a, alpha: 0.9 }, { width: 1, color: 0x8a2a10 });
+      pen.poly([{ x: base.x - 0.06, y: base.y }, { x: base.x, y: base.y - ht * 0.55 }, { x: base.x + 0.06, y: base.y }], { color: 0xffe06a, alpha: 0.95 });
+    }
+    pen.text({ x: c.x, y: c.y + 0.55 }, 'FIRE', { size: 9, color: 0xfff0d0 });
   }
 }
 

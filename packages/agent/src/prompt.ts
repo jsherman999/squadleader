@@ -66,6 +66,19 @@ const COUNTRY_PRIMER = `COUNTRYSIDE, SUPPORT AND NIGHT (§42–49):
 - Halftracks carry infantry (board/unload in Movement; unloaded units move one more hex). Riders in halftracks are safe from rifle fire; on tanks they are not. AT guns are crewed SP guns that can't drive: push_gun one hex with the crew.
 - Night: fire only within the visibility range, at lit hexes (starshells light 3 hexes), or at muzzle flashes (area fire). Concealment survives next to the enemy.`;
 
+/** §50–63, for the Western Front scenarios. */
+const WESTERN_PRIMER = `WESTERN FRONT (§50–63):
+- Americans: squads (6-6-6, 8-4-7 engineers) never suffer desperation morale; their support weapons are repaired on a 1 or 2. Bazookas are their anti-tank weapon.
+- Trucks and jeeps carry riders (board/unload) and move fast on roads, slowly across country, never through woods or buildings. Any fire can hit them: MG and rifle fire make the driver check morale.
+- Wire: entering ends a unit's move; leaving costs a die roll of MF. Tanks flatten it. A squad that does nothing else in Prep Fire may cut wire in its own hex (dig work=wire): roll its firepower or less.
+- Entrenchments: +2 against fire and charges, +4 against artillery and overruns, nothing against flamethrowers. A squad may dig in during Prep Fire instead of firing (dig work=entrench): 5 or less on two dice (+2 in snow).
+- Minefields are secret until found: units entering or leaving are attacked by the mines; vehicles may be immobilized or destroyed. A squad next to a suspected field may try to clear it in Prep Fire (dig work=mines target=hex).
+- Bunkers protect their owners: big modifiers, smaller through the covered arc. Flamethrowers through the arc and demolition charges are the way in.
+- Rubble (from HE kills and charges in buildings) fights like stone and is slow going. Fire (from flamethrowers and repeated HE kills) blocks sight and entry, spreads to neighbouring buildings and drives units out.
+- River landings: units in the boats order enter at an edge hex; the boats carry 2d6 squads a turn and landing ends the move. Mist on the bank acts as smoke until it burns off.
+- Snow doubles movement costs off the roads. Roadblocks close a hexside to vehicles.
+- On-board mortars and howitzers fire directly at hexes their crew can see (mortars 10–60 hexes) or indirectly through a leader with a radio, like artillery but on one hex. HEAT rounds (guns that carry them) penetrate as well at any range; a To Hit roll of 6 or more uses up the last of them.`;
+
 export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
   return [
     `You command one side in Squad War, a WWII squad-level hex wargame, against a human or computer opponent.`,
@@ -74,6 +87,7 @@ export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
     ...(ctx.scenario.rulesLevel >= 22 ? [SPECIAL_PRIMER] : []),
     ...(ctx.scenario.rulesLevel >= 28 ? [ARMOR_PRIMER] : []),
     ...(ctx.scenario.rulesLevel >= 42 ? [COUNTRY_PRIMER] : []),
+    ...(ctx.scenario.rulesLevel >= 50 ? [WESTERN_PRIMER] : []),
     METHOD,
     briefing(ctx, side),
   ].join('\n\n');
@@ -81,8 +95,8 @@ export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
 
 export const PHASE_GUIDE: Record<string, string> = {
   rally: 'Rally Phase: rally broken units that have a leader with them; try to repair malfunctioned weapons.',
-  prepFire: 'Prep Fire Phase: fire with units that will not move this turn (usually heavy weapons and units already in position). Units that fire now cannot move.',
-  movement: 'Movement Phase: move your groups. Each move order gives one group its full path. Think about where the enemy can see and fire (preview_move shows exposure).',
+  prepFire: 'Prep Fire Phase: fire with units that will not move this turn (usually heavy weapons and units already in position). Units that fire now cannot move. Squads may instead dig in, cut wire or clear mines where the scenario has them.',
+  movement: 'Movement Phase: move your groups. Each move order gives one group its full path. Think about where the enemy can see and fire (preview_move shows exposure). Bring on any reinforcements that are due with enter orders.',
   defensiveFire: 'Defensive Fire Phase: the enemy has moved. Fire at hexes they entered, best in the open. Each unit fires once.',
   advancingFire: 'Advancing Fire Phase: units may fire (moved units at half firepower) before the Advance Phase.',
   advance: 'Advance Phase: move units one hex; into an enemy hex to start close combat if the odds are good, or into better cover.',
