@@ -43,6 +43,7 @@ import {
   type Unit,
 } from '@squadwar/engine';
 import { chanceAtMost, hexId, leaderNote, objectiveNear, pct, stackName, terrainNote, unitList, type Decision, type Rationale } from './explain';
+import { canOperateSpecial, isSewerEntrance } from '@squadwar/engine';
 
 export interface BotOptions {
   /** Minimum expected casualties (broken-or-worse) before firing. */
@@ -74,13 +75,13 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
     case 'rally':
       return rallyDecision(ctx, s, side) ?? end({ goal: 'Finish the Rally Phase', reasons: ['No broken unit has a leader to rally it, and no weapon needs repair.'], weight: 'routine' });
     case 'prepFire':
-      return fireDecision(ctx, s, side, opts.fireThreshold ?? 0.35, true);
+      return smokeDecision(ctx, s, side) ?? fireDecision(ctx, s, side, opts.fireThreshold ?? 0.35, true);
     case 'defensiveFire':
       return fireDecision(ctx, s, side, opts.fireThreshold ?? 0.12, false);
     case 'advancingFire':
-      return fireDecision(ctx, s, side, 0.05, false);
+      return detonateDecision(ctx, s, side) ?? fireDecision(ctx, s, side, 0.05, false);
     case 'movement':
-      return moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
+      return chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
     case 'advance':
       return advanceDecision(ctx, s, side);
     default:
@@ -95,6 +96,146 @@ export function chooseAction(ctx: Ctx, s: GameState, opts: BotOptions = {}): Act
 
 function legal(ctx: Ctx, s: GameState, a: Action): boolean {
   return tryAction(ctx, s, a).ok;
+}
+
+// ---- Engineers: smoke and demolition charges (§23–24) ---------------------------------------
+
+/** First thing in Prep Fire: engineers smoke the open hex their group is about to cross under enemy eyes. */
+function smokeDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  if ((s.smokeLeft[side] ?? 0) <= 0 || s.attacks.length || side !== s.phasing) return undefined;
+  const attacker = ctx.scenario.victory.side === side;
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side || u.broken || u.smokeMade || !squadType(ctx, u)?.assaultEngineer || inMelee(s, u.hex)) continue;
+    const goal = groupGoal(ctx, s, side, u.hex, attacker);
+    if (!goal) continue;
+    const path = pathTo(ctx, s, u.hex, goal, side);
+    const next = path?.[0];
+    if (!next || !exposed(ctx, s, side, next) || s.smoke.some((x) => x.hex === next)) continue;
+    const e = exposureAt(ctx, s, side, next);
+    if (e.pBreak < 0.15) continue;
+    const a: Action = { type: 'smoke', unit: u.id, hex: next };
+    if (!legal(ctx, s, a)) continue;
+    return {
+      action: a,
+      why: {
+        goal: `Smoke ${hexId(ctx, next)} before crossing it`,
+        reasons: [
+          `${unitLabel(ctx, u)} will move through ${hexId(ctx, next)}, which is open and seen by ${e.shooters} enemy stack${e.shooters === 1 ? '' : 's'} (${pct(e.pBreak)} chance a squad breaks there).`,
+          'Fire into, out of or through smoke adds one die to the roll (§24.6); entering costs +1 MF (§24.5).',
+          `${(s.smokeLeft[side] ?? 1) - 1} smoke counter(s) left after this.`,
+        ],
+        tip: 'Smoke must be laid first thing in Prep Fire (§24.3), and lifts at the start of your next Prep Fire.',
+        weight: 'key',
+        focus: { from: u.hex, to: next },
+      },
+    };
+  }
+  return undefined;
+}
+
+/** Engineers carrying a charge put it on an adjacent enemy-held hex (§23.3). */
+function chargeDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side || u.broken || !canOperateSpecial(ctx, u)) continue;
+    const dc = carried(s, u).find((w) => weaponType(ctx, w).kind === 'DC');
+    if (!dc) continue;
+    let best: { hex: HexKey; n: number } | undefined;
+    for (const d of DIRECTIONS) {
+      const n = hexKey(neighbor(parseHexKey(u.hex), d));
+      const foes = enemiesIn(s, n, side).filter((e) => !e.broken).length;
+      if (foes && (!best || foes > best.n) && !s.charges.some((c) => c.target === n && c.side === side)) best = { hex: n, n: foes };
+    }
+    if (!best) continue;
+    const a: Action = { type: 'placeCharge', unit: u.id, weapon: dc.id, target: best.hex };
+    if (!legal(ctx, s, a)) continue;
+    return {
+      action: a,
+      why: {
+        goal: `Place a demolition charge on ${hexId(ctx, best.hex)}`,
+        reasons: [
+          `${unitLabel(ctx, u)} is next to ${unitList(ctx, enemiesIn(s, best.hex, side))} in ${terrainNote(ctx, best.hex)}.`,
+          'If the engineers come through Defensive Fire unbroken, the charge goes off in Advancing Fire with 30 firepower; terrain still counts but it cannot be halved by smoke (§23.1–23.5).',
+        ],
+        tip: 'A charge is how infantry cracks a stone building: 30 FP on the IFT beats almost any cover. A KIA also destroys the weapons inside (§23.7).',
+        weight: 'key',
+        focus: { from: u.hex, to: best.hex },
+      },
+    };
+  }
+  return undefined;
+}
+
+/**
+ * A led stack standing on a sewer entrance goes underground when another
+ * entrance within three hexes is clearly nearer its goal (§27). A roll of 5–6
+ * loses the party for a turn, so the gain has to be worth it.
+ */
+function sewerDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  if (!ctx.scenario.sewers || s.moving.length) return undefined;
+  const attacker = ctx.scenario.victory.side === side;
+  const seen = new Set<HexKey>();
+  for (const u of Object.values(s.units)) {
+    const h = u.hex;
+    if (u.side !== side || seen.has(h)) continue;
+    seen.add(h);
+    if (!isSewerEntrance(ctx, s, h) || inMelee(s, h)) continue;
+    const group = sideUnitsIn(s, h, side).filter(
+      (x) => !x.broken && !x.berserk && !x.moveDone && x.mfSpent === 0 && x.firedPhase !== 'prepFire' && !carried(s, x).some((w) => weaponType(ctx, w).kind === 'HMG'),
+    );
+    if (!group.some((x) => isLeader(ctx, x))) continue;
+    const goal = groupGoal(ctx, s, side, h, attacker);
+    if (!goal) continue;
+    const here = pathTo(ctx, s, h, goal, side)?.length;
+    if (here === undefined || here < 3) continue;
+    let best: { hex: HexKey; left: number } | undefined;
+    for (const e of Object.values(ctx.map.hexes)) {
+      if (e.key === h || range(h, e.key) > 3 || !isSewerEntrance(ctx, s, e.key) || enemiesIn(s, e.key, side).length) continue;
+      const left = goal.has(e.key) ? 0 : pathTo(ctx, s, e.key, goal, side)?.length;
+      if (left === undefined) continue;
+      if (!best || left < best.left || (left === best.left && isCover(ctx, e.key) && !isCover(ctx, best.hex))) best = { hex: e.key, left };
+    }
+    if (!best) continue;
+    const gain = here - best.left;
+    const risky = exposed(ctx, s, side, pathTo(ctx, s, h, goal, side)![0]!);
+    if (gain < (risky ? 2 : 3)) continue;
+    const a: Action = { type: 'sewer', units: group.map((x) => x.id), to: best.hex };
+    if (!legal(ctx, s, a)) continue;
+    const dest = objectiveNear(ctx, best.hex) ?? objectiveNear(ctx, nearestObjectiveHex(ctx, s, side, best.hex) ?? best.hex);
+    return {
+      action: a,
+      why: {
+        goal: `Go through the sewers to ${hexId(ctx, best.hex)}`,
+        reasons: [
+          `${unitList(ctx, group)} stand on a sewer entrance; ${hexId(ctx, best.hex)} is another entrance ${range(h, best.hex)} hexes away and ${gain} hexes nearer the ${dest ?? 'goal'}.`,
+          risky ? 'Going over ground would mean crossing open ground in enemy view; underground they cannot be fired on until they surface (§27.4).' : 'Underground they cover the distance without paying for terrain and cannot be fired on on the way (§27.3–27.4).',
+          'A roll of 1–4 gets them through; on 5–6 they are lost for a turn and surface where the enemy chooses (§27.22).',
+        ],
+        tip: 'Sewer moves need a leader with the squads and must be declared before the stack moves. Units that come up away from the enemy are concealed (§27.5).',
+        weight: 'key',
+        focus: { from: h, to: best.hex },
+      },
+    };
+  }
+  return undefined;
+}
+
+/** Set off every armed charge in Advancing Fire (§23.4). */
+function detonateDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  const c = s.charges.find((x) => x.side === side && x.armed);
+  if (!c) return undefined;
+  const foes = enemiesIn(s, c.target, side);
+  return {
+    action: { type: 'detonate', weapon: c.weapon },
+    why: {
+      goal: `Blow the charge on ${hexId(ctx, c.target)}`,
+      reasons: [
+        foes.length ? `${unitList(ctx, foes)} in ${terrainNote(ctx, c.target)} take a 30-FP attack.` : `${hexId(ctx, c.target)} is empty now, but an unused charge is lost at the end of the phase (§23.4).`,
+        'The engineers survived Defensive Fire, so the charge is live.',
+      ],
+      weight: 'key',
+      focus: { from: c.from, to: c.target },
+    },
+  };
 }
 
 // ---- Rally ---------------------------------------------------------------------------
@@ -143,13 +284,15 @@ function rallyDecision(ctx: Ctx, s: GameState, side: string): Decision | undefin
 // ---- Fire ----------------------------------------------------------------------------
 
 /** The fire group a hex can form now: every unit's inherent fire plus legal MGs. */
+const MG = new Set(['LMG', 'MMG', 'HMG']);
+
 function hexFirers(ctx: Ctx, s: GameState, hex: HexKey, side: string): FireUnit[] {
   const out: FireUnit[] = [];
   for (const u of sideUnitsIn(s, hex, side)) {
     if (u.broken || (u.firedPhase && u.firedPhase !== s.phase)) continue;
     if (s.phase === 'prepFire' && u.berserk) continue;
     const st = squadType(ctx, u);
-    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn);
+    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn && MG.has(weaponType(ctx, w).kind));
     if (s.phase === 'advancingFire' && u.ppUsed >= (st ? 4 : 2)) ws.length = 0;
     if (st) {
       const inherent = !u.usedInherent;
@@ -193,7 +336,9 @@ export function fireOptions(ctx: Ctx, s: GameState, side: string, isPrep = s.pha
   const options: FireOption[] = [];
   let heldBack = 0;
   for (const h of myHexes) {
-    if (inMelee(s, h)) continue;
+    // Locked in melee, except the point-blank fight with units come up from the sewers (§27.7).
+    const sewerFight = unitsIn(s, h).some((x) => x.sewerAssault);
+    if (inMelee(s, h) && !sewerFight) continue;
     let firers = hexFirers(ctx, s, h, side);
     if (!firers.length) continue;
     // In Prep Fire only a fire base fires: heavy-weapon crews (the rest move),
@@ -211,7 +356,8 @@ export function fireOptions(ctx: Ctx, s: GameState, side: string, isPrep = s.pha
     const leader = bestLeader(ctx, s, h, side, firers);
     for (const t of targets) {
       if (range(h, t) > 16) continue;
-      if (!ctx.los(h, t).clear) continue;
+      if (sewerFight && t !== h) continue;
+      if (t !== h && !ctx.los(h, t).clear) continue;
       // Drop firers that are out of range.
       const usable = firers.filter((f) => {
         const u = s.units[f.unit]!;
@@ -233,6 +379,26 @@ export function fireOptions(ctx: Ctx, s: GameState, side: string, isPrep = s.pha
         options.push({ a: { type: 'fire', firers: usable, target: t, ...(leader ? { leader } : {}) }, score, from: h, target: t, an, odds });
       } catch {
         // Not a legal attack; try the next target.
+      }
+    }
+  }
+  // Flamethrowers fire alone, at up to 2 hexes, with no modifiers (§22).
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side || u.broken || (u.firedPhase && u.firedPhase !== s.phase) || inMelee(s, u.hex) || !canOperateSpecial(ctx, u)) continue;
+    const ft = carried(s, u).find((w) => weaponType(ctx, w).kind === 'FT' && !w.usedThisTurn && !w.malfunctioned);
+    if (!ft) continue;
+    for (const t of targets) {
+      if (range(u.hex, t) > 2 || !ctx.los(u.hex, t).clear) continue;
+      try {
+        const firers = [{ unit: u.id, inherent: false, weapons: [ft.id] }];
+        const an = analyzeFire(ctx, s, firers, t);
+        const odds = fireOdds(ctx, s, an);
+        let score = 0;
+        for (const o of odds.units) score += (s.units[o.unit]!.side === side ? -2 : 1) * o.breakOrWorse;
+        // Fuel runs out on 9+ (28% a shot): only worth it against a real target.
+        options.push({ a: { type: 'fire', firers, target: t }, score: score - 0.1, from: u.hex, target: t, an, odds });
+      } catch {
+        // not legal
       }
     }
   }

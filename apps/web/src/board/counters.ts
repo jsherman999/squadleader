@@ -39,6 +39,8 @@ function soldier(g: Graphics, x: number, y: number, s: number, color: number, al
 export interface CounterOptions {
   readonly selected: ReadonlySet<string>;
   readonly highlightHexes?: ReadonlySet<HexKey>;
+  /** Enemy units the viewer cannot identify: drawn as a concealment counter (§25). */
+  readonly hidden?: ReadonlySet<string>;
 }
 
 export function drawUnits(layer: Container, ctx: Ctx, s: GameState, opts: CounterOptions): void {
@@ -58,7 +60,7 @@ export function drawUnits(layer: Container, ctx: Ctx, s: GameState, opts: Counte
       const baseY = c.y * HEX_PX + (melee ? (si === 0 ? -6 : 6) : 0) - CS / 2 + Math.min(mine.length - 1, 3) * 3;
       mine.forEach((u, i) => {
         const k = Math.min(i, 4);
-        const box = drawCounter(ctx, s, u, nationOf(side), opts.selected.has(u.id));
+        const box = opts.hidden?.has(u.id) ? drawConcealed(nationOf(side)) : drawCounter(ctx, s, u, nationOf(side), opts.selected.has(u.id));
         box.position.set(baseX + k * 6, baseY - k * 6);
         layer.addChild(box);
       });
@@ -100,6 +102,23 @@ export function drawUnits(layer: Container, ctx: Ctx, s: GameState, opts: Counte
       layer.addChild(box);
     });
   }
+}
+
+/** A concealment counter: nationality colour, a question mark, nothing else. */
+function drawConcealed(nation: Nation): Container {
+  const box = new Container();
+  const pal = NATION[nation];
+  const g = new Graphics();
+  g.roundRect(2.5, 3, CS, CS, 4).fill({ color: 0x000000, alpha: 0.35 });
+  g.roundRect(0, 0, CS, CS, 4).fill(mix(pal.bg, 0x000000, 0.35));
+  g.roundRect(0, 0, CS - 1.5, CS - 1.5, 4).fill(mix(pal.bg, 0x000000, 0.12));
+  g.roundRect(4, 4, CS - 9.5, CS - 9.5, 3).stroke({ width: 1.2, color: pal.dark, alpha: 0.8 });
+  box.addChild(g);
+  const q = new Text({ text: '?', style: { ...facts, fontSize: 26, fill: pal.ink }, resolution: 4 });
+  q.anchor.set(0.5);
+  q.position.set(CS / 2 - 0.75, CS / 2 - 1);
+  box.addChild(q);
+  return box;
 }
 
 function rank(ctx: Ctx, u: Unit): number {
@@ -169,6 +188,7 @@ function drawCounter(ctx: Ctx, s: GameState, u: Unit, nation: Nation, selected: 
   if (u.firedPhase) badges.push([u.firedPhase === 'prepFire' ? 'P' : 'F', 0xd8893a]);
   if (u.moved) badges.push(['M', 0x4f86b3]);
   if (u.dm && u.broken) badges.push(['DM', 0xb02a1e]);
+  if (u.concealed) badges.push(['?', 0x6a5a9e]);
   badges.forEach(([b, color], i) => {
     const bg2 = new Graphics();
     bg2.roundRect(CS - 6, 4 + i * 11, b.length > 1 ? 15 : 10, 10, 2).fill(color);

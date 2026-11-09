@@ -1,0 +1,950 @@
+{
+ "format": "squadwar-board@1",
+ "id": "B",
+ "name": "City B",
+ "kind": "city",
+ "seed": 11,
+ "hexes": {
+  "A1": {
+   "t": "water"
+  },
+  "B0": {
+   "t": "water"
+  },
+  "C1": {
+   "t": "water"
+  },
+  "D0": {
+   "t": "water"
+  },
+  "E1": {
+   "t": "water"
+  },
+  "G1": {
+   "t": "woodBuilding",
+   "b": "b1"
+  },
+  "I1": {
+   "t": "woodBuilding",
+   "b": "b2"
+  },
+  "K1": {
+   "t": "woodBuilding",
+   "b": "b2"
+  },
+  "M1": {
+   "t": "woodBuilding",
+   "b": "b3"
+  },
+  "N0": {
+   "t": "woods"
+  },
+  "O1": {
+   "t": "woods"
+  },
+  "R0": {
+   "t": "woodBuilding",
+   "b": "b4"
+  },
+  "S1": {
+   "t": "woods"
+  },
+  "A2": {
+   "t": "water"
+  },
+  "B1": {
+   "t": "water"
+  },
+  "C2": {
+   "t": "water"
+  },
+  "D1": {
+   "t": "water"
+  },
+  "E2": {
+   "t": "woodBuilding",
+   "b": "b5"
+  },
+  "F1": {
+   "t": "woodBuilding",
+   "b": "b6"
+  },
+  "G2": {
+   "t": "woodBuilding",
+   "b": "b1"
+  },
+  "I2": {
+   "t": "woodBuilding",
+   "b": "b7"
+  },
+  "J1": {
+   "t": "woodBuilding",
+   "b": "b2"
+  },
+  "M2": {
+   "t": "woodBuilding",
+   "b": "b8"
+  },
+  "N1": {
+   "t": "woods"
+  },
+  "R1": {
+   "t": "woodBuilding",
+   "b": "b4"
+  },
+  "T1": {
+   "sh": true
+  },
+  "Y2": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "Z1": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "H2": {
+   "t": "woodBuilding",
+   "b": "b1"
+  },
+  "J2": {
+   "t": "woodBuilding",
+   "b": "b10"
+  },
+  "L2": {
+   "t": "woodBuilding",
+   "b": "b11"
+  },
+  "N2": {
+   "t": "woods"
+  },
+  "P2": {
+   "t": "woods"
+  },
+  "T2": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "U3": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "V2": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "W3": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "Y3": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "Z2": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "AA3": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "B3": {
+   "t": "woodBuilding",
+   "b": "b13"
+  },
+  "C4": {
+   "t": "woodBuilding",
+   "b": "b13"
+  },
+  "D3": {
+   "t": "woodBuilding",
+   "b": "b14"
+  },
+  "E4": {
+   "t": "woodBuilding",
+   "b": "b15"
+  },
+  "F3": {
+   "t": "stoneBuilding",
+   "b": "b16"
+  },
+  "G4": {
+   "t": "woodBuilding",
+   "b": "b17"
+  },
+  "K4": {
+   "t": "woodBuilding",
+   "b": "b18"
+  },
+  "L3": {
+   "t": "woodBuilding",
+   "b": "b11"
+  },
+  "O4": {
+   "t": "woods"
+  },
+  "P3": {
+   "t": "woodBuilding",
+   "b": "b19"
+  },
+  "S4": {
+   "t": "stoneBuilding",
+   "b": "b20"
+  },
+  "T3": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "U4": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "V3": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "W4": {
+   "t": "stoneBuilding",
+   "b": "b12"
+  },
+  "Y4": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "Z3": {
+   "t": "stoneBuilding",
+   "b": "b9"
+  },
+  "C5": {
+   "t": "woodBuilding",
+   "b": "b13"
+  },
+  "D4": {
+   "t": "woodBuilding",
+   "b": "b14"
+  },
+  "E5": {
+   "t": "woodBuilding",
+   "b": "b15"
+  },
+  "F4": {
+   "t": "stoneBuilding",
+   "b": "b16"
+  },
+  "G5": {
+   "t": "woodBuilding",
+   "b": "b21"
+  },
+  "H4": {
+   "t": "woodBuilding",
+   "b": "b22"
+  },
+  "J4": {
+   "t": "woodBuilding",
+   "b": "b23"
+  },
+  "K5": {
+   "t": "woodBuilding",
+   "b": "b18"
+  },
+  "L4": {
+   "sh": true
+  },
+  "M5": {
+   "t": "stoneBuilding",
+   "b": "b24"
+  },
+  "O5": {
+   "t": "woods"
+  },
+  "R4": {
+   "t": "woodBuilding",
+   "b": "b25"
+  },
+  "S5": {
+   "t": "stoneBuilding",
+   "b": "b20"
+  },
+  "AA5": {
+   "sh": true
+  },
+  "FF4": {
+   "t": "woods"
+  },
+  "A6": {
+   "t": "woodBuilding",
+   "b": "b26"
+  },
+  "B5": {
+   "t": "woodBuilding",
+   "b": "b26"
+  },
+  "C6": {
+   "t": "woodBuilding",
+   "b": "b27"
+  },
+  "D5": {
+   "t": "woodBuilding",
+   "b": "b28"
+  },
+  "F5": {
+   "t": "woodBuilding",
+   "b": "b21"
+  },
+  "J5": {
+   "t": "woodBuilding",
+   "b": "b29"
+  },
+  "K6": {
+   "t": "woodBuilding",
+   "b": "b29"
+  },
+  "L5": {
+   "t": "woodBuilding",
+   "b": "b18"
+  },
+  "M6": {
+   "t": "stoneBuilding",
+   "b": "b24"
+  },
+  "N5": {
+   "t": "woodBuilding",
+   "b": "b30"
+  },
+  "P5": {
+   "t": "woods"
+  },
+  "Q6": {
+   "t": "woodBuilding",
+   "b": "b31"
+  },
+  "S6": {
+   "t": "woodBuilding",
+   "b": "b32"
+  },
+  "U6": {
+   "t": "stoneBuilding",
+   "b": "b33"
+  },
+  "V5": {
+   "t": "stoneBuilding",
+   "b": "b33"
+  },
+  "X5": {
+   "sh": true
+  },
+  "FF5": {
+   "t": "stoneBuilding",
+   "b": "b34"
+  },
+  "E7": {
+   "t": "woodBuilding",
+   "b": "b35"
+  },
+  "I7": {
+   "t": "stoneBuilding",
+   "b": "b36"
+  },
+  "N6": {
+   "t": "woodBuilding",
+   "b": "b30"
+  },
+  "P6": {
+   "t": "woodBuilding",
+   "b": "b31"
+  },
+  "S7": {
+   "t": "woodBuilding",
+   "b": "b37"
+  },
+  "W7": {
+   "sh": true
+  },
+  "A8": {
+   "t": "woodBuilding",
+   "b": "b38"
+  },
+  "B7": {
+   "t": "woodBuilding",
+   "b": "b39"
+  },
+  "C8": {
+   "t": "woodBuilding",
+   "b": "b39"
+  },
+  "D7": {
+   "t": "woodBuilding",
+   "b": "b40"
+  },
+  "E8": {
+   "t": "woodBuilding",
+   "b": "b41"
+  },
+  "G8": {
+   "t": "woodBuilding",
+   "b": "b42"
+  },
+  "H7": {
+   "t": "stoneBuilding",
+   "b": "b36"
+  },
+  "I8": {
+   "t": "stoneBuilding",
+   "b": "b43"
+  },
+  "J7": {
+   "t": "stoneBuilding",
+   "b": "b43"
+  },
+  "K8": {
+   "t": "woods"
+  },
+  "L7": {
+   "t": "woodBuilding",
+   "b": "b44"
+  },
+  "M8": {
+   "t": "woodBuilding",
+   "b": "b44"
+  },
+  "O8": {
+   "t": "woodBuilding",
+   "b": "b45"
+  },
+  "Q8": {
+   "t": "woodBuilding",
+   "b": "b46"
+  },
+  "V7": {
+   "t": "woodBuilding",
+   "b": "b47"
+  },
+  "W8": {
+   "t": "woodBuilding",
+   "b": "b47"
+  },
+  "Y8": {
+   "t": "woodBuilding",
+   "b": "b48"
+  },
+  "DD7": {
+   "t": "woods"
+  },
+  "EE8": {
+   "t": "woods"
+  },
+  "FF7": {
+   "t": "woods"
+  },
+  "A9": {
+   "t": "woods"
+  },
+  "D8": {
+   "sh": true
+  },
+  "G9": {
+   "t": "woodBuilding",
+   "b": "b49"
+  },
+  "H8": {
+   "t": "stoneBuilding",
+   "b": "b36"
+  },
+  "I9": {
+   "t": "stoneBuilding",
+   "b": "b36"
+  },
+  "J8": {
+   "t": "woods"
+  },
+  "L8": {
+   "t": "woodBuilding",
+   "b": "b44"
+  },
+  "N8": {
+   "t": "woodBuilding",
+   "b": "b50"
+  },
+  "O9": {
+   "sh": true
+  },
+  "P8": {
+   "t": "woodBuilding",
+   "b": "b45"
+  },
+  "R8": {
+   "t": "woodBuilding",
+   "b": "b46"
+  },
+  "S9": {
+   "t": "woodBuilding",
+   "b": "b51"
+  },
+  "DD8": {
+   "t": "woods"
+  },
+  "FF8": {
+   "t": "woods"
+  },
+  "C10": {
+   "t": "woodBuilding",
+   "b": "b52"
+  },
+  "D9": {
+   "t": "woodBuilding",
+   "b": "b53"
+  },
+  "F9": {
+   "t": "woodBuilding",
+   "b": "b49"
+  },
+  "H9": {
+   "t": "stoneBuilding",
+   "b": "b36"
+  },
+  "I10": {
+   "t": "woods"
+  },
+  "S10": {
+   "t": "woods"
+  },
+  "V9": {
+   "t": "woodBuilding",
+   "b": "b54"
+  },
+  "W10": {
+   "t": "woodBuilding",
+   "b": "b55"
+  },
+  "X9": {
+   "t": "woodBuilding",
+   "b": "b55"
+  },
+  "Y10": {
+   "t": "woodBuilding",
+   "b": "b56"
+  },
+  "AA10": {
+   "sh": true
+  },
+  "CC10": {
+   "t": "woods"
+  },
+  "EE10": {
+   "t": "woods"
+  },
+  "GG10": {
+   "t": "woods"
+  },
+  "F10": {
+   "t": "woodBuilding",
+   "b": "b57"
+  },
+  "X10": {
+   "t": "woods"
+  },
+  "DD10": {
+   "t": "woods"
+  },
+  "FF10": {
+   "t": "woods"
+  },
+  "F7": {
+   "sw": true
+  },
+  "M7": {
+   "sw": true
+  },
+  "Q3": {
+   "sw": true
+  },
+  "X4": {
+   "sw": true
+  },
+  "AA4": {
+   "sw": true
+  },
+  "CC5": {
+   "sw": true
+  },
+  "M9": {
+   "sw": true
+  },
+  "V10": {
+   "sw": true
+  },
+  "A7": {
+   "sw": true
+  },
+  "I6": {
+   "sw": true
+  },
+  "P7": {
+   "sw": true
+  },
+  "S8": {
+   "sw": true
+  },
+  "X8": {
+   "sw": true
+  },
+  "AA9": {
+   "sw": true
+  },
+  "DD9": {
+   "sw": true
+  },
+  "GG9": {
+   "sw": true
+  },
+  "R5": {
+   "sw": true
+  },
+  "C7": {
+   "sw": true
+  },
+  "K7": {
+   "sw": true
+  },
+  "U8": {
+   "sw": true
+  },
+  "BB7": {
+   "sw": true
+  }
+ },
+ "hexsides": {
+  "A7/NE": {
+   "road": "paved"
+  },
+  "B6/SE": {
+   "road": "paved"
+  },
+  "C7/NE": {
+   "road": "paved"
+  },
+  "D6/NE": {
+   "road": "paved"
+  },
+  "E6/SE": {
+   "road": "paved"
+  },
+  "F6/NE": {
+   "road": "paved"
+  },
+  "G6/SE": {
+   "road": "paved"
+  },
+  "H6/NE": {
+   "road": "paved"
+  },
+  "I6/SE": {
+   "road": "paved"
+  },
+  "J6/SE": {
+   "road": "paved"
+  },
+  "K7/NE": {
+   "road": "paved"
+  },
+  "L6/SE": {
+   "road": "paved"
+  },
+  "M7/SE": {
+   "road": "paved"
+  },
+  "N7/NE": {
+   "road": "paved"
+  },
+  "O7/SE": {
+   "road": "paved"
+  },
+  "P7/NE": {
+   "road": "paved"
+  },
+  "Q7/SE": {
+   "road": "paved"
+  },
+  "R7/SE": {
+   "road": "paved"
+  },
+  "S8/NE": {
+   "road": "paved"
+  },
+  "T7/SE": {
+   "road": "paved"
+  },
+  "U8/SE": {
+   "road": "paved"
+  },
+  "V8/SE": {
+   "road": "paved"
+  },
+  "W9/NE": {
+   "road": "paved"
+  },
+  "X8/SE": {
+   "road": "paved"
+  },
+  "Y9/SE": {
+   "road": "paved"
+  },
+  "Z9/NE": {
+   "road": "paved"
+  },
+  "AA9/SE": {
+   "road": "paved"
+  },
+  "BB9/NE": {
+   "road": "paved"
+  },
+  "CC9/SE": {
+   "road": "paved"
+  },
+  "DD9/NE": {
+   "road": "paved"
+  },
+  "EE9/SE": {
+   "road": "paved"
+  },
+  "FF9/NE": {
+   "road": "paved"
+  },
+  "GG9/NE": {
+   "road": "paved"
+  },
+  "A7/SW": {
+   "road": "paved"
+  },
+  "Q1/S": {
+   "road": "paved"
+  },
+  "Q2/S": {
+   "road": "paved"
+  },
+  "Q3/S": {
+   "road": "paved"
+  },
+  "Q4/S": {
+   "road": "paved"
+  },
+  "Q5/SE": {
+   "road": "paved"
+  },
+  "R5/S": {
+   "road": "paved"
+  },
+  "R6/S": {
+   "road": "paved"
+  },
+  "Q1/N": {
+   "road": "paved"
+  },
+  "G6/S": {
+   "road": "dirt"
+  },
+  "G7/SW": {
+   "road": "dirt"
+  },
+  "F7/S": {
+   "road": "dirt"
+  },
+  "F8/SW": {
+   "road": "dirt"
+  },
+  "E9/S": {
+   "road": "dirt"
+  },
+  "E10/SW": {
+   "road": "dirt"
+  },
+  "D10/SW": {
+   "road": "dirt"
+  },
+  "G6/NE": {
+   "road": "dirt"
+  },
+  "H5/NE": {
+   "road": "dirt"
+  },
+  "I5/N": {
+   "road": "dirt"
+  },
+  "I4/NE": {
+   "road": "dirt"
+  },
+  "J3/NE": {
+   "road": "dirt"
+  },
+  "K3/N": {
+   "road": "dirt"
+  },
+  "K2/NE": {
+   "road": "dirt"
+  },
+  "L1/N": {
+   "road": "dirt"
+  },
+  "L0/N": {
+   "road": "dirt"
+  },
+  "B2/SE": {
+   "road": "dirt"
+  },
+  "C3/NE": {
+   "road": "dirt"
+  },
+  "D2/SE": {
+   "road": "dirt"
+  },
+  "E3/NE": {
+   "road": "dirt"
+  },
+  "F2/SE": {
+   "road": "dirt"
+  },
+  "G3/SE": {
+   "road": "dirt"
+  },
+  "H3/NE": {
+   "road": "dirt"
+  },
+  "I3/SE": {
+   "road": "dirt"
+  },
+  "Y9/NE": {
+   "road": "dirt"
+  },
+  "Z8/NE": {
+   "road": "dirt"
+  },
+  "AA8/NE": {
+   "road": "dirt"
+  },
+  "BB7/NE": {
+   "road": "dirt"
+  },
+  "CC7/NE": {
+   "road": "dirt"
+  },
+  "DD6/SE": {
+   "road": "dirt"
+  },
+  "EE7/NE": {
+   "road": "dirt"
+  },
+  "FF6/NE": {
+   "road": "dirt"
+  },
+  "GG6/NE": {
+   "road": "dirt"
+  },
+  "T6/S": {
+   "wall": true
+  },
+  "U7/S": {
+   "wall": true
+  },
+  "V6/S": {
+   "wall": true
+  },
+  "W7/S": {
+   "wall": true
+  },
+  "X6/S": {
+   "wall": true
+  },
+  "Y7/S": {
+   "wall": true
+  },
+  "Z6/S": {
+   "wall": true
+  },
+  "AA7/S": {
+   "wall": true
+  },
+  "BB6/S": {
+   "wall": true
+  },
+  "BB1/NE": {
+   "wall": true
+  },
+  "BB2/SE": {
+   "wall": true
+  },
+  "BB3/SE": {
+   "wall": true
+  },
+  "BB4/SE": {
+   "wall": true
+  },
+  "BB5/SE": {
+   "wall": true
+  },
+  "BB6/SE": {
+   "wall": true
+  },
+  "T1/N": {
+   "wall": true
+  },
+  "U2/N": {
+   "wall": true
+  },
+  "V1/N": {
+   "wall": true
+  },
+  "W2/N": {
+   "wall": true
+  },
+  "X1/N": {
+   "wall": true
+  },
+  "BB1/N": {
+   "wall": true
+  },
+  "H0/SW": {
+   "hedge": true
+  },
+  "J0/NE": {
+   "hedge": true
+  },
+  "M3/N": {
+   "hedge": true
+  },
+  "R2/S": {
+   "hedge": true
+  },
+  "M4/NW": {
+   "hedge": true
+  },
+  "B4/SE": {
+   "hedge": true
+  },
+  "EE5/SE": {
+   "hedge": true
+  },
+  "EE6/NE": {
+   "hedge": true
+  },
+  "B8/NW": {
+   "hedge": true
+  },
+  "N9/N": {
+   "hedge": true
+  },
+  "T9/N": {
+   "hedge": true
+  },
+  "Z10/SW": {
+   "hedge": true
+  }
+ },
+ "styles": {
+  "b12": "factory",
+  "b9": "factory",
+  "b33": "block",
+  "b20": "hall",
+  "b43": "hall"
+ }
+}

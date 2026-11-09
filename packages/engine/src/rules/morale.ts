@@ -5,6 +5,7 @@ import { d6, roll2d6 } from '../rng';
 import { hexLabel, isLeader, leaderDrmFor, sideUnitsIn, unitLabel, unitType } from '../queries';
 import type { GameState, Unit } from '../types';
 import { breakUnit, eliminate, type Emit } from './common';
+import { fanaticDrm } from './special';
 
 export type MoraleOutcome = 'pass' | 'broke' | 'eliminated' | 'berserk';
 
@@ -31,12 +32,14 @@ export function moraleCheck(ctx: Ctx, s: GameState, u: Unit, mc: number, opts: M
     return 'pass';
   }
   const { drm, leader } = leaderDrmFor(ctx, s, u.hex, u.side, u.id);
+  const fan = fanaticDrm(ctx, u);
+  u.noConceal = true; // a morale check stops concealment this turn (§25.3)
   const [a, b] = roll2d6(s);
   const raw = a + b;
   const morale = moraleOf(ctx, u);
-  const total = raw + mc + drm;
+  const total = raw + mc + drm + fan;
   const trace = [
-    `${opts.label}: dice ${a}+${b} = ${raw}${mc ? `, +${mc} MC` : ''}${drm ? `, ${drm > 0 ? '+' : ''}${drm} leader ${leader?.name ?? ''} (§15.6)` : ''} → ${total} vs morale ${morale}${u.broken ? ' (broken side, §13.6)' : ''}`,
+    `${opts.label}: dice ${a}+${b} = ${raw}${mc ? `, +${mc} MC` : ''}${drm ? `, ${drm > 0 ? '+' : ''}${drm} leader ${leader?.name ?? ''} (§15.6)` : ''}${fan ? ', −1 fanatic (§26)' : ''} → ${total} vs morale ${morale}${u.broken ? ' (broken side, §13.6)' : ''}`,
   ];
 
   if (raw === 2 && opts.enemyFire && unitType(ctx, u).nation === 'russian') {
@@ -65,6 +68,10 @@ export function moraleCheck(ctx: Ctx, s: GameState, u: Unit, mc: number, opts: M
     return 'eliminated';
   }
   emit({ kind: 'morale', text: `${unitLabel(ctx, u)} fails (${total} > ${morale})`, trace, units: [u.id], side: u.side, dice: [a, b], fx: { result: 'failed' } });
+  if (u.sewerAssault) {
+    eliminate(ctx, s, u, 'broke coming up from the sewer (§27.7C)', emit);
+    return 'eliminated';
+  }
   breakUnit(ctx, s, u, emit);
   return 'broke';
 }

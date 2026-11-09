@@ -126,6 +126,45 @@ export function playCue(cue: Cue): void {
     case 'clank':
       crack(c, now, pan, gain * 0.4, 3800, 0.25, 0);
       break;
+    case 'flame': {
+      // A roaring whoosh: low-passed noise that swells and dies away.
+      const src = c.createBufferSource();
+      src.buffer = noise!;
+      src.loop = true;
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(500, now);
+      lp.frequency.linearRampToValueAtTime(1400, now + 0.3);
+      lp.frequency.exponentialRampToValueAtTime(300, now + 1.3);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(gain * 0.9, now + 0.12);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + 1.4);
+      src.connect(lp).connect(g).connect(out(c, pan));
+      src.start(now);
+      src.stop(now + 1.45);
+      break;
+    }
+    case 'blast': {
+      crack(c, now, pan, gain * 1.2, 180, 0.9, 1.4);
+      crack(c, now + 0.02, pan, gain * 0.5, 900, 0.35, 0);
+      for (let i = 0; i < 6; i++) crack(c, now + 0.25 + Math.random() * 0.6, pan, gain * 0.12, 2500 + Math.random() * 2000, 0.05, 0);
+      break;
+    }
+    case 'hiss': {
+      const src = c.createBufferSource();
+      src.buffer = noise!;
+      const hp = c.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 2500;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(gain * 0.25, now + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + 0.9);
+      src.connect(hp).connect(g).connect(out(c, pan));
+      src.start(now, 0, 0.95);
+      break;
+    }
     case 'whizz': {
       const src = c.createBufferSource();
       src.buffer = noise!;

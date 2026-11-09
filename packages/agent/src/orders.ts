@@ -8,7 +8,7 @@ import type { Rationale } from '@squadwar/bot';
 import { carried, squadType, weaponType, type Action, type Ctx, type FireUnit, type GameEvent, type GameState } from '@squadwar/engine';
 import { hexId, hexKeyOf } from './serialize';
 
-export type OrderType = 'fire' | 'move' | 'advance' | 'rally' | 'repair' | 'transfer' | 'end_move';
+export type OrderType = 'fire' | 'move' | 'advance' | 'rally' | 'repair' | 'transfer' | 'end_move' | 'smoke' | 'place_charge' | 'detonate' | 'sewer';
 
 export interface Order {
   readonly type: OrderType;
@@ -35,20 +35,21 @@ export interface OrderResult {
   readonly text: string;
 }
 
-const ORDER_TYPES: readonly OrderType[] = ['fire', 'move', 'advance', 'rally', 'repair', 'transfer', 'end_move'];
+const ORDER_TYPES: readonly OrderType[] = ['fire', 'move', 'advance', 'rally', 'repair', 'transfer', 'end_move', 'smoke', 'place_charge', 'detonate', 'sewer'];
+const MG = new Set(['LMG', 'MMG', 'HMG']);
 
 export function orderSchema(): Record<string, unknown> {
   return {
     type: 'object',
     properties: {
       type: { type: 'string', enum: ORDER_TYPES, description: 'What to do.' },
-      units: { type: 'array', items: { type: 'string' }, description: 'Unit ids (fire: the firing units; move/advance/end_move: the group).' },
+      units: { type: 'array', items: { type: 'string' }, description: 'Unit ids (fire: the firing units; move/advance/end_move/sewer: the group).' },
       path: { type: 'array', items: { type: 'string' }, description: 'move: hexes to enter in order, adjacent steps, e.g. ["A-BB2","A-AA2"].' },
-      target: { type: 'string', description: 'fire: the target hex id.' },
+      target: { type: 'string', description: 'fire/smoke/place_charge: the target hex id.' },
       leader: { type: 'string', description: 'fire: optional leader id to direct the fire (same hex, not firing).' },
-      to: { type: 'string', description: 'advance: the adjacent hex. transfer: receiving unit id, or "drop".' },
-      unit: { type: 'string', description: 'rally: the broken unit id.' },
-      weapon: { type: 'string', description: 'repair/transfer: weapon id.' },
+      to: { type: 'string', description: 'advance: the adjacent hex. sewer: the destination sewer entrance. transfer: receiving unit id, or "drop".' },
+      unit: { type: 'string', description: 'rally: the broken unit id. smoke/place_charge: the engineer unit id.' },
+      weapon: { type: 'string', description: 'repair/transfer/place_charge/detonate: weapon id. fire: a flamethrower id to fire it alone.' },
       goal: { type: 'string', description: 'One short line: what this order is trying to achieve.' },
       reason: { type: 'string', description: 'Why this order, with the numbers or rules that decided it.' },
     },
@@ -73,7 +74,8 @@ export function fireUnitsFor(ctx: Ctx, s: GameState, ids: readonly string[]): Fi
   for (const id of ids) {
     const u = s.units[id];
     if (!u) continue;
-    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn);
+    // Flamethrowers fire alone and charges are placed: only MGs join a fire group.
+    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn && MG.has(weaponType(ctx, w).kind));
     if (squadType(ctx, u)) {
       const lmgs = ws.filter((w) => weaponType(ctx, w).kind === 'LMG');
       const pick = lmgs.length >= 2 ? lmgs.slice(0, 2) : ws.slice(0, 1);
@@ -107,7 +109,10 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       if (bad) return fail(bad);
       const t = hex(o.target, 'target');
       if (!isKey(t)) return fail(t);
-      const firers = fireUnitsFor(ctx, s, o.units!);
+      // A flamethrower fires alone (§22).
+      const ft = o.weapon ? s.weapons[o.weapon] : undefined;
+      const flame = ft && weaponType(ctx, ft).kind === 'FT' && ft.owner ? [{ unit: ft.owner, inherent: false, weapons: [ft.id] }] : undefined;
+      const firers = flame ?? fireUnitsFor(ctx, s, o.units!);
       if (!firers.length) return fail('none of those units can fire now (fired already, broken, or nothing left to fire)');
       const r = env.apply({ type: 'fire', firers, target: t, ...(o.leader ? { leader: o.leader } : {}) }, n);
       return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
@@ -160,6 +165,37 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       const r = env.apply({ type: 'transfer', weapon: o.weapon, to }, n);
       return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
     }
+    case 'smoke': {
+      if (!o.unit) return fail('smoke needs unit');
+      const t = hex(o.target, 'target');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'smoke', unit: o.unit, hex: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
+    }
+    case 'place_charge': {
+      if (!o.unit) return fail('place_charge needs unit');
+      const u = s.units[o.unit];
+      const dc = o.weapon ?? (u ? carried(s, u).find((w) => weaponType(ctx, w).kind === 'DC')?.id : undefined);
+      if (!dc) return fail('that unit carries no demolition charge');
+      const t = hex(o.target, 'target');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'placeCharge', unit: o.unit, weapon: dc, target: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
+    }
+    case 'detonate': {
+      const c = o.weapon ? s.charges.find((x) => x.weapon === o.weapon) : s.charges.find((x) => x.side === side && x.armed);
+      if (!c) return fail('no armed charge of yours');
+      const r = env.apply({ type: 'detonate', weapon: c.weapon }, n);
+      return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
+    }
+    case 'sewer': {
+      const bad = unknownUnits(s, o.units, side);
+      if (bad) return fail(bad);
+      const t = hex(o.to, 'to');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'sewer', units: o.units!, to: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
+    }
     default:
       return fail(`unknown order type "${String((o as { type?: unknown }).type)}"`);
   }
@@ -168,8 +204,18 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
 /** Describe a bot action as an order (for list_options and the mock opponent). */
 export function actionToOrder(ctx: Ctx, a: Action): Order | undefined {
   switch (a.type) {
-    case 'fire':
-      return { type: 'fire', units: a.firers.map((f) => f.unit), target: hexId(ctx, a.target), ...(a.leader ? { leader: a.leader } : {}) };
+    case 'fire': {
+      const ft = a.firers.length === 1 && a.firers[0]!.weapons.length === 1 && !a.firers[0]!.inherent ? a.firers[0]!.weapons[0] : undefined;
+      return { type: 'fire', units: a.firers.map((f) => f.unit), target: hexId(ctx, a.target), ...(a.leader ? { leader: a.leader } : {}), ...(ft ? { weapon: ft } : {}) };
+    }
+    case 'smoke':
+      return { type: 'smoke', unit: a.unit, target: hexId(ctx, a.hex) };
+    case 'placeCharge':
+      return { type: 'place_charge', unit: a.unit, weapon: a.weapon, target: hexId(ctx, a.target) };
+    case 'detonate':
+      return { type: 'detonate', weapon: a.weapon };
+    case 'sewer':
+      return { type: 'sewer', units: a.units, to: hexId(ctx, a.to) };
     case 'move':
       return { type: 'move', units: a.units, path: [hexId(ctx, a.to)] };
     case 'endMove':

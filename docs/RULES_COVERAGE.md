@@ -46,12 +46,12 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | § | Topic | Module | Notes | MS |
 |---|---|---|---|---|
-| 22 | Flamethrowers | `rules/infantrySpecial` | Engineer or leader requirements per the SW chart; range limits; KIA side effects (§22.9); target-hex DRM (§22.7). Flame-jet FX. | M8 |
-| 23 | Demolition charges | `rules/infantrySpecial` | Thrown or placed; KIA consequences (§23.7). Blast FX. | M8 |
-| 24 | Smoke | `rules/infantrySpecial` | Placement, LOS hindrance and blocking, movement cost of 1 + COT, duration. Volumetric smoke in 3D. | M8 |
-| 25 | Concealment | `rules/concealment` | Native fog of war: concealed stacks show as "?"; gain and loss conditions; Area Fire against concealed targets (§9.4). Optional §25.4 keeps concealment while moving out of enemy LOS. **The LLM serializer respects it.** | M8 |
-| 26 | Fanaticism | `rules/nationality` | Scenario-scoped (Russian only in the early scenarios, §26.2). | M8 |
-| 27 | Sewer movement | `rules/infantrySpecial` | Sewer entrances; 1d6 movement result (1–4 succeeds, 5–6 lost, §27.22); exceptions to enemy-hex entry and stacking. Hidden in fog of war while in transit. | M8 |
+| 22 | Flamethrowers | `rules/special`, `rules/fire` | **Done.** 20 FP, range 2, no DRMs, never combined; engineers or −2/−3 leaders only; −1 to attacks on a hex holding an FT; KIA destroys the support weapons in the hex; out of fuel on 9+. Flame-jet FX. | M8 |
+| 23 | Demolition charges | `rules/special`, `rules/fire` | **Done.** Placed on an adjacent hex in Movement, armed if the placer is unbroken at Advancing Fire, 30 FP with terrain, 12 = dud, lost if unused, KIA destroys weapons, blows a sewer entrance shut. Blast FX. | M8 |
+| 24 | Smoke | `rules/special` | **Done.** Engineers, first thing in Prep Fire, own or adjacent hex; +1d6 to fire into, out of or through it; +1 MF to enter; lifts at the owner's next Prep Fire. Smoke markers in 2D and 3D, billowing FX. | M8 |
+| 25 | Concealment | `rules/special` | **Done.** Scenario counters at setup; gain and loss conditions; Area Fire at half FP against concealed units. Fog of war: concealed enemy stacks show as one "?" counter in 2D and 3D, and the LLM serializer hides them. Dummy counters (§25.7) not yet. | M8 |
+| 26 | Fanaticism | `rules/special` | **Done.** Scenario-scoped by building: −1 to morale checks and rally rolls inside it. | M8 |
+| 27 | Sewer movement | `rules/special` | **Done.** Led stacks from an entrance to another within 3 hexes on 1–4; 5–6 lost and back next turn at an entrance the opponent picks; immune to fire on the way; concealed on arrival away from the enemy; point-blank fight in an enemy-held entrance (§27.7). | M8 |
 
 ## Game Set I: Armor (§28–41) (unlocks scenario 4)
 

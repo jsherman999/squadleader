@@ -5,6 +5,7 @@ export function StackPanel({
   ctx,
   s,
   hex,
+  hidden,
   selected,
   onToggle,
   onTransfer,
@@ -12,6 +13,8 @@ export function StackPanel({
   ctx: Ctx;
   s: GameState;
   hex: HexKey;
+  /** Enemy units the viewer cannot identify (§25). */
+  hidden?: ReadonlySet<string>;
   selected: readonly string[];
   onToggle: (id: string) => void;
   onTransfer?: (weapon: string, to: string | null) => void;
@@ -25,6 +28,17 @@ export function StackPanel({
       {units.map((u) => {
         const t = ctx.data.units[u.type]!;
         const mine = u.side === s.awaiting;
+        if (hidden?.has(u.id)) {
+          return (
+            <div key={u.id} className="stack-row enemy">
+              <span className={`chip nation-${s.sides.find((x) => x.id === u.side)?.nation}`}>{sideName(u.side)}</span>
+              <span className="stack-name">
+                Concealed <span className="tag">?</span>
+                <span className="dim small"> strength unknown until it fires, moves or is hit (§25)</span>
+              </span>
+            </div>
+          );
+        }
         const al = s.phase === 'movement' && mine ? mfAllowance(ctx, s, u) : undefined;
         return (
           <label key={u.id} className={`stack-row ${mine ? '' : 'enemy'} ${u.broken ? 'broken' : ''}`}>
@@ -36,6 +50,7 @@ export function StackPanel({
               {u.berserk && <span className="tag bad">berserk</span>}
               {u.firedPhase && <span className="tag">fired</span>}
               {u.moved && <span className="tag">moved {u.mfSpent} MF</span>}
+              {u.concealed && <span className="tag">concealed</span>}
             </span>
             {al && <span className="dim small mono" title={al.parts.join('\n')}>{Math.max(0, al.mf - u.mfSpent)}/{al.mf} MF</span>}
             {u.weapons.map((wid) => {

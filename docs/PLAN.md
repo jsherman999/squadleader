@@ -2,7 +2,7 @@
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** M0–M7 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
+**Status:** M0–M8 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -22,7 +22,8 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 | Tutor mode | Done | Added on request after M5: AI vs AI play with pause, step and speed; the bot explains every decision (goal, reasons with odds and rule references, options weighed, a lesson); finished games go to a saved-game library; Review steps through any saved game decision by decision, with the outcome and map highlights, and lets you take over either side from any point (ADR 0006). |
 | M6 Fire Director | Done | Fire, close combat and results animate in 2D and 3D from a pure, tested timeline (ADR 0007): tracer bursts per weapon, muzzle flashes, impacts, smoke, result labels, ghosts for Defensive Fire on moved units. Synthesised sound, 3D dice tray, battle speed, skip, reduced motion. In Eyes view, incoming fire shakes the camera and flashes red. Review steps animate too. Phones get a scrolling layout. |
 | M7 Opponents | Done | LLM opponent (ADR 0008): Anthropic (official SDK in the browser), OpenAI, Gemini, OpenRouter and local OpenAI-compatible servers; settings with Test connection, model list, persona, effort, budget, economy; keys in memory unless remembered; cost meter; radio chatter and optional "AI thinking"; every LLM order carries its goal for the tutor; scripted-AI fallback on errors, refusals, budget or Cancel. Standing Orders for Defensive Fire (LLM economy mode, and human Streamlined automation). Tested with a mock provider (full game vs. the bot, illegal-order recovery), adapter request/response tests, and a browser run against a local OpenAI-compatible server. |
-| M8–M12 | Not started | |
+| M8 Infantry extensions | Done | §22–27: flamethrowers, demolition charges, smoke, concealment with fog of war, fanaticism and sewer movement, with rules traces and tests. City B (industrial district with a walled ironworks and a workers' settlement) and manhole networks on both city boards. Scenario 2 *The Ironworks* and scenario 3 *Under the Streets* (City B north of City A). Battle-screen controls for smoke, flamethrowers, charges and sewers; "?" counters for concealed enemies in 2D and 3D; flame, blast and smoke effects with sound. The bot lays smoke, places and blows charges, fires flamethrowers and uses the sewers; the LLM gets the matching orders and a §22–27 primer. Bot-vs-bot games favour the defender in all three scenarios: the scripted attacker is cautious. |
+| M9–M12 | Not started | |
 
 Deviations from this plan so far:
 
@@ -678,8 +679,8 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | # | Working title and setting | Rules added | Boards |
 |---|---|---|---|
 | 1 | *Into the Riverside District*: Voronezh, July 1942 | §1–21 basic infantry | City A |
-| 2 | *The Station Yards*: Rostov-on-Don, Nov 1941 | §22–26 flamethrowers, demolition charges, smoke, concealment, fanaticism | City A |
-| 3 | *Beneath the Square*: Kharkov, Mar 1943 | §27 sewer movement | City A+B |
+| 2 | *The Ironworks*: Stalingrad factory district, Oct 1942 (built in M8) | §22–26 flamethrowers, demolition charges, smoke, concealment, fanaticism | City B |
+| 3 | *Under the Streets*: Kharkov, Feb 1943 (built in M8) | §27 sewer movement | City B north of City A |
 | 4 | *Armor in the Streets*: Zhitomir, Nov 1943 | §28–41 AFVs | City A+B |
 | 5 | *Station Hill*: Ponyri, Jul 1943 | §42–46 hidden placement, advanced LOS and hills, rural terrain, offboard artillery | Country 1+2 |
 | 6 | *The Don Bridge*: Kalach, Nov 1942 | §47–48 halftracks, AT guns | Country 2+3 |

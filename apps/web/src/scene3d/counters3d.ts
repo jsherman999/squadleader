@@ -45,11 +45,12 @@ function soldier(c: CanvasRenderingContext2D, x: number, y: number, s: number, i
 }
 
 /** Texture for one unit's counter face (cached by appearance). */
-export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolean): THREE.CanvasTexture {
+export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolean, hidden = false): THREE.CanvasTexture {
   const t = ctx.data.units[u.type]!;
   const nation = s.sides.find((x) => x.id === u.side)?.nation ?? 'german';
+  if (hidden) return concealedTexture(nation);
   const weapons = u.weapons.map((id) => s.weapons[id]).filter((w) => !!w).map((w) => `${weaponType(ctx, w!).kind}${w!.malfunctioned ? 'x' : ''}`);
-  const key = [u.type, nation, u.broken, u.berserk, selected, u.name ?? '', weapons.join(','), u.firedPhase ? 'f' : '', u.moved ? 'm' : ''].join('|');
+  const key = [u.type, nation, u.broken, u.berserk, selected, u.name ?? '', weapons.join(','), u.firedPhase ? 'f' : '', u.moved ? 'm' : '', u.concealed ? 'c' : ''].join('|');
   const hit = cache.get(key);
   if (hit) return hit;
   const S = 128;
@@ -91,6 +92,44 @@ export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolea
     c.font = 'bold 7px "Roboto Condensed", sans-serif';
     c.fillText(w.replace(/x$/, ''), 11.5 + i * 20, 8.5);
   });
+  if (u.concealed) {
+    c.fillStyle = '#6a5a9e';
+    roundRect(c, 33, 12, 9, 10, 2);
+    c.fill();
+    c.fillStyle = '#f5f1e3';
+    c.font = 'bold 8px "Roboto Condensed", sans-serif';
+    c.fillText('?', 37.5, 20);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  cache.set(key, tex);
+  return tex;
+}
+
+/** A concealment counter (§25): nationality colour and a question mark. */
+function concealedTexture(nation: keyof typeof NATION): THREE.CanvasTexture {
+  const key = `?|${nation}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const S = 128;
+  const cv = document.createElement('canvas');
+  cv.width = S;
+  cv.height = S;
+  const c = cv.getContext('2d')!;
+  const pal = NATION[nation];
+  c.scale(S / 44, S / 44);
+  c.fillStyle = shade(pal.bg, 0.88);
+  roundRect(c, 1, 1, 42, 42, 4);
+  c.fill();
+  c.lineWidth = 1.2;
+  c.strokeStyle = 'rgba(0,0,0,0.6)';
+  c.stroke();
+  c.fillStyle = pal.ink;
+  c.font = 'bold 28px "Roboto Condensed", "Arial Narrow", sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('?', 22, 23);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;

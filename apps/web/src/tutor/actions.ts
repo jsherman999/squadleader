@@ -27,6 +27,14 @@ export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
       return `Close combat in ${hexLabel(ctx, a.hex)}`;
     case 'transfer':
       return 'Hand over a weapon';
+    case 'smoke':
+      return `Smoke in ${hexLabel(ctx, a.hex)}`;
+    case 'placeCharge':
+      return `Place a charge on ${hexLabel(ctx, a.target)}`;
+    case 'detonate':
+      return 'Set off a demolition charge';
+    case 'sewer':
+      return `${units(a.units)} through the sewers → ${hexLabel(ctx, a.to)}`;
   }
 }
 
@@ -43,7 +51,11 @@ export function actionUnits(a: Action | undefined): string[] {
     case 'rally':
     case 'place':
     case 'rout':
+    case 'smoke':
+    case 'placeCharge':
       return [a.unit];
+    case 'sewer':
+      return [...a.units];
     default:
       return [];
   }

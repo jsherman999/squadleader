@@ -1,5 +1,7 @@
 import type { HexKey } from '@squadwar/hex';
-import { carried, isLeader, leaderType, squadType, weaponType, type Ctx, type FireUnit, type GameState } from '@squadwar/engine';
+import { canOperateSpecial, carried, isLeader, leaderType, squadType, weaponType, type Ctx, type FireUnit, type GameState } from '@squadwar/engine';
+
+const MG = new Set(['LMG', 'MMG', 'HMG']);
 
 /** The natural fire contribution of each selected unit (inherent fire + MGs within §17.1). */
 export function defaultFirers(ctx: Ctx, s: GameState, ids: readonly string[]): FireUnit[] {
@@ -8,7 +10,8 @@ export function defaultFirers(ctx: Ctx, s: GameState, ids: readonly string[]): F
     const u = s.units[id];
     if (!u || u.broken) continue;
     const st = squadType(ctx, u);
-    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn);
+    // Flamethrowers fire alone and charges are placed, not fired: neither joins a fire group.
+    const ws = carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn && MG.has(weaponType(ctx, w).kind));
     const heavy = s.phase === 'advancingFire' && u.ppUsed >= (st ? 4 : 2);
     const usable = heavy ? [] : ws;
     if (st) {
@@ -21,6 +24,17 @@ export function defaultFirers(ctx: Ctx, s: GameState, ids: readonly string[]): F
     }
   }
   return out;
+}
+
+/** The first selected unit's flamethrower, fired on its own (§22). */
+export function flameFirers(ctx: Ctx, s: GameState, ids: readonly string[]): FireUnit[] {
+  for (const id of ids) {
+    const u = s.units[id];
+    if (!u || u.broken || !canOperateSpecial(ctx, u)) continue;
+    const ft = carried(s, u).find((w) => weaponType(ctx, w).kind === 'FT' && !w.malfunctioned && !w.usedThisTurn);
+    if (ft) return [{ unit: id, inherent: false, weapons: [ft.id] }];
+  }
+  return [];
 }
 
 /** Best unused leader in the firers' hex (only for single-hex fire groups, §15.2). */

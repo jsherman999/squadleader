@@ -1,0 +1,243 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s3",
+  "title": "Under the Streets",
+  "date": "February 1943",
+  "location": "Kharkov",
+  "briefing": "The Soviet counter-offensive has reached the northern edge of the old town. The German garrison holds the school in the workers' settlement and a line of strongpoints around the market square to the south: the church, the town hall and the timber barn. The Soviet assault groups know the city's storm drains. With guides from the local militia they mean to come up behind the German positions rather than cross the open streets.",
+  "rulesLevel": 27,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "board": "A",
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "ger",
+  "moveFirst": "rus",
+  "sewers": true,
+  "smoke": {
+    "rus": 2
+  },
+  "concealment": {
+    "rus": 4,
+    "ger": 3
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere on board A or in columns A–L of board B. Three stacks start concealed.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "A",
+            "GG"
+          ]
+        },
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "L"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "B-I8",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "B-I8",
+          "names": [
+            "Uffz. Busch"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-H8"
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-Q2",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "A-Q2",
+          "names": [
+            "Lt. Kranz"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "A-O6",
+          "names": [
+            "Fw. Stein"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-W5"
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-V1"
+        }
+      ]
+    },
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up second, anywhere in columns S–GG of board B. Moves first. Four stacks start concealed; two smoke counters for the Guards.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "S",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-628",
+          "hex": "B-U8"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-U8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "B-U8",
+          "names": [
+            "Lt. Sokolov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "B-S8"
+        },
+        {
+          "type": "rus-L81",
+          "hex": "B-S8",
+          "names": [
+            "Sgt. Fedorov"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "B-X8"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-X8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-X8",
+          "names": [
+            "Sgt. Antonov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-U6",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L102",
+          "hex": "B-U6",
+          "names": [
+            "Kapt. Gusev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-T3",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-W8"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-S9"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "rus",
+    "text": "The Soviets win if, at the end of turn 7, they control at least three of the four German strongpoints (school, church, town hall, timber barn). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "B-I8",
+          "name": "School"
+        },
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-O6",
+          "name": "Town hall"
+        },
+        {
+          "hex": "A-W5",
+          "name": "Timber barn"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–27 (adds sewer movement).",
+    "Sewer movement is allowed (§27): a stack with a leader in a sewer entrance may move to another entrance within three hexes on a roll of 1–4.",
+    "The Soviets conceal four stacks at setup and the Germans three (§25.6). The Soviet Guards have two smoke counters (§24)."
+  ]
+}

@@ -43,7 +43,7 @@ export const WeaponTypeSchema = z
   .object({
     id: z.string(),
     nation: Nation,
-    kind: z.enum(['LMG', 'MMG', 'HMG']),
+    kind: z.enum(['LMG', 'MMG', 'HMG', 'FT', 'DC']),
     name: z.string(),
     fp: z.number(),
     range: z.number().int(),
@@ -185,6 +185,14 @@ export const ScenarioSchema = z
       .length(2),
     victory: VictorySchema,
     specialRules: z.array(z.string()).optional(),
+    /** Smoke counters per side (§24.1). */
+    smoke: z.record(z.string(), z.number().int().min(0)).optional(),
+    /** Concealment counters each side places at setup (§25.6). */
+    concealment: z.record(z.string(), z.number().int().min(0)).optional(),
+    /** Fanatic units: a side's units inside a building (named by one of its hexes) get −1 on morale and rally (§26). */
+    fanatic: z.array(z.object({ side: z.string(), building: z.string() }).strict()).optional(),
+    /** Sewer movement allowed (§27). */
+    sewers: z.boolean().optional(),
   })
   .strict();
 export type Scenario = z.infer<typeof ScenarioSchema>;

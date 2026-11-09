@@ -1,0 +1,233 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s2",
+  "title": "The Ironworks",
+  "date": "October 1942",
+  "location": "Stalingrad, factory district",
+  "briefing": "The Germans have pushed through the workers' settlement to the wall of the ironworks. Inside, a Soviet rifle company has turned the great hall, the rolling mill, the boiler house and the works office into strongpoints, and the men in the great hall have sworn not to give it up. A German assault-engineer platoon with a flamethrower and demolition charges leads the attack, under cover of smoke.",
+  "rulesLevel": 26,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "smoke": {
+    "ger": 3
+  },
+  "concealment": {
+    "rus": 3
+  },
+  "fanatic": [
+    {
+      "side": "rus",
+      "building": "B-T2"
+    }
+  ],
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first, anywhere in columns S–GG. Three stacks start concealed. The great hall garrison is fanatic.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "S",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "hex": "B-T3",
+          "weapons": [
+            "rus-hmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "B-T3",
+          "names": [
+            "Lt. Gromov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-V3"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-W4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-S5",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-S5",
+          "names": [
+            "Sgt. Lebedev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-U6",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "B-U6",
+          "names": [
+            "Sgt. Morozov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-Y3"
+        },
+        {
+          "type": "rus-628",
+          "hex": "B-Z2"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns A–M. Moves first. Three smoke counters for the assault engineers.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "M"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "B-M5",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M5",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "B-M5",
+          "names": [
+            "Hptm. Albers"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "B-M6",
+          "names": [
+            "Fw. Hahn"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-L3",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-L3",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "B-L3",
+          "names": [
+            "Oblt. Wendt"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-K5",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-K5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "B-L7"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 7, they control at least three of the four works buildings (great hall, rolling mill, boiler house, works office). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "B-T2",
+          "name": "Great hall"
+        },
+        {
+          "hex": "B-Y2",
+          "name": "Rolling mill"
+        },
+        {
+          "hex": "B-U6",
+          "name": "Boiler house"
+        },
+        {
+          "hex": "B-S4",
+          "name": "Works office"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–26 (Game Set I with flamethrowers, demolition charges, smoke, concealment and fanaticism).",
+    "Soviet units in the great hall are fanatic: −1 to their morale checks and rally rolls while inside it (§26).",
+    "The Soviets conceal three stacks at setup (§25.6). The German assault engineers have three smoke counters (§24)."
+  ]
+}

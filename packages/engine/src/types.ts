@@ -71,6 +71,14 @@ export interface Unit {
   rallyTried: boolean;
   routed: boolean;
   advanced: boolean;
+  /** Under a concealment counter (§25): the enemy can't inspect it; fire at it is Area Fire. */
+  concealed: boolean;
+  /** Moved, fired, made smoke, placed a charge or took a morale check this player turn: can't gain concealment (§25.3). */
+  noConceal: boolean;
+  /** Placed smoke this player turn (§24.2). */
+  smokeMade: boolean;
+  /** Arrived by sewer into an enemy-held entrance this player turn (§27.7). */
+  sewerAssault: boolean;
 }
 
 export interface Weapon {
@@ -91,6 +99,34 @@ export interface TrackStep {
   readonly mf: number;
   /** Open ground for the −2 moving-target DRM (§16.5). */
   readonly open: boolean;
+  /** Came up out of a sewer into an enemy-held entrance: no terrain modifiers, −2 (§27.7A). */
+  readonly sewer?: boolean;
+}
+
+/** A demolition charge placed on a hex (§23). */
+export interface Charge {
+  /** The DC weapon's id. */
+  readonly weapon: string;
+  readonly side: SideId;
+  readonly placer: string;
+  /** Hex the charge was placed from (§23.3). */
+  readonly from: HexKey;
+  readonly target: HexKey;
+  /** Placed this player turn and the placer survived Defensive Fire unbroken (§23.3–23.4). */
+  armed: boolean;
+}
+
+export interface Smoke {
+  readonly hex: HexKey;
+  readonly side: SideId;
+}
+
+/** Units lost in the sewers (§27.22), back next Movement Phase. */
+export interface LostInSewers {
+  readonly units: Unit[];
+  readonly weapons: Weapon[];
+  readonly from: HexKey;
+  readonly side: SideId;
 }
 
 export interface SideState {
@@ -134,6 +170,15 @@ export interface GameState {
   setupDone: SideId[];
   /** Units eliminated so far, by side. */
   losses: Record<SideId, { squads: number; leaders: number }>;
+  /** Smoke counters on the map (§24). */
+  smoke: Smoke[];
+  /** Smoke counters each side has left (§24.1). */
+  smokeLeft: Record<SideId, number>;
+  /** Demolition charges placed (§23). */
+  charges: Charge[];
+  /** Sewer entrances closed by a demolition charge (§27.6). */
+  closedSewers: HexKey[];
+  lostInSewers: LostInSewers[];
   /** Test hook: dice values used before the PRNG. Never set in normal play. */
   diceQueue?: number[];
   winner?: SideId | 'draw';
@@ -166,6 +211,14 @@ export type Action =
   | { readonly type: 'rout'; readonly unit: string; readonly to?: HexKey }
   | { readonly type: 'advance'; readonly units: readonly string[]; readonly to: HexKey }
   | { readonly type: 'closeCombat'; readonly hex: HexKey; readonly attacks: readonly CloseCombatAttack[] }
+  /** Assault engineers lay smoke, first thing in Prep Fire (§24.2–24.3). */
+  | { readonly type: 'smoke'; readonly unit: string; readonly hex: HexKey }
+  /** Place a demolition charge on an adjacent hex during movement (§23.3). */
+  | { readonly type: 'placeCharge'; readonly unit: string; readonly weapon: string; readonly target: HexKey }
+  /** Explode an armed charge in Advancing Fire (§23.4). */
+  | { readonly type: 'detonate'; readonly weapon: string }
+  /** Sewer movement to an entrance within 3 hexes (§27). */
+  | { readonly type: 'sewer'; readonly units: readonly string[]; readonly to: HexKey }
   | { readonly type: 'endPhase' };
 
 // ---- Events ------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { d6, roll2d6 } from '../rng';
 import { hexLabel, inMelee, isLeader, leaderDrmFor, sideUnitsIn, unitLabel, weaponType } from '../queries';
 import { RuleError, type GameState } from '../types';
 import { eliminate, type Emit } from './common';
+import { fanaticDrm } from './special';
 import { moraleCheck, moraleOf } from './morale';
 
 export function canRally(ctx: Ctx, s: GameState, unitId: string): string | undefined {
@@ -22,7 +23,9 @@ export function rallyAttempt(ctx: Ctx, s: GameState, unitId: string, emit: Emit)
   if (why) throw new RuleError(why);
   const u = s.units[unitId]!;
   u.rallyTried = true;
-  const { drm, leader } = leaderDrmFor(ctx, s, u.hex, u.side, u.id);
+  const { drm: ldrm, leader } = leaderDrmFor(ctx, s, u.hex, u.side, u.id);
+  const fan = fanaticDrm(ctx, u);
+  const drm = ldrm + fan;
   const base = moraleOf(ctx, u);
   const need = u.dm ? base - ctx.data.tables.desperationMorale : base;
   const [a, b] = roll2d6(s);
@@ -30,7 +33,7 @@ export function rallyAttempt(ctx: Ctx, s: GameState, unitId: string, emit: Emit)
   const total = raw + drm;
   const trace = [
     `Needs ${need} or less${u.dm ? ` (desperation morale: ${base} − ${ctx.data.tables.desperationMorale}, fired on since the last Rally Phase, §14.6)` : ''}`,
-    `Dice ${a}+${b} = ${raw}${drm ? `, ${drm > 0 ? '+' : ''}${drm} ${leader?.name ?? 'leader'} (§14.2)` : ''} → ${total}`,
+    `Dice ${a}+${b} = ${raw}${ldrm ? `, ${ldrm > 0 ? '+' : ''}${ldrm} ${leader?.name ?? 'leader'} (§14.2)` : ''}${fan ? ', −1 fanatic (§26)' : ''} → ${total}`,
   ];
   if (raw === 12) {
     emit({ kind: 'rally', text: `${unitLabel(ctx, u)} rolls 12 while rallying: extra casualties (§18.3)`, trace, side: u.side, units: [u.id], dice: [a, b], fx: { result: 'casualty' } });

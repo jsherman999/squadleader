@@ -7,6 +7,7 @@ import { autoPlan, ccHexes, purgeBrokenInMelee, resolveCloseCombat } from './rul
 import type { Emit } from './rules/common';
 import { doRout, pendingRouts } from './rules/rout';
 import { evaluateVictory } from './rules/victory';
+import { armCharges, clearSmoke, expireCharges, gainConcealment, returnLostUnits, revealAdjacent, setupConcealment } from './rules/special';
 
 export function sideName(s: GameState, id: SideId): string {
   return s.sides.find((x) => x.id === id)?.name ?? id;
@@ -34,6 +35,9 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
     u.rallyTried = false;
     u.routed = false;
     u.advanced = false;
+    u.noConceal = false;
+    u.smokeMade = false;
+    u.sewerAssault = false;
   }
   for (const w of Object.values(s.weapons)) {
     w.usedThisTurn = false;
@@ -50,6 +54,7 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
 }
 
 function endPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
+  gainConcealment(ctx, s, emit);
   if (s.half === 0) {
     s.half = 1;
     s.phasing = otherSide(s, ctx.scenario.moveFirst);
@@ -93,6 +98,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
   const other = otherSide(s, s.phasing);
   switch (s.phase) {
     case 'setup': {
+      setupConcealment(ctx, s, s.awaiting, emit);
       s.setupDone.push(s.awaiting);
       const next = s.sides.find((x) => !s.setupDone.includes(x.id));
       if (next) {
@@ -116,11 +122,13 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       s.awaiting = s.phasing;
       s.attacks = [];
       announce(s, emit);
+      clearSmoke(ctx, s, s.phasing, emit);
       return;
     case 'prepFire':
       s.phase = 'movement';
       s.attacks = [];
       announce(s, emit);
+      returnLostUnits(ctx, s, emit);
       berserkMovement(ctx, s, emit);
       return;
     case 'movement':
@@ -135,9 +143,12 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       s.phase = 'advancingFire';
       s.awaiting = s.phasing;
       s.attacks = [];
+      revealAdjacent(ctx, s, emit);
       announce(s, emit);
+      armCharges(ctx, s, emit);
       return;
     case 'advancingFire':
+      expireCharges(ctx, s, emit);
       s.phase = 'rout';
       s.awaiting = s.phasing;
       for (const u of Object.values(s.units)) u.routed = false;
@@ -156,6 +167,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       return;
     case 'advance':
       berserkAdvance(ctx, s, emit);
+      revealAdjacent(ctx, s, emit);
       s.phase = 'closeCombat';
       s.awaiting = s.phasing;
       purgeBrokenInMelee(ctx, s, emit);

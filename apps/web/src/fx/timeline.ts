@@ -18,13 +18,19 @@ export interface Pt {
 
 export type WeaponFx = 'rifle' | 'LMG' | 'MMG' | 'HMG';
 export type Tone = 'bad' | 'warn' | 'good' | 'info';
-export type SoundId = 'burst' | 'impact' | 'melee' | 'clank' | 'whizz';
+export type SoundId = 'burst' | 'impact' | 'melee' | 'clank' | 'whizz' | 'flame' | 'blast' | 'hiss';
 
 export type Cue =
   | { readonly kind: 'burst'; readonly t0: number; readonly dur: number; readonly from: Pt; readonly to: Pt; readonly weapon: WeaponFx; readonly rounds: number; readonly interval: number; readonly speed: number; readonly color: number; readonly seed: number; readonly spread: number }
   | { readonly kind: 'line'; readonly t0: number; readonly dur: number; readonly from: Pt; readonly to: Pt; readonly color: number }
   | { readonly kind: 'melee'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly seed: number }
   | { readonly kind: 'puff'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly size: number; readonly color: number }
+  /** A flamethrower jet from the firer to the target hex (§22). */
+  | { readonly kind: 'flame'; readonly t0: number; readonly dur: number; readonly from: Pt; readonly to: Pt; readonly seed: number }
+  /** A demolition charge going off (§23). */
+  | { readonly kind: 'blast'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly seed: number }
+  /** A smoke screen billowing up (§24). */
+  | { readonly kind: 'smoke'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly seed: number }
   | { readonly kind: 'label'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly text: string; readonly tone: Tone; readonly stack?: number }
   | { readonly kind: 'ghost'; readonly t0: number; readonly dur: number; readonly at: Pt; readonly text: string }
   | { readonly kind: 'sound'; readonly t0: number; readonly sound: SoundId; readonly at: Pt; readonly weapon?: WeaponFx; readonly rounds?: number; readonly interval?: number }
@@ -157,7 +163,32 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         const farTarget = targets[targets.length - 1];
         let end = start;
         let land = start;
-        shooters.forEach((sh, i) => {
+        const special = shooters.find((sh) => sh.kind === 'FT' || sh.kind === 'DC');
+        if (special && farTarget) {
+          const tgt = hexPoint(ctx, farTarget, 0.25);
+          if (opts.reducedMotion) {
+            const from = special.kind === 'FT' ? hexPoint(ctx, special.hex, EYE) : tgt;
+            cues.push({ kind: 'line', t0: start, dur: 1.2 * k, from, to: tgt, color: 0xff7a30 });
+            land = start + 0.3 * k;
+            end = start + 1.2 * k;
+          } else if (special.kind === 'FT') {
+            const los = ctx.los(special.hex, farTarget);
+            const from = { ...hexPoint(ctx, special.hex), z: los.fromHeight + EYE };
+            const dur = 1.5 * k;
+            cues.push({ kind: 'flame', t0: start, dur, from, to: { ...tgt, z: los.toHeight + EYE * 0.5 }, seed: hashSeed(`${special.hex}${farTarget}${e.text}`) });
+            cues.push({ kind: 'sound', t0: start, sound: 'flame', at: from });
+            land = start + dur * 0.55;
+            end = start + dur;
+          } else {
+            const dur = 2.2 * k;
+            const t0 = start + 0.25 * k;
+            cues.push({ kind: 'blast', t0, dur, at: tgt, seed: hashSeed(`${farTarget}${e.text}`) });
+            cues.push({ kind: 'sound', t0, sound: 'blast', at: tgt });
+            land = t0 + 0.2 * k;
+            end = t0 + dur;
+          }
+        }
+        (special ? [] : shooters).forEach((sh, i) => {
           const to = farTarget ?? sh.hex;
           const w = weaponOf(sh.kind);
           const spec = WEAPON[w];
@@ -253,6 +284,16 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
       }
       case 'rout': {
         if (e.units?.length && e.from) slide(e.units, e.hexes?.length ? e.hexes : [e.from, e.to ?? e.from]);
+        break;
+      }
+      case 'info': {
+        const hex = (fx as { smoke?: HexKey }).smoke;
+        if (!hex || !ctx.map.hexes[hex] || opts.reducedMotion) break;
+        const t0 = t;
+        const dur = 2 * k;
+        cues.push({ kind: 'smoke', t0, dur, at: hexPoint(ctx, hex), seed: hashSeed(hex) });
+        cues.push({ kind: 'sound', t0, sound: 'hiss', at: hexPoint(ctx, hex) });
+        t = t0 + dur * 0.5;
         break;
       }
       case 'breakdown': {

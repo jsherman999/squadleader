@@ -20,3 +20,19 @@ describe('bot self-play (scenario 1)', () => {
     expect(again.state.result).toBe(r.result);
   }, 120_000);
 });
+
+describe('bot self-play (scenarios 2–3: flamethrowers, charges, smoke, concealment, sewers)', () => {
+  for (const index of [1, 2]) {
+    const ctx = scenarioCtx(index);
+    it(`${ctx.scenario.id} plays and replays cleanly`, () => {
+      for (const seed of [1, 2]) {
+        const r = selfPlay(ctx, seed);
+        expect(r.problems).toEqual([]);
+        expect(r.winner).toBeDefined();
+        const again = replay(ctx, seed, r.log);
+        expect(again.state.winner).toBe(r.winner);
+        expect(again.state.result).toBe(r.result);
+      }
+    }, 120_000);
+  }
+});

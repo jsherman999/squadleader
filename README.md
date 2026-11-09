@@ -2,7 +2,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M7 are built. You can play scenario 1 hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M8 are built. You can play scenarios 1–3 (infantry, flamethrowers, demolition charges, smoke, concealment, sewers) hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 

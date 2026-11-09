@@ -6,6 +6,37 @@ import type { PathStep } from './pathing';
 
 const at = (h: HexKey): Vec2 => hexToPixel(parseHexKey(h));
 
+/** Smoke screens, placed demolition charges and blown sewer entrances (§23–27). */
+export function drawSpecial(pen: Pen, s: GameState): void {
+  for (const sm of s.smoke) {
+    const c = at(sm.hex);
+    hexFill(pen, parseHexKey(sm.hex), 0xd8d8d0, 0.45, 0.04);
+    for (const [dx, dy, r] of [
+      [-0.3, -0.12, 0.34],
+      [0.12, -0.3, 0.3],
+      [0.3, 0.08, 0.36],
+      [-0.1, 0.24, 0.32],
+      [0, 0, 0.38],
+    ] as const) {
+      pen.circle({ x: c.x + dx, y: c.y + dy }, r * 44, { color: 0xf2f2ec, alpha: 0.42 }, { width: 1, color: 0x8a8a82, alpha: 0.4 });
+    }
+    pen.text({ x: c.x, y: c.y - 0.55 }, 'SMOKE', { size: 10, color: 0x2a2a26 });
+  }
+  for (const ch of s.charges) {
+    const c = at(ch.target);
+    const color = ch.armed ? 0xff6a3a : 0xe0a040;
+    pen.line([at(ch.from), c], { width: 2, color, alpha: 0.8 }, [5, 4]);
+    pen.circle({ x: c.x + 0.42, y: c.y - 0.42 }, 9, { color: 0x2a1a10, alpha: 0.9 }, { width: 2, color });
+    pen.text({ x: c.x + 0.42, y: c.y - 0.42 }, 'DC', { size: 8, color, lift: 0.5 });
+  }
+  for (const h of s.closedSewers) {
+    const c = at(h);
+    const p = { x: c.x + 0.42, y: c.y + 0.4 };
+    pen.line([{ x: p.x - 0.12, y: p.y - 0.12 }, { x: p.x + 0.12, y: p.y + 0.12 }], { width: 2.5, color: 0xd0402e });
+    pen.line([{ x: p.x + 0.12, y: p.y - 0.12 }, { x: p.x - 0.12, y: p.y + 0.12 }], { width: 2.5, color: 0xd0402e });
+  }
+}
+
 export function drawObjectives(pen: Pen, ctx: Ctx): void {
   for (const o of ctx.objectives) for (const h of o.hexes) hexOutline(pen, parseHexKey(h), 0xf0c66b, 0.55, 2, 0.1);
 }

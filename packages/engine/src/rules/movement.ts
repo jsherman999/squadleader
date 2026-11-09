@@ -17,6 +17,7 @@ import {
 } from '../queries';
 import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
+import { reveal, smokeMf } from './special';
 
 /** MF a unit may spend this Movement Phase (§5.41–5.44, §5.7). */
 export function mfAllowance(ctx: Ctx, s: GameState, u: Unit): { mf: number; parts: string[] } {
@@ -81,14 +82,19 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
   // Squads lose the leader bonus once their leader stops moving with them.
   for (const u of movers) if (u.withLeader && !ids.includes(u.withLeader)) u.withLeader = null;
 
-  const cost = moveCost(ctx, from, to);
+  const base = moveCost(ctx, from, to);
+  const smokeExtra = smokeMf(s, to);
+  const cost = smokeExtra ? { mf: base.mf + smokeExtra, parts: [...base.parts, '+1 smoke (§24.5)'] } : base;
   if (!Number.isFinite(cost.mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}: ${cost.parts.join(', ')}`);
   for (const u of movers) {
     const left = mfLeft(ctx, s, u);
     if (cost.mf > left + 1e-9) throw new RuleError(`${unitLabel(ctx, u)} has ${left} MF left; entering ${hexLabel(ctx, to)} costs ${cost.mf} (${cost.parts.join(', ')})`, '§5.5');
   }
   const open = isOpenGround(ctx, to);
+  // Moving gives a concealed stack away (§25.4, §25.42).
+  reveal(ctx, s, from, emit, 'moved');
   for (const u of movers) {
+    u.noConceal = true;
     u.hex = to;
     u.mfSpent += cost.mf;
     u.moved = true;

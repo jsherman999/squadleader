@@ -7,7 +7,7 @@ import type { GameState, Unit } from '../types';
 export const data = parseRulesData(rawRules);
 
 /** A test board "T" (open ground unless given) and a two-side scenario. */
-export function testCtx(hexes: Record<string, BoardHex> = {}, hexsides: Record<string, object> = {}): Ctx {
+export function testCtx(hexes: Record<string, BoardHex> = {}, hexsides: Record<string, object> = {}, extra: Record<string, unknown> = {}): Ctx {
   const board = parseBoard({ format: 'squadwar-board@1', id: 'T', name: 'Test', kind: 'city', seed: 1, hexes, hexsides });
   const sc = parseScenario({
     format: 'squadwar-scenario@1',
@@ -26,6 +26,7 @@ export function testCtx(hexes: Record<string, BoardHex> = {}, hexsides: Record<s
       { id: 'ger', nation: 'german', name: 'German', setup: [{ board: 'T', cols: ['Q', 'GG'] }], units: [{ type: 'ger-467', hex: 'T-Z2' }] },
     ],
     victory: { side: 'ger', text: 'x', controlBuildings: { buildings: [], atLeast: 0 } },
+    ...extra,
   });
   return makeCtx(sc, data, { T: board });
 }
@@ -71,6 +72,10 @@ export function put(ctx: Ctx, s: GameState, type: string, at: string, opts: Part
     rallyTried: false,
     routed: false,
     advanced: false,
+    concealed: false,
+    noConceal: false,
+    smokeMade: false,
+    sewerAssault: false,
     ...opts,
   } as Unit;
   u.weapons = [];

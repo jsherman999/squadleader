@@ -277,3 +277,40 @@ describe('provider adapters', () => {
     expect(contents[2]!.parts[0]!.functionResponse).toBeDefined();
   });
 });
+
+describe('special rules for the LLM (§22–27)', () => {
+  it('orders round-trip for smoke, charges, detonation, sewers and flamethrowers in scenarios 2–3', async () => {
+    const { executeOrder } = await import('./orders');
+    const { situation } = await import('./serialize');
+    for (const index of [1, 2]) {
+      const c = scenarioCtx(index);
+      let s = createGame(c, 3).state;
+      const kinds = new Set<string>();
+      for (let i = 0; i < 5000 && s.phase !== 'gameOver'; i++) {
+        const d = botDecide(c, s);
+        const o = actionToOrder(c, d.action);
+        const special = ['smoke', 'placeCharge', 'detonate', 'sewer'].includes(d.action.type) || (d.action.type === 'fire' && o?.weapon);
+        if (special && o) {
+          // The same order through the LLM path gives the same state.
+          let viaOrder: GameState | undefined;
+          const env: GameEnv = { ctx: c, state: () => s, apply: (a) => { const r = tryAction(c, s, a); if (r.ok) viaOrder = r.state; return r.ok ? { ok: true, events: r.events } : { ok: false, error: r.error }; } };
+          const res = executeOrder(env, s.awaiting, o);
+          expect(res.ok, `${o.type}: ${res.text}`).toBe(true);
+          kinds.add(o.type + (o.weapon && o.type === 'fire' ? ':ft' : ''));
+          expect(viaOrder).toBeDefined();
+        }
+        const r = tryAction(c, s, d.action);
+        if (!r.ok) break;
+        s = r.state;
+        // Concealed enemy units never appear by id in the other side's situation.
+        if (i % 50 === 0) {
+          for (const side of s.sides.map((x) => x.id)) {
+            const text = situation(c, s, side);
+            for (const u of Object.values(s.units)) if (u.side !== side && u.concealed) expect(text.includes(`${u.id} `)).toBe(false);
+          }
+        }
+      }
+      expect(kinds.size).toBeGreaterThan(0);
+    }
+  }, 60_000);
+});

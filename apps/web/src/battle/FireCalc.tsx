@@ -9,6 +9,7 @@ export function FireCalc({
   firers,
   target,
   leader,
+  hidden,
   onFire,
 }: {
   ctx: Ctx;
@@ -16,6 +17,7 @@ export function FireCalc({
   firers: FireUnit[];
   target: HexKey;
   leader?: string;
+  hidden?: ReadonlySet<string> | undefined;
   onFire: () => void;
 }) {
   let a;
@@ -54,7 +56,7 @@ export function FireCalc({
             return (
               <tr key={o.unit} className={enemy ? '' : 'friendly'}>
                 <td>
-                  {unitLabel(ctx, u)}
+                  {hidden?.has(u.id) ? 'Concealed unit' : unitLabel(ctx, u)}
                   {!enemy && ' (yours)'}
                   {o.hex !== target && <span className="dim"> · {ctx.map.hexes[o.hex]?.id}</span>}
                 </td>

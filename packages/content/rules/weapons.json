@@ -1,10 +1,14 @@
 [
-  { "id": "ger-lmg", "nation": "german", "kind": "LMG", "name": "LMG", "fp": 2, "range": 8, "breakdown": 12, "portage": 1, "leaderPortage": 2, "penetration": 2 },
-  { "id": "ger-mmg", "nation": "german", "kind": "MMG", "name": "MMG", "fp": 4, "range": 12, "breakdown": 12, "portage": 4, "leaderPortage": null, "penetration": 4 },
-  { "id": "ger-hmg", "nation": "german", "kind": "HMG", "name": "HMG", "fp": 6, "range": 16, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 6 },
-  { "id": "rus-lmg", "nation": "russian", "kind": "LMG", "name": "LMG", "fp": 2, "range": 6, "breakdown": 10, "portage": 1, "leaderPortage": 2, "penetration": 2 },
-  { "id": "rus-mmg", "nation": "russian", "kind": "MMG", "name": "MMG", "fp": 4, "range": 10, "breakdown": 11, "portage": 4, "leaderPortage": null, "penetration": 4 },
-  { "id": "rus-hmg", "nation": "russian", "kind": "HMG", "name": "HMG (.50 cal)", "fp": 8, "range": 20, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 8 },
-  { "id": "us-mmg", "nation": "american", "kind": "MMG", "name": "MMG", "fp": 4, "range": 12, "breakdown": 12, "portage": 4, "leaderPortage": null, "penetration": 4 },
-  { "id": "us-hmg", "nation": "american", "kind": "HMG", "name": "HMG (.50 cal)", "fp": 8, "range": 20, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 8 }
+  {"id": "ger-lmg", "nation": "german", "kind": "LMG", "name": "LMG", "fp": 2, "range": 8, "breakdown": 12, "portage": 1, "leaderPortage": 2, "penetration": 2},
+  {"id": "ger-mmg", "nation": "german", "kind": "MMG", "name": "MMG", "fp": 4, "range": 12, "breakdown": 12, "portage": 4, "leaderPortage": null, "penetration": 4},
+  {"id": "ger-hmg", "nation": "german", "kind": "HMG", "name": "HMG", "fp": 6, "range": 16, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 6},
+  {"id": "rus-lmg", "nation": "russian", "kind": "LMG", "name": "LMG", "fp": 2, "range": 6, "breakdown": 10, "portage": 1, "leaderPortage": 2, "penetration": 2},
+  {"id": "rus-mmg", "nation": "russian", "kind": "MMG", "name": "MMG", "fp": 4, "range": 10, "breakdown": 11, "portage": 4, "leaderPortage": null, "penetration": 4},
+  {"id": "rus-hmg", "nation": "russian", "kind": "HMG", "name": "HMG (.50 cal)", "fp": 8, "range": 20, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 8},
+  {"id": "us-mmg", "nation": "american", "kind": "MMG", "name": "MMG", "fp": 4, "range": 12, "breakdown": 12, "portage": 4, "leaderPortage": null, "penetration": 4},
+  {"id": "us-hmg", "nation": "american", "kind": "HMG", "name": "HMG (.50 cal)", "fp": 8, "range": 20, "breakdown": 12, "portage": 5, "leaderPortage": null, "penetration": 8},
+  {"id": "ger-ft", "nation": "german", "kind": "FT", "name": "Flamethrower", "fp": 20, "range": 2, "breakdown": 9, "portage": 2, "leaderPortage": 2, "penetration": 1},
+  {"id": "ger-dc", "nation": "german", "kind": "DC", "name": "Demolition charge", "fp": 30, "range": 1, "breakdown": 12, "portage": 1, "leaderPortage": 1, "penetration": 1},
+  {"id": "us-ft", "nation": "american", "kind": "FT", "name": "Flamethrower", "fp": 20, "range": 2, "breakdown": 9, "portage": 2, "leaderPortage": 2, "penetration": 1},
+  {"id": "us-dc", "nation": "american", "kind": "DC", "name": "Demolition charge", "fp": 30, "range": 1, "breakdown": 12, "portage": 1, "leaderPortage": 1, "penetration": 1}
 ]

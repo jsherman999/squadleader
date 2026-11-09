@@ -164,6 +164,62 @@ export function sampleFx(cues: readonly Cue[], t: number): FxFrame {
         f.glows.push({ at: c.at, r: 0.55 + u * 0.3, color: DUST, alpha: 0.35 * Math.sin(u * Math.PI), light: false });
         break;
       }
+      case 'flame': {
+        // Burning fuel: blobs leave the nozzle, swell and redden on the way, then the hex burns.
+        const r = mulberry32(c.seed);
+        const n = 26;
+        for (let i = 0; i < n; i++) {
+          const born = (i / n) * c.dur * 0.6 + r() * 0.04;
+          const life = 0.38 + r() * 0.12;
+          const jx = (r() - 0.5) * 0.5;
+          const jy = (r() - 0.5) * 0.5;
+          const p = (local - born) / life;
+          if (p < 0 || p > 1) continue;
+          const at = lerp(c.from, { x: c.to.x + jx, y: c.to.y + jy, z: c.to.z }, p);
+          const color = p < 0.3 ? 0xfff0a0 : p < 0.65 ? 0xffa030 : 0xd0401a;
+          f.glows.push({ at: { ...at, z: at.z + Math.sin(p * Math.PI) * 0.25 }, r: 0.08 + p * 0.3, color, alpha: 0.95 * (1 - p * 0.6), light: true });
+        }
+        if (u > 0.35) {
+          const w = (u - 0.35) / 0.65;
+          const fl = mulberry32(c.seed + Math.floor(local * 18));
+          for (let i = 0; i < 5; i++) {
+            const at = { x: c.to.x + (fl() - 0.5) * 0.8, y: c.to.y + (fl() - 0.5) * 0.8, z: c.to.z + fl() * 0.5 };
+            f.glows.push({ at, r: 0.14 + fl() * 0.2, color: fl() < 0.5 ? 0xffb040 : 0xff6a20, alpha: 0.85 * (1 - w), light: true });
+          }
+          f.glows.push({ at: { ...c.to, z: c.to.z + 0.4 + w * 0.8 }, r: 0.4 + w * 0.6, color: 0x2a2622, alpha: 0.45 * Math.sin(w * Math.PI), light: false });
+        }
+        break;
+      }
+      case 'blast': {
+        // A flash, flying sparks and a dark column of smoke and dust.
+        if (u < 0.14) f.glows.push({ at: { ...c.at, z: c.at.z + 0.3 }, r: 0.4 + (u / 0.14) * 0.9, color: 0xffe6a8, alpha: 1 - u / 0.14, light: true });
+        const r = mulberry32(c.seed);
+        for (let i = 0; i < 14; i++) {
+          const ang = r() * Math.PI * 2;
+          const sp = 0.8 + r() * 1.4;
+          const p = local / (0.5 + r() * 0.3);
+          if (p > 1) continue;
+          const at = { x: c.at.x + Math.cos(ang) * sp * p, y: c.at.y + Math.sin(ang) * sp * p, z: c.at.z + 1.6 * p - 1.8 * p * p };
+          f.glows.push({ at, r: 0.06, color: 0xffc070, alpha: 1 - p, light: true });
+        }
+        for (let i = 0; i < 4; i++) {
+          const w = clamp01((local - i * 0.08) / (c.dur * 0.9));
+          if (w <= 0 || w >= 1) continue;
+          f.glows.push({ at: { x: c.at.x + (i - 1.5) * 0.18, y: c.at.y + (i % 2 ? 0.15 : -0.15), z: c.at.z + 0.3 + w * (1.2 + i * 0.3) }, r: 0.45 + w * 0.7, color: i % 2 ? 0x3a342c : DUST, alpha: 0.6 * Math.sin(w * Math.PI), light: false });
+        }
+        break;
+      }
+      case 'smoke': {
+        const r = mulberry32(c.seed);
+        for (let i = 0; i < 6; i++) {
+          const ang = r() * Math.PI * 2;
+          const d = 0.15 + r() * 0.45;
+          const w = clamp01((local - i * 0.12) / (c.dur * 0.8));
+          if (w <= 0) continue;
+          f.glows.push({ at: { x: c.at.x + Math.cos(ang) * d * (0.5 + w), y: c.at.y + Math.sin(ang) * d * (0.5 + w), z: c.at.z + 0.2 + w * 0.5 }, r: 0.2 + w * 0.45, color: 0xe4e4dc, alpha: 0.65 * Math.min(1, w * 3) * (u > 0.8 ? (1 - u) / 0.2 : 1), light: false });
+        }
+        break;
+      }
       case 'puff': {
         f.glows.push({ at: { ...c.at, z: c.at.z + u * 0.6 }, r: c.size * (0.3 + u * 0.7), color: c.color, alpha: 0.7 * (1 - u), light: false });
         break;

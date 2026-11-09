@@ -4,7 +4,8 @@ import { RuleError, type Action, type GameEvent, type GameState, type Unit, type
 import { endPhase, sideName } from './phases';
 import { advance } from './rules/advance';
 import { designate } from './rules/closeCombat';
-import { resolveFire } from './rules/fire';
+import { detonate, resolveFire } from './rules/fire';
+import { placeCharge, placeSmoke, sewerMove } from './rules/special';
 import { endMove, moveStep, transferWeapon } from './rules/movement';
 import { rallyAttempt, repairAttempt } from './rules/rally';
 import { doRout } from './rules/rout';
@@ -53,6 +54,10 @@ export function createGame(ctx: Ctx, seed: number): Step {
           rallyTried: false,
           routed: false,
           advanced: false,
+          concealed: false,
+          noConceal: false,
+          smokeMade: false,
+          sewerAssault: false,
         };
         firstIds.push(id);
       }
@@ -84,6 +89,11 @@ export function createGame(ctx: Ctx, seed: number): Step {
     ccPlans: {},
     setupDone: [],
     losses: Object.fromEntries(sc.sides.map((x) => [x.id, { squads: 0, leaders: 0 }])),
+    smoke: [],
+    smokeLeft: Object.fromEntries(sc.sides.map((x) => [x.id, sc.smoke?.[x.id] ?? 0])),
+    charges: [],
+    closedSewers: [],
+    lostInSewers: [],
   };
   return {
     state,
@@ -127,6 +137,18 @@ export function applyAction(ctx: Ctx, state: GameState, action: Action): Step {
       break;
     case 'closeCombat':
       designate(ctx, s, action.hex, action.attacks);
+      break;
+    case 'smoke':
+      placeSmoke(ctx, s, action.unit, action.hex, emit);
+      break;
+    case 'placeCharge':
+      placeCharge(ctx, s, action.unit, action.weapon, action.target, emit);
+      break;
+    case 'detonate':
+      detonate(ctx, s, action.weapon, emit);
+      break;
+    case 'sewer':
+      sewerMove(ctx, s, action.units, action.to, emit);
       break;
     case 'endPhase':
       endPhase(ctx, s, emit);

@@ -369,8 +369,8 @@ export class Scene3D {
   }
 
   /** Counter standees for the units, floating above roofs in building hexes. */
-  setUnits(ctx: Ctx, s: GameState, selected: ReadonlySet<string>): void {
-    this.lastUnits = () => this.setUnits(ctx, s, selected);
+  setUnits(ctx: Ctx, s: GameState, selected: ReadonlySet<string>, hidden: ReadonlySet<string> = new Set()): void {
+    this.lastUnits = () => this.setUnits(ctx, s, selected, hidden);
     for (const c of [...this.units.children]) {
       this.units.remove(c);
       const m = c as THREE.Mesh;
@@ -395,7 +395,7 @@ export class Scene3D {
         const ang = (i / Math.max(1, n)) * Math.PI * 2 + 0.6;
         const r = n > 1 ? 0.3 : 0;
         const size = pov ? 0.36 : 0.56;
-        const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: counterTexture(ctx, s, u, selected.has(u.id)), transparent: true, side: THREE.DoubleSide }));
+        const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: counterTexture(ctx, s, u, selected.has(u.id), hidden.has(u.id)), transparent: true, side: THREE.DoubleSide }));
         mesh.scale.set(size, size / this.exaggeration, 1);
         mesh.position.set(c.x + Math.cos(ang) * r, top * LEVEL + (size * 0.62) / this.exaggeration + 0.02, c.y + Math.sin(ang) * r);
         mesh.userData = { hex, standee: true, unit: u.id, base: mesh.position.clone() };

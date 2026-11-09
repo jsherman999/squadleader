@@ -6,7 +6,12 @@ import {
   canRally,
   canRepair,
   ccHexes,
+  carried,
+  isSewerEntrance,
   oddsColumn,
+  range,
+  squadType,
+  tryAction,
   pendingRouts,
   routOptions,
   unitLabel,
@@ -22,6 +27,12 @@ export interface ActionPanelProps {
   ctx: Ctx;
   s: GameState;
   firers: FireUnit[];
+  /** Selected units of the side to act. */
+  selected?: readonly string[];
+  /** Enemy units the viewer cannot identify (§25). */
+  hidden?: ReadonlySet<string>;
+  /** The selected engineers carry a flamethrower: fire it alone instead of the normal group (§22). */
+  flame?: { on: boolean; toggle: () => void } | undefined;
   leader?: string;
   target?: HexKey;
   selectedHex?: HexKey;
@@ -52,7 +63,103 @@ function bestTargets(ctx: Ctx, s: GameState, firers: FireUnit[], leader?: string
   return out.sort((a, b) => b.score - a.score).slice(0, 3);
 }
 
-export function ActionPanel({ ctx, s, firers, leader, target, selectedHex, dispatch, setTarget }: ActionPanelProps) {
+export function ActionPanel(props: ActionPanelProps) {
+  const extra = <Specials {...props} />;
+  const main = <PhaseActions {...props} />;
+  return (
+    <>
+      {extra}
+      {main}
+    </>
+  );
+}
+
+/** Smoke, flamethrowers, demolition charges and sewers (§22–27), when the selection allows them. */
+function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch }: ActionPanelProps) {
+  const side = s.awaiting;
+  const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
+  const ok = (a: Action) => tryAction(ctx, s, a).ok;
+  const units = selected.map((id) => s.units[id]!).filter((u) => u && u.side === side);
+  const rows: React.ReactNode[] = [];
+  if (s.phase === 'prepFire' && (s.smokeLeft[side] ?? 0) > 0) {
+    for (const u of units) {
+      if (!squadType(ctx, u)?.assaultEngineer || u.smokeMade) continue;
+      const spots = [u.hex, ...adjacentHexes(u.hex)].filter((h) => ctx.map.hexes[h] && ok({ type: 'smoke', unit: u.id, hex: h }));
+      if (!spots.length) continue;
+      rows.push(
+        <Row key={`smoke-${u.id}`} text={`Smoke · ${s.smokeLeft[side]} left`} why="Only first thing in Prep Fire. Fire through it adds a die (§24).">
+          {spots.map((h) => (
+            <button key={h} className="btn tiny" onClick={() => dispatch({ type: 'smoke', unit: u.id, hex: h })}>
+              {h === u.hex ? 'Here' : hexId(h)}
+            </button>
+          ))}
+        </Row>,
+      );
+      break;
+    }
+  }
+  if (flame && (s.phase === 'prepFire' || s.phase === 'defensiveFire' || s.phase === 'advancingFire')) {
+    rows.push(
+      <Row key="flame" text={flame.on ? 'Flamethrower selected' : 'Flamethrower ready'} why="20 FP up to 2 hexes, no modifiers; always fires alone. Out of fuel on 9+ (§22).">
+        <button className={`btn tiny ${flame.on ? 'primary' : ''}`} onClick={flame.toggle}>
+          {flame.on ? 'Back to normal fire' : 'Use flamethrower'}
+        </button>
+      </Row>,
+    );
+  }
+  if (s.phase === 'advancingFire') {
+    for (const c of s.charges.filter((x) => x.side === side && x.armed)) {
+      rows.push(
+        <Row key={`dc-${c.weapon}`} text={`Charge on ${hexId(c.target)}`} why="30 FP on the IFT; terrain counts, smoke does not (§23).">
+          <button className="btn tiny primary" onClick={() => dispatch({ type: 'detonate', weapon: c.weapon })}>
+            Detonate
+          </button>
+        </Row>,
+      );
+    }
+  }
+  if (s.phase === 'movement') {
+    for (const u of units) {
+      const dc = carried(s, u).find((w) => weaponType(ctx, w).kind === 'DC');
+      if (!dc) continue;
+      const spots = adjacentHexes(u.hex).filter((h) => ctx.map.hexes[h] && ok({ type: 'placeCharge', unit: u.id, weapon: dc.id, target: h }));
+      if (!spots.length) continue;
+      rows.push(
+        <Row key={`place-${u.id}`} text={`Demolition charge (${unitLabel(ctx, u)})`} why="Goes off in Advancing Fire if the engineers survive Defensive Fire unbroken (§23.3).">
+          {spots.map((h) => (
+            <button key={h} className="btn tiny" onClick={() => dispatch({ type: 'placeCharge', unit: u.id, weapon: dc.id, target: h })}>
+              On {hexId(h)}
+            </button>
+          ))}
+        </Row>,
+      );
+    }
+    if (ctx.scenario.sewers && selectedHex && units.length && units.every((u) => u.hex === selectedHex) && isSewerEntrance(ctx, s, selectedHex)) {
+      const ids = units.map((u) => u.id);
+      const exits = Object.values(ctx.map.hexes)
+        .filter((h) => h.key !== selectedHex && range(selectedHex, h.key) <= 3 && isSewerEntrance(ctx, s, h.key))
+        .map((h) => h.key)
+        .filter((h) => ok({ type: 'sewer', units: ids, to: h }));
+      rows.push(
+        <Row
+          key="sewer"
+          text="Sewer movement"
+          why={exits.length ? 'A leader must go with squads. 1–4 gets through; 5–6 lost for a turn (§27).' : 'No usable entrance within 3 hexes for this group (it needs a leader and must not have moved).'}
+        >
+          {exits.map((h) => (
+            <button key={h} className="btn tiny" onClick={() => dispatch({ type: 'sewer', units: ids, to: h })}>
+              → {hexId(h)}
+            </button>
+          ))}
+        </Row>,
+      );
+    }
+  }
+  if (!rows.length) return null;
+  return <div className="actions specials">{rows}</div>;
+}
+
+function PhaseActions({ ctx, s, firers, leader, target, selectedHex, hidden, dispatch, setTarget }: ActionPanelProps) {
   const side = s.awaiting;
   const label = (id: string) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
@@ -111,7 +218,7 @@ export function ActionPanel({ ctx, s, firers, leader, target, selectedHex, dispa
           </Hint>
         );
       }
-      return <FireCalc ctx={ctx} s={s} firers={firers} target={target} {...(leader ? { leader } : {})} onFire={() => dispatch({ type: 'fire', firers, target, ...(leader ? { leader } : {}) })} />;
+      return <FireCalc ctx={ctx} s={s} firers={firers} target={target} hidden={hidden} {...(leader ? { leader } : {})} onFire={() => dispatch({ type: 'fire', firers, target, ...(leader ? { leader } : {}) })} />;
     case 'movement':
       return (
         <Hint>

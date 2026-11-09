@@ -41,11 +41,21 @@ const METHOD = `HOW TO PLAY EACH DECISION:
 - Use notebook_write for plans you want to remember next turn, and set_standing_orders during your opponent's turn to cover Defensive Fire.
 - Keep tool use efficient: a phase usually needs 1–4 tool calls.`;
 
+/** §22–27, for scenarios that use them. */
+const SPECIAL_PRIMER = `SPECIAL RULES IN THIS SCENARIO (§22–27):
+- Flamethrower (FT): 20 FP at range 1–2, no leader or terrain modifiers; always fires alone (fire order with weapon = the FT id). Out of fuel on an unmodified 9+. Units in a hex holding an FT take −1 on attacks against them.
+- Demolition charge (DC): in your Movement Phase an assault-engineer squad (or a −2/−3 leader) next to an enemy hex orders place_charge. If it is still unbroken when your Advancing Fire begins, the charge is armed: order detonate for a 30-FP attack (terrain counts). Unused charges are lost at the end of Advancing Fire. A KIA destroys the weapons in the hex.
+- Smoke: assault engineers may lay smoke in their own or an adjacent hex as the FIRST thing in your Prep Fire (order smoke). Fire into, out of or through smoke adds a die; entering costs +1 MF. It lifts at the start of your next Prep Fire.
+- Concealment: concealed enemy stacks show only as "concealed stack at X". Fire at them is area fire (half FP). Units lose concealment when they move, fire, are hit or end next to an unconcealed enemy; they regain it at the end of their turn out of enemy view in cover.
+- Fanaticism: listed fanatic units get −1 on morale checks and rally rolls inside their building.
+- Sewers: a stack with a leader starting its Movement Phase on a sewer entrance may order sewer to another entrance within 3 hexes before moving: 1–4 succeeds, 5–6 lost for a turn. Units arriving in an enemy-held entrance fight it out at point blank.`;
+
 export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
   return [
     `You command one side in Squad War, a WWII squad-level hex wargame, against a human or computer opponent.`,
     PERSONA[persona],
     PRIMER,
+    ...(ctx.scenario.rulesLevel >= 22 ? [SPECIAL_PRIMER] : []),
     METHOD,
     briefing(ctx, side),
   ].join('\n\n');

@@ -16,7 +16,11 @@ type Mode = 'inspect' | 'los' | 'viewshed';
 type Level = 'auto' | 'lower' | 'upper';
 
 export function MapLabPage() {
-  const map = useMemo(() => mapFor([{ board: 'A', x: 0, y: 0 }]), []);
+  const [boards, setBoards] = useState<'A' | 'B' | 'BA'>('A');
+  const map = useMemo(
+    () => mapFor(boards === 'BA' ? [{ board: 'B', x: 0, y: 0 }, { board: 'A', x: 0, y: 1 }] : [{ board: boards, x: 0, y: 0 }]),
+    [boards],
+  );
   const [view, setView] = useState<ViewMode>(loadViewMode);
   const [povOn, setPovOn] = useState(false);
   const [hover, setHover] = useState<HexKey>();
@@ -144,6 +148,11 @@ export function MapLabPage() {
             Eyes <kbd>E</kbd>
           </button>
           <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
+          <select className="auto-select" value={boards} onChange={(e) => setBoards(e.target.value as 'A' | 'B' | 'BA')} aria-label="Boards" title="Boards">
+            <option value="A">City A</option>
+            <option value="B">City B</option>
+            <option value="BA">City B + A</option>
+          </select>
         </div>
       </TopBar>
       <div className="board-wrap">

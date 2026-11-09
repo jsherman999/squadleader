@@ -34,7 +34,12 @@ export function hexKeyOf(ctx: Ctx, id: string): HexKey | undefined {
 /** Enemy units this side knows about. In §1–21 everything on the board is known. */
 export function visibleUnits(ctx: Ctx, s: GameState, side: string): Unit[] {
   void ctx;
-  return Object.values(s.units).filter((u) => u.side !== side);
+  return Object.values(s.units).filter((u) => u.side !== side && !u.concealed);
+}
+
+/** Hexes holding enemy units the side cannot identify (§25). */
+export function concealedHexes(s: GameState, side: string): HexKey[] {
+  return [...new Set(Object.values(s.units).filter((u) => u.side !== side && u.concealed).map((u) => u.hex))].sort();
 }
 
 function unitLine(ctx: Ctx, s: GameState, u: Unit, own: boolean): string {
@@ -54,6 +59,8 @@ function unitLine(ctx: Ctx, s: GameState, u: Unit, own: boolean): string {
     if (u.firedPhase) notes.push(`fired in ${PHASE_NAMES[u.firedPhase]}`);
     if (u.directed) notes.push('has directed fire');
     if (u.advanced) notes.push('advanced');
+    if (u.concealed) notes.push('concealed');
+    if (u.smokeMade) notes.push('laid smoke this turn');
     if (notes.length) parts.push(`(${notes.join('; ')})`);
   }
   return parts.join(' · ');
@@ -94,6 +101,9 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
     `ENEMY UNITS (${theirs.length}):`,
     ...sortByHex(theirs).map((u) => '  ' + unitLine(ctx, s, u, false)),
   ];
+  const hidden = concealedHexes(s, side);
+  if (hidden.length) lines.push(`CONCEALED ENEMY STACKS (contents unknown; fire at them is area fire at half FP, §25): ${hidden.map((h) => hexId(ctx, h)).join(', ')}`);
+  lines.push(...specialLines(ctx, s, side));
   const loose = Object.values(s.weapons).filter((w) => w.owner === null);
   if (loose.length) lines.push('', 'ABANDONED WEAPONS: ' + loose.map((w) => `${weaponType(ctx, w).kind} ${w.id} at ${hexId(ctx, w.hex)}`).join(', '));
   if (s.phase === 'defensiveFire' && s.phasing !== side) {
@@ -104,6 +114,21 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
     }
   }
   return lines.join('\n');
+}
+
+/** Smoke, charges and sewers in play (§23–27). */
+function specialLines(ctx: Ctx, s: GameState, side: string): string[] {
+  const out: string[] = [];
+  const left = s.smokeLeft[side] ?? 0;
+  if (left || s.smoke.length) out.push('', `SMOKE: ${s.smoke.length ? s.smoke.map((x) => hexId(ctx, x.hex)).join(', ') : 'none on the map'}; you have ${left} smoke counter${left === 1 ? '' : 's'} left.`);
+  if (s.charges.length) out.push(`DEMOLITION CHARGES: ${s.charges.map((c) => `${c.side === side ? 'yours' : 'enemy'} ${c.weapon} on ${hexId(ctx, c.target)}${c.armed ? ' (armed)' : ''}`).join('; ')}`);
+  if (ctx.scenario.sewers) {
+    const open = Object.values(ctx.map.hexes).filter((h) => h.sewer && !s.closedSewers.includes(h.key));
+    out.push(`SEWER ENTRANCES: ${open.map((h) => h.id).join(' ')}${s.closedSewers.length ? `; blown shut: ${s.closedSewers.map((h) => hexId(ctx, h)).join(' ')}` : ''}`);
+    const lost = s.lostInSewers.filter((l) => l.side === side);
+    if (lost.length) out.push(`LOST IN THE SEWERS (back next Movement Phase): ${lost.flatMap((l) => l.units.map((u) => u.id)).join(', ')}`);
+  }
+  return out;
 }
 
 function sortByHex(us: Unit[]): Unit[] {
@@ -133,9 +158,11 @@ export function describeHexes(ctx: Ctx, s: GameState, hexes: readonly HexKey[], 
       const who = Object.values(s.units)
         .filter((u) => u.hex === h && (u.side === viewer || seen.has(u.id)))
         .map((u) => `${u.id}(${u.side === viewer ? 'own' : 'enemy'} ${unitLabel(ctx, u)})`);
+      if (Object.values(s.units).some((u) => u.hex === h && u.side !== viewer && u.concealed)) who.push('a concealed enemy stack');
       const hs = hexsideNotes(ctx, h);
       const sides = hs ? `, hexsides: ${hs}` : '';
-      return `${hx.id}: ${tem.label}, level ${hx.level}, TEM ${tem.drm >= 0 ? '+' : ''}${tem.drm}${bld ? `, ${bld.hexes.length}-hex ${bld.material} building` : ''}${sides}${who.length ? `, units: ${who.join(' ')}` : ''}`;
+      const extra = [hx.sewer ? (s.closedSewers.includes(h) ? 'sewer entrance (blown shut)' : 'sewer entrance') : '', s.smoke.some((x) => x.hex === h) ? 'SMOKE' : ''].filter(Boolean);
+      return `${hx.id}: ${tem.label}, level ${hx.level}, TEM ${tem.drm >= 0 ? '+' : ''}${tem.drm}${bld ? `, ${bld.hexes.length}-hex ${bld.material} building` : ''}${sides}${extra.length ? `, ${extra.join(', ')}` : ''}${who.length ? `, units: ${who.join(' ')}` : ''}`;
     })
     .join('\n');
 }

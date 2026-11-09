@@ -9,6 +9,8 @@ export { analyzeFire, fireOdds, iftLookup, resultText, availableFire, DICE2, typ
 export { mfAllowance, mfLeft } from './rules/movement';
 export { routOptions, mustRout, pendingRouts, type RoutPlan } from './rules/rout';
 export { canRally, canRepair } from './rules/rally';
+export { canOperateSpecial, smokeAt, isSewerEntrance, concealableHex, fanaticDrm } from './rules/special';
+export { detonate } from './rules/fire';
 export { ccHexes, autoPlan, oddsColumn } from './rules/closeCombat';
 export { objectiveStatus, evaluateVictory, controller } from './rules/victory';
 export { moraleOf } from './rules/morale';

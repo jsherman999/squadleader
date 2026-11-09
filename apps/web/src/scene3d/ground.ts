@@ -129,5 +129,25 @@ export function paintGround(map: GameMap): HTMLCanvasElement {
   c.lineWidth = 0.03;
   c.strokeStyle = 'rgba(28,32,20,0.28)';
   c.stroke();
+  // Sewer entrances (§27): manhole covers in the street.
+  for (const h of Object.values(map.hexes)) {
+    if (!h.sewer) continue;
+    const m = hexToPixel(h.hex);
+    const x = m.x + 0.42;
+    const y = m.y + 0.4;
+    c.fillStyle = '#3e3e3a';
+    c.strokeStyle = '#bbbbaa';
+    c.lineWidth = 0.03;
+    c.beginPath();
+    c.arc(x, y, 0.15, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    for (const dx of [-0.06, 0, 0.06]) {
+      c.moveTo(x + dx, y - 0.1);
+      c.lineTo(x + dx, y + 0.1);
+    }
+    c.stroke();
+  }
   return cv;
 }

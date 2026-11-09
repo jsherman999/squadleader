@@ -65,7 +65,7 @@ describe('Fire Director timeline', () => {
       const tl = buildTimeline(ctx, a.before, a.events, { ...NORMAL, reducedMotion: true });
       if (!tl) continue;
       const k = kinds(tl.cues);
-      for (const moving of ['burst', 'melee', 'puff'] as const) expect(k.has(moving)).toBe(false);
+      for (const moving of ['burst', 'melee', 'puff', 'flame', 'blast', 'smoke'] as const) expect(k.has(moving)).toBe(false);
       if (a.events.some((e) => e.kind === 'fire')) expect(k.has('line')).toBe(true);
     }
   });
@@ -104,4 +104,41 @@ describe('Fire Director timeline', () => {
     const end = sampleFx(tl.cues, tl.duration + 0.5);
     expect(end.streaks.length + end.glows.length + end.labels.length).toBe(0);
   });
+
+  it('flamethrowers, charges and smoke have their own effects (§22–24)', () => {
+    const ctx2 = ctxFor('s2');
+    const seen = { flame: 0, blast: 0, smoke: 0 };
+    for (const seed of [1, 2, 3, 4]) {
+      let s = createGame(ctx2, seed).state;
+      for (let i = 0; i < 4000 && s.phase !== 'gameOver'; i++) {
+        const r = tryAction(ctx2, s, decide(ctx2, s).action);
+        if (!r.ok) throw new Error(r.error);
+        const tl = buildTimeline(ctx2, s, r.events, NORMAL);
+        const k = tl ? kinds(tl.cues) : new Set<string>();
+        for (const e of r.events) {
+          const fx = (e.fx ?? {}) as { shooters?: { kind: string }[]; smoke?: string };
+          if (e.kind === 'fire' && fx.shooters?.some((x) => x.kind === 'FT')) {
+            expect(k.has('flame')).toBe(true);
+            seen.flame++;
+          }
+          if (e.kind === 'fire' && fx.shooters?.some((x) => x.kind === 'DC')) {
+            expect(k.has('blast')).toBe(true);
+            seen.blast++;
+          }
+          if (fx.smoke) {
+            expect(k.has('smoke')).toBe(true);
+            seen.smoke++;
+          }
+        }
+        if (tl && (k.has('flame') || k.has('blast'))) {
+          let glows = 0;
+          for (let t = 0; t < tl.duration; t += 0.1) glows += sampleFx(tl.cues, t).glows.length;
+          expect(glows).toBeGreaterThan(10);
+        }
+        s = r.state;
+      }
+    }
+    expect(seen.smoke).toBeGreaterThan(0);
+    expect(seen.flame + seen.blast).toBeGreaterThan(0);
+  }, 60_000);
 });

@@ -18,9 +18,10 @@ import { drawLos, drawLosMarks } from '../board/losOverlay';
 import { hexFill, hexOutline } from '../draw/pen';
 import { ActionPanel } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
-import { defaultFirers, defaultLeader } from '../battle/firers';
+import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
+import { fogOfWar, viewerOf } from '../game/fog';
 import { LogPanel } from '../battle/LogPanel';
-import { drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawTracks } from '../battle/overlays';
+import { drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
 import { groupPath } from '../battle/pathing';
 import { PhaseRibbon } from '../battle/PhaseRibbon';
 import { StackPanel } from '../battle/StackPanel';
@@ -125,8 +126,15 @@ function Battle() {
   const sideName = (id: string) => s.sides.find((x) => x.id === id)?.name ?? id;
   const sel = session.selection;
   const selUnits = sel.units.filter((id) => s.units[id] && s.units[id]!.side === s.awaiting);
-  const firers = useMemo(() => (FIRE.has(s.phase) ? defaultFirers(ctx, s, selUnits) : []), [ctx, s, selUnits]);
-  const leader = useMemo(() => (firers.length ? defaultLeader(ctx, s, firers) : undefined), [ctx, s, firers]);
+  // Flamethrower mode: the selected engineers fire their flamethrower alone (§22).
+  const [flameMode, setFlameMode] = useState(false);
+  const flame = useMemo(() => (FIRE.has(s.phase) ? flameFirers(ctx, s, selUnits) : []), [ctx, s, selUnits]);
+  const flaming = flameMode && flame.length > 0;
+  const firers = useMemo(() => (FIRE.has(s.phase) ? (flaming ? flame : defaultFirers(ctx, s, selUnits)) : []), [ctx, s, selUnits, flaming, flame]);
+  const leader = useMemo(() => (firers.length && !flaming ? defaultLeader(ctx, s, firers) : undefined), [ctx, s, firers, flaming]);
+  // What the human player may see of concealed enemy units (§25).
+  const viewer = viewerOf(session.controllers);
+  const fog = useMemo(() => fogOfWar(s, viewer), [s, viewer]);
   const groupHexes = useMemo(() => [...new Set(selUnits.map((id) => s.units[id]!.hex))], [selUnits, s]);
 
   // Development hook: lets end-to-end checks find hexes on screen.
@@ -282,13 +290,14 @@ function Battle() {
     [session.events, session.actions.length],
   );
 
-  const units = useMemo(() => ({ ctx, s, selected: new Set(selUnits) }), [ctx, s, selUnits]);
+  const units = useMemo(() => ({ ctx, s: fog.s, selected: new Set(selUnits), hidden: fog.hidden }), [ctx, fog, selUnits]);
 
   // Map-space overlays, shared by the 2D board and the 3D landscape.
   const layers: OverlayLayers = useMemo(
     () => ({
       under: (pen) => {
         drawObjectives(pen, ctx);
+        drawSpecial(pen, s);
         if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
         if (s.phase === 'defensiveFire') drawTracks(pen, s);
         if (dangers) {
@@ -774,14 +783,27 @@ function Battle() {
             </div>
           )}
           {human && s.phase !== 'gameOver' && (
-            <ActionPanel ctx={ctx} s={s} firers={firers} {...(leader ? { leader } : {})} {...(session.target ? { target: session.target } : {})} {...(sel.hex ? { selectedHex: sel.hex } : {})} dispatch={session.dispatch} setTarget={session.setTarget} />
+            <ActionPanel
+              ctx={ctx}
+              s={s}
+              firers={firers}
+              selected={selUnits}
+              hidden={fog.hidden}
+              flame={flame.length ? { on: flaming, toggle: () => setFlameMode(!flaming) } : undefined}
+              {...(leader ? { leader } : {})}
+              {...(session.target ? { target: session.target } : {})}
+              {...(sel.hex ? { selectedHex: sel.hex } : {})}
+              dispatch={session.dispatch}
+              setTarget={session.setTarget}
+            />
           )}
           {sel.hex && (
             <>
               <h3 className="panel-h">{map.hexes[sel.hex]?.id}</h3>
               <StackPanel
                 ctx={ctx}
-                s={s}
+                s={fog.s}
+                hidden={fog.hidden}
                 hex={sel.hex}
                 selected={selUnits}
                 onToggle={session.toggleUnit}
