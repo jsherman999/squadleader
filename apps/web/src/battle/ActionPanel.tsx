@@ -1,5 +1,7 @@
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
+  analyzeFire,
+  fireOdds,
   autoPlan,
   canRally,
   canRepair,
@@ -24,9 +26,33 @@ export interface ActionPanelProps {
   target?: HexKey;
   selectedHex?: HexKey;
   dispatch: (a: Action) => boolean;
+  setTarget: (h: HexKey) => void;
 }
 
-export function ActionPanel({ ctx, s, firers, leader, target, selectedHex, dispatch }: ActionPanelProps) {
+/** The best few targets for a fire group, by expected broken-or-worse results. */
+function bestTargets(ctx: Ctx, s: GameState, firers: FireUnit[], leader?: string): { hex: HexKey; score: number }[] {
+  const side = s.awaiting;
+  const cands = new Set(Object.values(s.units).filter((u) => u.side !== side).map((u) => u.hex));
+  if (s.phase === 'defensiveFire') for (const steps of Object.values(s.tracks)) for (const st of steps) cands.add(st.hex);
+  const out: { hex: HexKey; score: number }[] = [];
+  for (const h of cands) {
+    try {
+      const a = analyzeFire(ctx, s, firers, h, leader);
+      const odds = fireOdds(ctx, s, a);
+      let score = 0;
+      for (const o of odds.units) {
+        const u = s.units[o.unit]!;
+        score += u.side === side ? -o.breakOrWorse : u.broken ? o.mc : o.breakOrWorse;
+      }
+      out.push({ hex: h, score });
+    } catch {
+      // Not attackable from here.
+    }
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 3);
+}
+
+export function ActionPanel({ ctx, s, firers, leader, target, selectedHex, dispatch, setTarget }: ActionPanelProps) {
   const side = s.awaiting;
   const label = (id: string) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
@@ -66,7 +92,25 @@ export function ActionPanel({ ctx, s, firers, leader, target, selectedHex, dispa
     case 'defensiveFire':
     case 'advancingFire':
       if (!firers.length) return <Hint>Select your firing units (shift-click adjacent hexes to form a fire group), then click a target hex.</Hint>;
-      if (!target) return <Hint>Click an enemy hex{s.phase === 'defensiveFire' ? ' (or a hex an enemy moved through, marked with dots)' : ''} to see the odds.</Hint>;
+      if (!target) {
+        const best = bestTargets(ctx, s, firers, leader);
+        return (
+          <Hint>
+            Click an enemy hex{s.phase === 'defensiveFire' ? ' (or a hex an enemy moved through, marked with dots)' : ''} to see the odds.
+            {best.length > 0 && (
+              <span className="suggest">
+                Suggested:
+                {best.map((b) => (
+                  <button key={b.hex} className="btn tiny" onClick={() => setTarget(b.hex)}>
+                    {hexId(b.hex)} · {Math.round(b.score * 100)}%
+                  </button>
+                ))}
+              </span>
+            )}
+            {!best.length && <span className="faint">No target in line of sight and range.</span>}
+          </Hint>
+        );
+      }
       return <FireCalc ctx={ctx} s={s} firers={firers} target={target} {...(leader ? { leader } : {})} onFire={() => dispatch({ type: 'fire', firers, target, ...(leader ? { leader } : {}) })} />;
     case 'movement':
       return (

@@ -2,13 +2,27 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status: planning.** No code yet.
+**Status:** milestones M0–M4 are built. You can play scenario 1 hot-seat or against the computer, with the line-of-sight lab, the move planner and the board editor. See [Progress](docs/PLAN.md#progress).
+
+## Getting started
+
+```bash
+pnpm install
+pnpm dev        # http://localhost:5173
+pnpm check      # lint, typecheck, tests
+pnpm soak       # long bot-vs-bot run (SOAK_GAMES=200)
+pnpm --filter @squadwar/content gen:boards   # regenerate board JSON from the layouts
+```
+
+Builds deploy to GitHub Pages from `main`. In the repository's Settings → Pages, set the source to "GitHub Actions".
 
 | Document | What's in it |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | Full project plan: architecture, feature specs, milestones, testing, risks, decisions |
 | [docs/RULES_COVERAGE.md](docs/RULES_COVERAGE.md) | Every rulebook section (§1–63, optional rules, Game Set IV), mapped to an engine module and a milestone |
 | [docs/REFERENCE_TABLES.md](docs/REFERENCE_TABLES.md) | Complete rules data: both sides of the Quick Reference Data Card, the rulebook's embedded tables and the unit roster |
+| [docs/rulings.md](docs/rulings.md) | Interpretation calls the engine makes |
+| [docs/adr](docs/adr/README.md) | Architecture decision records |
 
 ## Planned features
 

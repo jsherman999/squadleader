@@ -171,6 +171,20 @@ describe('movement (§5)', () => {
   });
 });
 
+describe('exposure (planner)', () => {
+  it('is higher in the open than in a building, and zero out of sight', async () => {
+    const { exposureAt } = await import('../rules/exposure');
+    const ctx = testCtx({ K6: { t: 'stoneBuilding', b: 's' }, M2: { t: 'woods' }, M3: { t: 'woods' }, M4: { t: 'woods' } });
+    const s = blankState(ctx, 'movement');
+    put(ctx, s, 'rus-447', 'K2', { weapons: ['rus-lmg'] });
+    const open = exposureAt(ctx, s, 'ger', hexOf(ctx, 'K5'));
+    const bldg = exposureAt(ctx, s, 'ger', hexOf(ctx, 'K6'));
+    expect(open.shooters).toBe(1);
+    expect(open.pBreak).toBeGreaterThan(bldg.pBreak);
+    expect(exposureAt(ctx, s, 'ger', hexOf(ctx, 'X9')).pBreak).toBe(0);
+  });
+});
+
 describe('rout (§13)', () => {
   it('a broken unit in the open routs to the nearest building away from the enemy', () => {
     const ctx = testCtx({ K8: { t: 'woodBuilding', b: 'a' }, K2: { t: 'woodBuilding', b: 'b' } });

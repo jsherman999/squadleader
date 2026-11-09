@@ -12,3 +12,4 @@ export { canRally, canRepair } from './rules/rally';
 export { ccHexes, autoPlan, oddsColumn } from './rules/closeCombat';
 export { objectiveStatus, evaluateVictory, controller } from './rules/victory';
 export { moraleOf } from './rules/morale';
+export { exposureAt, exposureMap, type Exposure } from './rules/exposure';

@@ -9,6 +9,23 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 
 ---
 
+## Progress
+
+| Milestone | State | Notes |
+|---|---|---|
+| M0 Foundations | Done | pnpm monorepo, CI, Pages workflow, ADRs. Plain CSS tokens instead of Tailwind (ADR 0001). |
+| M1 Hex map and 2D board | Done | Hex math, geomorphic boards and the board editor. City A is reworked as an organically grown town. Board files store hex attributes and the symbol shapes are generated (ADR 0003). |
+| M2 LOS | Done | Categorical LOS (ADR 0004), LOS Inspector with profile and viewshed, conformance and reciprocity tests. |
+| M3 Infantry core | Done | §1–21 engine with rules traces, scenario 1, saves and replays, battle screen for hot-seat and vs. bot. The heuristic bot was pulled forward from M7 so that bot-vs-bot soak tests exist (nightly workflow). |
+| M4 Planner and first playable | Done | Move Planner (alternatives, exposure badges, expected breaks, commit or revert), danger map, fire odds and suggested targets, Assisted automation. The planner allows only dice-free actions, so it can't reveal future rolls. Before the Movement Phase it runs as a rehearsal. |
+| M5–M12 | Not started | |
+
+Deviations from this plan so far:
+
+- **Engine runs on the main thread.** Viewshed takes about 50 ms on one board; a worker can come later.
+- **The bot exists early.** It was built in M3 instead of M7, for soak testing and the offline opponent.
+- **Rulings** are tracked in [docs/rulings.md](rulings.md).
+
 ## Contents
 
 1. [Summary](#1-summary)

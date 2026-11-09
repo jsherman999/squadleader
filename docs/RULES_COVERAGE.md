@@ -15,7 +15,9 @@ This document maps every section of the supplied 4th Edition rulebook to an engi
 
 ## Game Set I: Infantry in the city (§1–27)
 
-### §1–21 Basic infantry (unlocks scenario 1)
+### §1–21 Basic infantry (unlocks scenario 1) — implemented in M3
+
+Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (§15.8) and two leaders firing one MG (§17.3) are not yet implemented.
 
 | § | Topic | Module | Implementation notes | MS |
 |---|---|---|---|---|

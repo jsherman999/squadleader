@@ -20,8 +20,8 @@ export function PhaseRibbon({ ctx, s }: { ctx: Ctx; s: GameState }) {
       </section>
       <section>
         <h3 className="panel-h">Phases</h3>
+        {s.phase === 'setup' && <div className="phasing">Setup — {side(s.awaiting).name}</div>}
         <ol className="phase-list">
-          {s.phase === 'setup' && <li className="now">Setup — {side(s.awaiting).name}</li>}
           {PLAYER_TURN_PHASES.map((p) => (
             <li key={p} className={s.phase === p ? 'now' : ''}>
               {PHASE_NAMES[p].replace(' Phase', '')}

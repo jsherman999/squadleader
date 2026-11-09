@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
+import { DIRECTIONS, hexKey, hexToPixel, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
+import { Text, TextStyle } from 'pixi.js';
+import { HEX_PX } from '../board/palette';
 import {
   PHASE_NAMES,
+  exposureAt,
+  exposureMap,
   enemiesIn,
   hexTem,
   inMelee,
@@ -14,9 +18,10 @@ import { bestLos, type LosResult } from '@squadwar/los';
 import { BoardView } from '../board/BoardView';
 import type { BoardRenderer, PointerInfo } from '../board/renderer';
 import { drawUnits } from '../board/counters';
-import { drawHexOutline } from '../board/overlays';
+import { drawHexOutline, fillHex } from '../board/overlays';
 import { drawLos } from '../board/losOverlay';
 import { ActionPanel } from '../battle/ActionPanel';
+import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader } from '../battle/firers';
 import { LogPanel } from '../battle/LogPanel';
 import { drawFireLines, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawTracks } from '../battle/overlays';
@@ -65,7 +70,14 @@ function selectable(s: GameState, ids: string[]): string[] {
 function Battle() {
   const session = useSession();
   const ctx = ctxFor(session.scenarioId!);
-  const s = session.states[session.states.length - 1]!;
+  const real = session.states[session.states.length - 1]!;
+  const plan = session.plan;
+  /** What the board shows: the plan's state while planning. */
+  const s = plan ? plan.states[plan.states.length - 1]! : real;
+  const [threat, setThreat] = useState(false);
+  const [automation, setAutomation] = useState<'assisted' | 'manual'>(() => (localStorage.getItem('squadwar:automation') as 'assisted' | 'manual' | null) ?? 'assisted');
+  const [notice, setNotice] = useState<string>();
+  const [help, setHelp] = useState(false);
   const map = ctx.map;
   const [renderer, setRenderer] = useState<BoardRenderer>();
   const [hover, setHover] = useState<HexKey>();
@@ -95,10 +107,36 @@ function Battle() {
 
   // Bot turns.
   useEffect(() => {
-    if (human || s.phase === 'gameOver') return;
+    if (human || real.phase === 'gameOver' || plan) return;
     const t = setTimeout(() => session.stepBot(), 280);
     return () => clearTimeout(t);
-  }, [s, human, session]);
+  }, [real, human, session, plan]);
+
+  // Assisted automation: end phases with no decision to make.
+  useEffect(() => {
+    if (!human || plan || automation !== 'assisted' || real.phase === 'gameOver' || real.phase === 'setup') return;
+    const why = autoSkipReason(ctx, real);
+    if (!why) return;
+    const t = setTimeout(() => {
+      setNotice(`Skipped ${PHASE_NAMES[real.phase]}: ${why}.`);
+      session.dispatch({ type: 'endPhase' });
+    }, 450);
+    return () => clearTimeout(t);
+  }, [real, human, plan, automation, ctx, session]);
+
+  const dangers = useMemo(() => (threat ? exposureMap(ctx, s, s.awaiting) : undefined), [threat, ctx, s]);
+  const planScore = useMemo(() => {
+    if (!plan) return undefined;
+    const end = plan.states[plan.states.length - 1]!;
+    let expected = 0;
+    for (const [id, steps] of Object.entries(end.tracks)) {
+      if (end.units[id]?.side !== end.awaiting) continue;
+      let survive = 1;
+      for (const st of steps) survive *= 1 - exposureAt(ctx, plan.states[0]!, end.awaiting, st.hex).pBreak;
+      expected += 1 - survive;
+    }
+    return expected;
+  }, [plan, ctx]);
 
   const movePreview = useMemo(() => {
     if (s.phase !== 'movement' || !human || !hover || !selUnits.length) return undefined;
@@ -129,10 +167,43 @@ function Battle() {
     const fx = renderer.overlay('battle-fx', 'over');
     const lastFire = [...session.events].reverse().find((e) => e.kind === 'fire' && e.action === session.actions.length - 1);
     drawLastFire(fx, lastFire);
+    const dg = renderer.overlay('battle-danger', 'under');
+    if (dangers) {
+      for (const [h, e] of dangers) {
+        if (e.pBreak < 0.08 || enemiesIn(s, h, s.awaiting).length) continue;
+        fillHex(dg, map.hexes[h]!.hex, e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : 0xe0c070, Math.min(0.38, 0.1 + e.pBreak * 0.3));
+      }
+    }
+    const pg = renderer.overlay('battle-plan', 'over');
+    const plabels = renderer.container('battle-plan-labels', 'top');
+    if (plan) {
+      const base = plan.states[0]!;
+      for (const [id, u] of Object.entries(s.units)) {
+        const b = base.units[id];
+        if (b && b.hex !== u.hex) drawHexOutline(pg, map.hexes[b.hex]!.hex, 0xffffff, 0.55, 2, 0.18);
+      }
+      const style = new TextStyle({ fontFamily: 'Roboto Condensed, Arial Narrow, sans-serif', fontSize: 10, fontWeight: '700', fill: 0xffffff, stroke: { color: 0x000000, width: 3 } });
+      const seen = new Set<string>();
+      for (const [id, steps] of Object.entries(s.tracks)) {
+        if (s.units[id]?.side !== s.awaiting) continue;
+        for (const st of steps) {
+          if (seen.has(st.hex)) continue;
+          seen.add(st.hex);
+          const e = exposureAt(ctx, base, s.awaiting, st.hex);
+          const c = hexToPixel(map.hexes[st.hex]!.hex);
+          const color = e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : e.pBreak > 0.05 ? 0xe0c070 : 0x7fd06a;
+          pg.circle(c.x * HEX_PX, c.y * HEX_PX + 16, 9).fill({ color, alpha: 0.9 }).stroke({ width: 1.5, color: 0x101410 });
+          const t = new Text({ text: `${Math.round(e.pBreak * 100)}`, style, resolution: 3 });
+          t.anchor.set(0.5);
+          t.position.set(c.x * HEX_PX, c.y * HEX_PX + 16);
+          plabels.addChild(t);
+        }
+      }
+    }
     const lg = renderer.overlay('battle-los', 'top');
     if (losMode && los) drawLos(lg, map, los);
     else if (losMode && losA) drawHexOutline(lg, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
-  }, [renderer, ctx, s, selUnits, sel.hex, session.target, session.events, session.actions.length, groupHexes, movePreview, firers.length, losMode, los, losA, map, human]);
+  }, [renderer, ctx, s, selUnits, sel.hex, session.target, session.events, session.actions.length, groupHexes, movePreview, firers.length, losMode, los, losA, map, human, dangers, plan]);
 
   const ownIn = useCallback((h: HexKey) => selectable(s, sideUnitsIn(s, h, s.awaiting).map((u) => u.id)), [s]);
 
@@ -215,9 +286,9 @@ function Battle() {
   );
 
   const blockers = phaseBlockers(ctx, s);
-  const canUndo = human && session.actions.length > 0 && !session.rolled[session.rolled.length - 1];
+  const canUndo = plan ? (plan.slots[plan.active]?.actions.length ?? 0) > 0 : human && session.actions.length > 0 && !session.rolled[session.rolled.length - 1];
   const endPhase = useCallback(() => {
-    if (!human) return;
+    if (!human || useSession.getState().plan) return;
     session.dispatch({ type: 'endPhase' });
     session.select(undefined, []);
   }, [human, session]);
@@ -237,11 +308,19 @@ function Battle() {
       } else if (e.key === 'l' || e.key === 'L') {
         setLosMode((m) => !m);
         setLosA(undefined);
+      } else if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+        setHelp((x) => !x);
+      } else if (e.key === 't' || e.key === 'T') {
+        setThreat((x) => !x);
+      } else if (e.key === 'p' || e.key === 'P') {
+        if (useSession.getState().plan) session.revertPlan();
+        else if (human) session.startPlan();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endPhase, canUndo, session]);
+  }, [endPhase, canUndo, session, human]);
+
 
   const exportSave = () => {
     const save = session.save();
@@ -269,16 +348,48 @@ function Battle() {
               : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`}
         </span>
         <span className={`awaiting ${human ? 'you' : 'bot'}`}>{human ? `${sideName(s.awaiting)} to act` : `${sideName(s.awaiting)} (bot) thinking…`}</span>
+        <button
+          className={`btn ${plan ? 'active' : ''}`}
+          disabled={!human && !plan}
+          onClick={() => (plan ? session.revertPlan() : session.startPlan())}
+          title="Plan moves without committing them (P)"
+        >
+          Plan <kbd>P</kbd>
+        </button>
+        <button className={`btn ${threat ? 'active' : ''}`} onClick={() => setThreat(!threat)} title="Shade hexes by defensive-fire danger (T)">
+          Danger <kbd>T</kbd>
+        </button>
         <button className={`btn ${losMode ? 'active' : ''}`} onClick={() => (setLosMode(!losMode), setLosA(undefined))} title="Check line of sight (L)">
           LOS <kbd>L</kbd>
         </button>
         <button className="btn" disabled={!canUndo} onClick={() => session.undo()} title="Undo the last action (only before dice are rolled)">
           Undo <kbd>Z</kbd>
         </button>
+        <button className="btn" onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
+          ?
+        </button>
         <button className="btn" onClick={exportSave} title="Download a save file">
           Save
         </button>
-        <button className="btn primary" disabled={!human || s.phase === 'gameOver'} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
+        <select
+          className="auto-select"
+          value={automation}
+          onChange={(e) => {
+            const v = e.target.value as 'assisted' | 'manual';
+            setAutomation(v);
+            try {
+              localStorage.setItem('squadwar:automation', v);
+            } catch {
+              // ignore
+            }
+          }}
+          title="Automation level"
+          aria-label="Automation level"
+        >
+          <option value="assisted">Assisted</option>
+          <option value="manual">Manual</option>
+        </select>
+        <button className="btn primary" disabled={!human || s.phase === 'gameOver' || !!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
           End phase <kbd>Space</kbd>
         </button>
       </TopBar>
@@ -286,6 +397,83 @@ function Battle() {
         <PhaseRibbon ctx={ctx} s={s} />
         <div className="board-wrap">
           <BoardView map={map} onReady={setRenderer} onHover={onHover} onClick={onClick} />
+          {plan && (
+            <div className="plan-banner">
+              <span className="stencil plan-title">Planning</span>
+              <span className="small dim">Nothing here is committed. Hexes on your paths show the chance a squad breaks there under defensive fire.</span>
+              <div className="plan-tabs">
+                {plan.slots.map((sl, i) => (
+                  <button key={sl.name} className={`btn tiny ${i === plan.active ? 'active' : ''}`} onClick={() => session.switchPlan(i)}>
+                    Plan {sl.name} · {sl.actions.filter((a) => a.type === 'move').length} moves
+                  </button>
+                ))}
+                <button className="btn tiny" onClick={() => session.newPlanSlot()}>
+                  + Alternative
+                </button>
+              </div>
+              <span className="small">
+                Expected breaks: <strong>{(planScore ?? 0).toFixed(2)}</strong>
+              </span>
+              <div className="plan-actions">
+                <button className="btn" onClick={() => session.revertPlan()}>
+                  Revert
+                </button>
+                <button
+                  className="btn primary"
+                  disabled={plan.rehearsal}
+                  title={plan.rehearsal ? 'This is a rehearsal before your Movement Phase; plans are committed during the Movement Phase.' : 'Make these moves for real'}
+                  onClick={() => session.commitPlan()}
+                >
+                  {plan.rehearsal ? 'Rehearsal only' : `Commit plan ${plan.slots[plan.active]!.name}`}
+                </button>
+              </div>
+            </div>
+          )}
+          {help && (
+            <div className="help" role="dialog" aria-label="Help">
+              <h2 className="stencil">How to play</h2>
+              <p className="small dim">Each game turn has two player turns of eight phases (§4). The log on the right explains every result with rule references.</p>
+              <table className="keys">
+                <tbody>
+                  {[
+                    ['Click', 'Select a hex and its units; click again elsewhere to move, target or advance'],
+                    ['Shift-click', 'Add an adjacent hex to the fire group, or move onto your own stack'],
+                    ['Space', 'End the phase'],
+                    ['P', 'Plan moves without committing (rehearsal before your Movement Phase)'],
+                    ['T', 'Danger map: chance a moving squad breaks under defensive fire'],
+                    ['L', 'Line-of-sight check between two hexes'],
+                    ['Z', 'Undo the last action (only before dice are rolled)'],
+                    ['Esc', 'Clear selection and tools'],
+                    ['Wheel / drag', 'Zoom and pan; 0 fits the board, arrows pan'],
+                  ].map(([k, v]) => (
+                    <tr key={k}>
+                      <td>
+                        <kbd>{k}</kbd>
+                      </td>
+                      <td>{v}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="small dim">Assisted automation ends phases with no decision to make. Switch to Manual in the top bar to do every step yourself.</p>
+              <button className="btn" onClick={() => setHelp(false)}>
+                Close
+              </button>
+            </div>
+          )}
+          {threat && (
+            <div className="legend">
+              <span className="small">Chance a moving squad breaks:</span>
+              <span className="swatch" style={{ background: '#e0c070' }} /> &lt;25%
+              <span className="swatch" style={{ background: '#e08a3a' }} /> 25–50%
+              <span className="swatch" style={{ background: '#d0402e' }} /> &gt;50%
+            </div>
+          )}
+          {notice && (
+            <div className="notice" onAnimationEnd={() => setNotice(undefined)}>
+              {notice}
+            </div>
+          )}
           <div className="hud-bottom-left">
             <HexCard
               d={hoverInfo}
@@ -327,7 +515,7 @@ function Battle() {
             </div>
           )}
           {human && s.phase !== 'gameOver' && (
-            <ActionPanel ctx={ctx} s={s} firers={firers} {...(leader ? { leader } : {})} {...(session.target ? { target: session.target } : {})} {...(sel.hex ? { selectedHex: sel.hex } : {})} dispatch={session.dispatch} />
+            <ActionPanel ctx={ctx} s={s} firers={firers} {...(leader ? { leader } : {})} {...(session.target ? { target: session.target } : {})} {...(sel.hex ? { selectedHex: sel.hex } : {})} dispatch={session.dispatch} setTarget={session.setTarget} />
           )}
           {sel.hex && (
             <>

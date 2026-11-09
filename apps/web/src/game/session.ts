@@ -26,6 +26,25 @@ export interface SaveFile {
   readonly savedAt: string;
 }
 
+/** Dice-free actions the planner allows (no peeking at future rolls). */
+const PLANNABLE = new Set(['move', 'endMove', 'transfer', 'advance', 'place']);
+
+export interface PlanSlot {
+  readonly name: string;
+  readonly actions: Action[];
+}
+
+export interface Plan {
+  /** Index into states where the plan forks. */
+  readonly base: number;
+  readonly slots: PlanSlot[];
+  readonly active: number;
+  /** States of the active slot: [0] is the fork point. */
+  readonly states: GameState[];
+  /** Planning ahead of the Movement Phase: can be tried, not committed yet. */
+  readonly rehearsal: boolean;
+}
+
 interface SessionState {
   scenarioId?: string;
   seed: number;
@@ -40,6 +59,12 @@ interface SessionState {
   selection: { hex?: HexKey; units: string[] };
   target?: HexKey;
   botBusy: boolean;
+  plan?: Plan;
+  startPlan(): void;
+  revertPlan(): void;
+  commitPlan(): void;
+  newPlanSlot(): void;
+  switchPlan(i: number): void;
   start(scenarioId: string, controllers: Record<SideId, Controller>, seed?: number): void;
   load(save: SaveFile): void;
   dispatch(a: Action): boolean;
@@ -82,6 +107,7 @@ export const useSession = create<SessionState>((set, get) => ({
       error: undefined,
       selection: { units: [] },
       target: undefined,
+      plan: undefined,
     });
     persist(get());
   },
@@ -112,13 +138,74 @@ export const useSession = create<SessionState>((set, get) => ({
       error: undefined,
       selection: { units: [] },
       target: undefined,
+      plan: undefined,
     });
+  },
+
+  startPlan() {
+    const st = get();
+    if (!st.scenarioId || st.plan) return;
+    const base = st.states.length - 1;
+    const cur = st.states[base]!;
+    const rehearsal = (cur.phase === 'rally' || cur.phase === 'prepFire') && cur.awaiting === cur.phasing;
+    // Rehearsals run on a copy that is already in the Movement Phase.
+    const first: GameState = rehearsal ? { ...structuredClone(cur), phase: 'movement', awaiting: cur.phasing, attacks: [] } : cur;
+    set({ plan: { base, slots: [{ name: 'A', actions: [] }], active: 0, states: [first], rehearsal }, error: undefined });
+  },
+
+  revertPlan() {
+    set({ plan: undefined, error: undefined });
+  },
+
+  commitPlan() {
+    const st = get();
+    const plan = st.plan;
+    if (!plan || plan.rehearsal) return;
+    set({ plan: undefined });
+    for (const a of plan.slots[plan.active]!.actions) if (!get().dispatch(a)) break;
+  },
+
+  newPlanSlot() {
+    const st = get();
+    const plan = st.plan;
+    if (!plan) return;
+    const name = String.fromCharCode(65 + plan.slots.length);
+    set({ plan: { ...plan, slots: [...plan.slots, { name, actions: [] }], active: plan.slots.length, states: [plan.states[0]!] } });
+  },
+
+  switchPlan(i) {
+    const st = get();
+    const plan = st.plan;
+    if (!plan || !st.scenarioId || !plan.slots[i]) return;
+    const ctx = ctxFor(st.scenarioId);
+    const states = [plan.states[0]!];
+    for (const a of plan.slots[i]!.actions) {
+      const r = tryAction(ctx, states[states.length - 1]!, a);
+      if (!r.ok) break;
+      states.push(r.state);
+    }
+    set({ plan: { ...plan, active: i, states } });
   },
 
   dispatch(a) {
     const st = get();
     if (!st.scenarioId) return false;
     const ctx = ctxFor(st.scenarioId);
+    if (st.plan) {
+      if (!PLANNABLE.has(a.type)) {
+        set({ error: 'Plans cover movement only. Commit or revert the plan first.' });
+        return false;
+      }
+      const plan = st.plan;
+      const r = tryAction(ctx, plan.states[plan.states.length - 1]!, a);
+      if (!r.ok) {
+        set({ error: r.error });
+        return false;
+      }
+      const slots = plan.slots.map((sl, i) => (i === plan.active ? { ...sl, actions: [...sl.actions, a] } : sl));
+      set({ plan: { ...plan, slots, states: [...plan.states, r.state] }, error: undefined });
+      return true;
+    }
     const cur = st.states[st.states.length - 1]!;
     const r = tryAction(ctx, cur, a);
     if (!r.ok) {
@@ -141,6 +228,14 @@ export const useSession = create<SessionState>((set, get) => ({
 
   undo() {
     const st = get();
+    if (st.plan) {
+      const plan = st.plan;
+      const slot = plan.slots[plan.active]!;
+      if (!slot.actions.length) return;
+      const slots = plan.slots.map((sl, i) => (i === plan.active ? { ...sl, actions: sl.actions.slice(0, -1) } : sl));
+      set({ plan: { ...plan, slots, states: plan.states.slice(0, -1) } });
+      return;
+    }
     const n = st.actions.length;
     if (!n || st.rolled[n - 1]) return;
     set({
