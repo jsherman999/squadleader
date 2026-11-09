@@ -43,6 +43,8 @@ export interface TerrainSymbol {
   readonly hex: HexKey;
   readonly building?: string;
   readonly polygon: Polygon;
+  /** For building pieces: index of the footprint rectangle it was cut from. */
+  readonly rect?: number;
 }
 
 /** A rectangle of a building's footprint, kept for drawing roofs. */
@@ -300,17 +302,18 @@ function buildingShape(map: GameMap, b: Building): BuildingShape {
   for (const hk of b.hexes) {
     const h = map.hexes[hk]!;
     const cell = buildingCell(map, h, rnd);
-    for (const r of rects) {
+    rects.forEach((r, ri) => {
       const piece = clipConvex(rotatedRect(r.c, r.theta, r.a, r.b), cell);
-      if (piece.length >= 3 && Math.abs(polygonArea(piece)) > 0.01) pieces.push({ kind: 'building', hex: hk, building: b.id, polygon: piece });
-    }
+      if (piece.length >= 3 && Math.abs(polygonArea(piece)) > 0.01) pieces.push({ kind: 'building', hex: hk, building: b.id, polygon: piece, rect: ri });
+    });
   }
   // Every building hex must hold some of the building (a minimal block at its centre).
   for (const hk of b.hexes) {
     if (pieces.some((p) => p.hex === hk)) continue;
     const h = map.hexes[hk]!;
     const piece = clipConvex(rotatedRect(hexToPixel(h.hex), theta, 0.45, 0.3), buildingCell(map, h, rnd));
-    pieces.push({ kind: 'building', hex: hk, building: b.id, polygon: piece });
+    rects.push({ kind: 'main', c: hexToPixel(h.hex), theta, a: 0.45, b: 0.3 });
+    pieces.push({ kind: 'building', hex: hk, building: b.id, polygon: piece, rect: rects.length - 1 });
   }
   return { id: b.id, style, rects, pieces, tint: rnd() * 2 - 1, ...(chimney ? { chimney } : {}) };
 }

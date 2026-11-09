@@ -12,8 +12,6 @@ import {
   hexToPixel,
   hexsideEndpoints,
   hexsideHexes,
-  hexsideKey,
-  hexsideMidpoint,
   inflatePolygon,
   mulberry32,
   neighbor,
@@ -21,11 +19,10 @@ import {
   clipConvex,
   rotatedRect,
   segmentInsideIntervals,
-  type HexKey,
   type Polygon,
   type Vec2,
 } from '@squadwar/hex';
-import { mapGeometry, roadDirections, type GameMap } from '@squadwar/terrain';
+import { mapGeometry, roadChains, type GameMap } from '@squadwar/terrain';
 
 import { HEX_PX, MAP } from './palette';
 
@@ -185,106 +182,15 @@ function paperGrain(map: GameMap): Graphics {
 
 function paintRoads(map: GameMap): Graphics {
   const g = new Graphics();
-  const rnd = mulberry32(map.seed + 5);
-  // Road graph: nodes are road hexes, edges are road hexsides.
-  type Edge = { key: string; a: HexKey; b: HexKey | null; mid: Vec2; dirt: boolean; d: number };
-  const edges = new Map<string, Edge>();
-  const adj = new Map<HexKey, Edge[]>();
-  for (const h of Object.values(map.hexes)) {
-    for (const d of roadDirections(map, h.hex)) {
-      const key = hexsideKey(h.hex, d);
-      const nk = hexKey(neighbor(h.hex, d));
-      const nb = map.hexes[nk] ? nk : null;
-      let e = edges.get(key);
-      if (!e) {
-        const m = hexsideMidpoint(h.hex, d);
-        const c = hexToPixel(h.hex);
-        // Small sideways jitter so straight runs are not ruler-straight.
-        const px2 = { x: -(m.y - c.y), y: m.x - c.x };
-        const len = Math.hypot(px2.x, px2.y) || 1;
-        const j = (rnd() - 0.5) * 0.12;
-        e = { key, a: h.key, b: nb, mid: { x: m.x + (px2.x / len) * j, y: m.y + (px2.y / len) * j }, dirt: map.hexsides[key]?.road === 'dirt', d };
-        edges.set(key, e);
-      }
-      (adj.get(h.key) ?? adj.set(h.key, []).get(h.key)!).push(e);
-    }
-  }
-  const deg = (k: HexKey) => adj.get(k)?.length ?? 0;
-  const seen = new Set<string>();
-  const chains: { pts: Vec2[]; dirt: boolean }[] = [];
-  const centre = (k: HexKey) => hexToPixel(map.hexes[k]!.hex);
-  const offEnd = (e: Edge): Vec2 => {
-    const c = centre(e.a);
-    return { x: e.mid.x + (e.mid.x - c.x) * 0.8, y: e.mid.y + (e.mid.y - c.y) * 0.8 };
-  };
-  const walk = (start: HexKey, first: Edge) => {
-    const pts: Vec2[] = [centre(start), first.mid];
-    seen.add(first.key);
-    let cur: HexKey | null = first.a === start ? first.b : first.a;
-    let dirt = first.dirt;
-    if (cur === null) {
-      pts.push(offEnd(first));
-      return { pts, dirt };
-    }
-    for (;;) {
-      if (deg(cur) !== 2) {
-        pts.push(centre(cur));
-        break;
-      }
-      const next: Edge | undefined = adj.get(cur)!.find((e) => !seen.has(e.key));
-      if (!next) {
-        pts.push(centre(cur));
-        break;
-      }
-      seen.add(next.key);
-      dirt = dirt && next.dirt;
-      pts.push(next.mid);
-      const nxt: HexKey | null = next.a === cur ? next.b : next.a;
-      if (nxt === null) {
-        pts.push(offEnd(next));
-        break;
-      }
-      cur = nxt;
-    }
-    return { pts, dirt };
-  };
-  for (const [k, es] of adj) {
-    if (es.length === 2) continue;
-    for (const e of es) if (!seen.has(e.key)) chains.push(walk(k, e));
-  }
-  for (const [k, es] of adj) for (const e of es) if (!seen.has(e.key)) chains.push(walk(k, e));
-
-  const sampled = chains.map((ch) => ({ dirt: ch.dirt, pts: catmullRom(ch.pts, 6) }));
-  const stroke = (pts: Vec2[], width: number, color: number) => {
+  const chains = roadChains(map);
+  const stroke = (pts: readonly Vec2[], width: number, color: number) => {
     g.moveTo(pts[0]!.x * S, pts[0]!.y * S);
     for (let i = 1; i < pts.length; i++) g.lineTo(pts[i]!.x * S, pts[i]!.y * S);
     g.stroke({ width, color, cap: 'round', join: 'round' });
   };
-  for (const c of sampled) stroke(c.pts, (c.dirt ? 0.34 : 0.46) * S, c.dirt ? 0xa58f62 : MAP.roadEdge);
-  for (const c of sampled) stroke(c.pts, (c.dirt ? 0.27 : 0.38) * S, c.dirt ? MAP.dirtRoad : MAP.road);
+  for (const c of chains) stroke(c.pts, (c.dirt ? 0.34 : 0.46) * S, c.dirt ? 0xa58f62 : MAP.roadEdge);
+  for (const c of chains) stroke(c.pts, (c.dirt ? 0.27 : 0.38) * S, c.dirt ? MAP.dirtRoad : MAP.road);
   return g;
-}
-
-/** Catmull-Rom spline through points, sampled `n` times per segment. */
-function catmullRom(p: Vec2[], n: number): Vec2[] {
-  if (p.length < 3) return p;
-  const out: Vec2[] = [p[0]!];
-  for (let i = 0; i < p.length - 1; i++) {
-    const p0 = p[Math.max(0, i - 1)]!;
-    const p1 = p[i]!;
-    const p2 = p[i + 1]!;
-    const p3 = p[Math.min(p.length - 1, i + 2)]!;
-    for (let s = 1; s <= n; s++) {
-      const t = s / n;
-      const t2 = t * t;
-      const t3 = t2 * t;
-      out.push({
-        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
-      });
-    }
-  }
-  return out;
 }
 
 function mix(a: number, b: number, t: number): number {

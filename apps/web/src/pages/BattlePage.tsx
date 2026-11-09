@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DIRECTIONS, hexKey, hexToPixel, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
-import { Text, TextStyle } from 'pixi.js';
-import { HEX_PX } from '../board/palette';
+import { DIRECTIONS, hexDistance, hexKey, hexToPixel, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
   PHASE_NAMES,
   exposureAt,
@@ -14,12 +12,10 @@ import {
   sideUnitsIn,
   type GameState,
 } from '@squadwar/engine';
-import { bestLos, type LosResult } from '@squadwar/los';
-import { BoardView } from '../board/BoardView';
+import { bestLos, canBeUpper, viewshed, type LosResult } from '@squadwar/los';
 import type { BoardRenderer, PointerInfo } from '../board/renderer';
-import { drawUnits } from '../board/counters';
-import { drawHexOutline, fillHex } from '../board/overlays';
-import { drawLos } from '../board/losOverlay';
+import { drawLos, drawLosMarks } from '../board/losOverlay';
+import { hexFill, hexOutline } from '../draw/pen';
 import { ActionPanel } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader } from '../battle/firers';
@@ -35,6 +31,8 @@ import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
 import { LosPanel } from '../ui/LosPanel';
 import { TopBar } from '../ui/TopBar';
+import { loadViewMode, MapViews, nextViewMode, setViewMode, type OverlayLayers, type ViewMode } from '../views/MapViews';
+import { ViewToggle } from '../views/ViewToggle';
 
 const FIRE = new Set(['prepFire', 'defensiveFire', 'advancingFire']);
 
@@ -83,6 +81,8 @@ function Battle() {
   const [hover, setHover] = useState<HexKey>();
   const [losMode, setLosMode] = useState(false);
   const [losA, setLosA] = useState<HexKey>();
+  const [view, setView] = useState<ViewMode>(loadViewMode);
+  const [povHex, setPovHex] = useState<HexKey>();
   const human = session.controllers[s.awaiting] === 'human';
   const sideName = (id: string) => s.sides.find((x) => x.id === id)?.name ?? id;
   const sel = session.selection;
@@ -150,60 +150,87 @@ function Battle() {
     [losMode, losA, hover, map],
   );
 
-  // Draw units and overlays.
-  useEffect(() => {
-    if (!renderer) return;
-    const units = renderer.container('units', 'units');
-    drawUnits(units, ctx, s, { selected: new Set(selUnits) });
-    const under = renderer.overlay('battle-under', 'under');
-    drawObjectives(under, ctx, s);
-    if (s.phase === 'setup' && human) drawSetupZone(under, ctx.zones[s.awaiting]!);
-    if (s.phase === 'defensiveFire') drawTracks(under, s);
-    const over = renderer.overlay('battle-over', 'top');
-    drawSelection(over, sel.hex, session.target, groupHexes);
-    const labels = renderer.container('battle-labels', 'top');
-    if (movePreview) drawPath(over, labels, movePreview.from, movePreview.path, movePreview.reachable);
-    if (session.target && firers.length) drawFireLines(over, ctx, groupHexes, session.target);
-    const fx = renderer.overlay('battle-fx', 'over');
-    const lastFire = [...session.events].reverse().find((e) => e.kind === 'fire' && e.action === session.actions.length - 1);
-    drawLastFire(fx, lastFire);
-    const dg = renderer.overlay('battle-danger', 'under');
-    if (dangers) {
-      for (const [h, e] of dangers) {
-        if (e.pBreak < 0.08 || enemiesIn(s, h, s.awaiting).length) continue;
-        fillHex(dg, map.hexes[h]!.hex, e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : 0xe0c070, Math.min(0.38, 0.1 + e.pBreak * 0.3));
-      }
-    }
-    const pg = renderer.overlay('battle-plan', 'over');
-    const plabels = renderer.container('battle-plan-labels', 'top');
-    if (plan) {
-      const base = plan.states[0]!;
-      for (const [id, u] of Object.entries(s.units)) {
-        const b = base.units[id];
-        if (b && b.hex !== u.hex) drawHexOutline(pg, map.hexes[b.hex]!.hex, 0xffffff, 0.55, 2, 0.18);
-      }
-      const style = new TextStyle({ fontFamily: 'Roboto Condensed, Arial Narrow, sans-serif', fontSize: 10, fontWeight: '700', fill: 0xffffff, stroke: { color: 0x000000, width: 3 } });
-      const seen = new Set<string>();
-      for (const [id, steps] of Object.entries(s.tracks)) {
-        if (s.units[id]?.side !== s.awaiting) continue;
-        for (const st of steps) {
-          if (seen.has(st.hex)) continue;
-          seen.add(st.hex);
-          const e = exposureAt(ctx, base, s.awaiting, st.hex);
-          const c = hexToPixel(map.hexes[st.hex]!.hex);
-          const color = e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : e.pBreak > 0.05 ? 0xe0c070 : 0x7fd06a;
-          pg.circle(c.x * HEX_PX, c.y * HEX_PX + 16, 9).fill({ color, alpha: 0.9 }).stroke({ width: 1.5, color: 0x101410 });
-          const t = new Text({ text: `${Math.round(e.pBreak * 100)}`, style, resolution: 3 });
-          t.anchor.set(0.5);
-          t.position.set(c.x * HEX_PX, c.y * HEX_PX + 16);
-          plabels.addChild(t);
+  const lastFire = useMemo(
+    () => [...session.events].reverse().find((e) => e.kind === 'fire' && e.action === session.actions.length - 1),
+    [session.events, session.actions.length],
+  );
+
+  const units = useMemo(() => ({ ctx, s, selected: new Set(selUnits) }), [ctx, s, selUnits]);
+
+  // Map-space overlays, shared by the 2D board and the 3D landscape.
+  const layers: OverlayLayers = useMemo(
+    () => ({
+      under: (pen) => {
+        drawObjectives(pen, ctx);
+        if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
+        if (s.phase === 'defensiveFire') drawTracks(pen, s);
+        if (dangers) {
+          for (const [h, e] of dangers) {
+            if (e.pBreak < 0.08 || enemiesIn(s, h, s.awaiting).length) continue;
+            hexFill(pen, map.hexes[h]!.hex, e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : 0xe0c070, Math.min(0.38, 0.1 + e.pBreak * 0.3));
+          }
         }
-      }
-    }
-    const lg = renderer.overlay('battle-los', 'top');
-    if (losMode && los) drawLos(lg, map, los);
-    else if (losMode && losA) drawHexOutline(lg, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
-  }, [renderer, ctx, s, selUnits, sel.hex, session.target, session.events, session.actions.length, groupHexes, movePreview, firers.length, losMode, los, losA, map, human, dangers, plan]);
+      },
+      over: (pen) => {
+        drawLastFire(pen, lastFire);
+        if (!plan) return;
+        const base = plan.states[0]!;
+        for (const [id, u] of Object.entries(s.units)) {
+          const b0 = base.units[id];
+          if (b0 && b0.hex !== u.hex) hexOutline(pen, map.hexes[b0.hex]!.hex, 0xffffff, 0.55, 2, 0.18);
+        }
+        const seen = new Set<string>();
+        for (const [id, steps] of Object.entries(s.tracks)) {
+          if (s.units[id]?.side !== s.awaiting) continue;
+          for (const st of steps) {
+            if (seen.has(st.hex)) continue;
+            seen.add(st.hex);
+            const e = exposureAt(ctx, base, s.awaiting, st.hex);
+            const c = hexToPixel(map.hexes[st.hex]!.hex);
+            const p = { x: c.x, y: c.y + 1 / 3 };
+            const color = e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : e.pBreak > 0.05 ? 0xe0c070 : 0x7fd06a;
+            pen.circle(p, 9, { color, alpha: 0.9 }, { width: 1.5, color: 0x101410 });
+            pen.text(p, `${Math.round(e.pBreak * 100)}`, { size: 10 });
+          }
+        }
+      },
+      top: (pen, v) => {
+        drawSelection(pen, sel.hex, session.target, groupHexes);
+        if (movePreview) drawPath(pen, movePreview.from, movePreview.path, movePreview.reachable);
+        if (session.target && firers.length) drawFireLines(pen, ctx, groupHexes, session.target);
+        if (losMode && los) (v === '3d' ? drawLosMarks : drawLos)(pen, map, los);
+        else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
+      },
+    }),
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA],
+  );
+
+  // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
+  const pov = useMemo(() => {
+    if (!povHex || !map.hexes[povHex]) return undefined;
+    const here = Object.values(s.units).filter((u) => u.hex === povHex);
+    if (!here.length) return undefined;
+    const side = here[0]!.side;
+    const ldr = here.find((u) => ctx.data.units[u.type]!.kind === 'leader');
+    const t = ctx.data.units[(ldr ?? here[0]!).type]!;
+    const who = ldr ? (ldr.name ?? t.name) : t.name;
+    const enemies = Object.values(s.units).filter((u) => u.side !== side);
+    const from = parseHexKey(povHex);
+    const nearest = enemies.sort((x, y) => hexDistance(from, parseHexKey(x.hex)) - hexDistance(from, parseHexKey(y.hex)))[0];
+    const visible = viewshed(map, povHex);
+    visible.add(povHex);
+    const seen = new Set(enemies.filter((u) => visible.has(u.hex)).map((u) => u.hex)).size;
+    const upper = canBeUpper(map, povHex);
+    return {
+      hex: povHex,
+      upper,
+      visible,
+      side,
+      ...(nearest ? { lookAt: hexToPixel(parseHexKey(nearest.hex)) } : {}),
+      title: `Eyes of ${who} · ${map.hexes[povHex]!.id}`,
+      detail: `${upper ? 'Upper level' : 'Ground level'} · ${seen} enemy-held ${seen === 1 ? 'hex' : 'hexes'} in sight`,
+    };
+  }, [povHex, map, ctx, s.units]);
 
   const ownIn = useCallback((h: HexKey) => selectable(s, sideUnitsIn(s, h, s.awaiting).map((u) => u.id)), [s]);
 
@@ -275,15 +302,7 @@ function Battle() {
     [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn],
   );
 
-  const onHover = useCallback(
-    (p: PointerInfo) => {
-      setHover(p.hex);
-      if (!renderer) return;
-      const g = renderer.overlay('hover', 'top');
-      if (p.hex) drawHexOutline(g, map.hexes[p.hex]!.hex, 0xffffff, 0.7, 2);
-    },
-    [renderer, map],
-  );
+  const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);
 
   const blockers = phaseBlockers(ctx, s);
   const canUndo = plan ? (plan.slots[plan.active]?.actions.length ?? 0) > 0 : human && session.actions.length > 0 && !session.rolled[session.rolled.length - 1];
@@ -301,7 +320,16 @@ function Battle() {
         endPhase();
       } else if (e.key === 'z' || e.key === 'Z') {
         if (canUndo) session.undo();
+      } else if (e.key === '3') {
+        setView(nextViewMode);
+      } else if (e.key === 'e' || e.key === 'E') {
+        const h = useSession.getState().selection.hex;
+        setPovHex((cur) => (cur ? undefined : h));
       } else if (e.key === 'Escape') {
+        if (povHex) {
+          setPovHex(undefined);
+          return;
+        }
         session.select(undefined, []);
         setLosMode(false);
         setLosA(undefined);
@@ -319,7 +347,7 @@ function Battle() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endPhase, canUndo, session, human]);
+  }, [endPhase, canUndo, session, human, povHex]);
 
 
   const exportSave = () => {
@@ -365,6 +393,15 @@ function Battle() {
         <button className="btn" disabled={!canUndo} onClick={() => session.undo()} title="Undo the last action (only before dice are rolled)">
           Undo <kbd>Z</kbd>
         </button>
+        <button
+          className={`btn ${povHex ? 'active' : ''}`}
+          disabled={!povHex && !(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex))}
+          onClick={() => setPovHex(povHex ? undefined : sel.hex)}
+          title="Look from the selected unit's eyes (E)"
+        >
+          Eyes <kbd>E</kbd>
+        </button>
+        <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
         <button className="btn" onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
           ?
         </button>
@@ -396,7 +433,19 @@ function Battle() {
       <div className="battle">
         <PhaseRibbon ctx={ctx} s={s} />
         <div className="board-wrap">
-          <BoardView map={map} onReady={setRenderer} onHover={onHover} onClick={onClick} />
+          <MapViews
+            map={map}
+            mode={view}
+            layers={layers}
+            units={units}
+            los={losMode ? los : undefined}
+            hover={hover}
+            pov={pov}
+            onPovExit={() => setPovHex(undefined)}
+            onHover={onHover}
+            onClick={onClick}
+            onReady2d={setRenderer}
+          />
           {plan && (
             <div className="plan-banner">
               <span className="stencil plan-title">Planning</span>
@@ -442,9 +491,11 @@ function Battle() {
                     ['P', 'Plan moves without committing (rehearsal before your Movement Phase)'],
                     ['T', 'Danger map: chance a moving squad breaks under defensive fire'],
                     ['L', 'Line-of-sight check between two hexes'],
+                    ['3', 'Switch between the 2D map, the 3D landscape and both side by side'],
+                    ['E', "Eyes: look from the selected unit's position (watch only)"],
                     ['Z', 'Undo the last action (only before dice are rolled)'],
                     ['Esc', 'Clear selection and tools'],
-                    ['Wheel / drag', 'Zoom and pan; 0 fits the board, arrows pan'],
+                    ['Wheel / drag', 'Zoom and pan; 0 fits the board, arrows pan. In 3D, drag orbits, right-drag pans, double-click focuses a hex'],
                   ].map(([k, v]) => (
                     <tr key={k}>
                       <td>

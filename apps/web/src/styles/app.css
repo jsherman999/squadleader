@@ -1023,3 +1023,137 @@ kbd {
     display: none;
   }
 }
+
+/* ---- 2D / 3D / split views ------------------------------------------ */
+.map-views {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.map-pane {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+.map-pane[hidden] {
+  display: none;
+}
+.board-wrap {
+  container-type: size;
+}
+/* Boards are wide, so split stacks the views unless the area is very wide. */
+.map-views.mode-split {
+  flex-direction: column;
+}
+.map-views.mode-split .map-pane + .map-pane {
+  border-top: 2px solid var(--c-line);
+}
+@container (min-aspect-ratio: 5/2) {
+  .map-views.mode-split {
+    flex-direction: row;
+  }
+  .map-views.mode-split .map-pane + .map-pane {
+    border-top: none;
+    border-left: 2px solid var(--c-line);
+  }
+}
+.scene-host canvas {
+  cursor: grab;
+}
+.scene-host canvas:active {
+  cursor: grabbing;
+}
+.segmented {
+  display: inline-flex;
+}
+.segmented .btn {
+  border-radius: 0;
+  margin-left: -1px;
+}
+.segmented .btn:first-child {
+  border-radius: 4px 0 0 4px;
+  margin-left: 0;
+}
+.segmented .btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.view3d-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+}
+.view3d-controls .field {
+  grid-template-columns: auto 110px;
+  margin: 0;
+}
+.map-views.mode-split .view3d-controls .field {
+  grid-template-columns: auto 80px;
+}
+.pov-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pov-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(8, 10, 8, 0.55) 100%);
+}
+.pov-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1.5px solid rgba(240, 236, 220, 0.75);
+  border-radius: 50%;
+}
+.pov-reticle::before,
+.pov-reticle::after {
+  content: '';
+  position: absolute;
+  background: rgba(240, 236, 220, 0.75);
+}
+.pov-reticle::before {
+  left: 50%;
+  top: -10px;
+  bottom: -10px;
+  width: 1.5px;
+  margin-left: -0.75px;
+}
+.pov-reticle::after {
+  top: 50%;
+  left: -10px;
+  right: -10px;
+  height: 1.5px;
+  margin-top: -0.75px;
+}
+.pov-card {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  text-align: center;
+  max-width: min(460px, calc(100% - 24px));
+  pointer-events: auto;
+}
+.pov-card .small {
+  margin: 0;
+}
+.pov-card .btn {
+  margin-top: 6px;
+}
+.view-loading {
+  display: grid;
+  place-items: center;
+}

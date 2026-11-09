@@ -1,0 +1,149 @@
+/** Counter faces drawn to canvas for the 3D standees (same idiom as the 2D counters). */
+import * as THREE from 'three';
+import { leaderRating, weaponType, type Ctx, type GameState, type Nation, type Unit } from '@squadwar/engine';
+
+const NATION: Record<Nation, { bg: string; ink: string }> = {
+  german: { bg: '#a9bfcc', ink: '#162028' },
+  russian: { bg: '#cfa36c', ink: '#23170c' },
+  american: { bg: '#a8c472', ink: '#18200d' },
+};
+
+const cache = new Map<string, THREE.CanvasTexture>();
+
+function soldier(c: CanvasRenderingContext2D, x: number, y: number, s: number, ink: string): void {
+  c.fillStyle = ink;
+  c.strokeStyle = ink;
+  c.beginPath();
+  c.arc(x, y - 6 * s, 2.6 * s, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.ellipse(x, y - 7.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.moveTo(x - 3 * s, y - 3.5 * s);
+  c.lineTo(x + 3 * s, y - 3.5 * s);
+  c.lineTo(x + 2.4 * s, y + 3 * s);
+  c.lineTo(x - 2.4 * s, y + 3 * s);
+  c.fill();
+  c.beginPath();
+  c.moveTo(x - 2.2 * s, y + 3 * s);
+  c.lineTo(x - 0.4 * s, y + 3 * s);
+  c.lineTo(x - 1.6 * s, y + 8 * s);
+  c.lineTo(x - 3.2 * s, y + 8 * s);
+  c.fill();
+  c.beginPath();
+  c.moveTo(x + 0.4 * s, y + 3 * s);
+  c.lineTo(x + 2.2 * s, y + 3 * s);
+  c.lineTo(x + 3.6 * s, y + 8 * s);
+  c.lineTo(x + 2 * s, y + 8 * s);
+  c.fill();
+  c.lineWidth = 1.3 * s;
+  c.beginPath();
+  c.moveTo(x + 1 * s, y - 1 * s);
+  c.lineTo(x + 7 * s, y - 6.5 * s);
+  c.stroke();
+}
+
+/** Texture for one unit's counter face (cached by appearance). */
+export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolean): THREE.CanvasTexture {
+  const t = ctx.data.units[u.type]!;
+  const nation = s.sides.find((x) => x.id === u.side)?.nation ?? 'german';
+  const weapons = u.weapons.map((id) => s.weapons[id]).filter((w) => !!w).map((w) => `${weaponType(ctx, w!).kind}${w!.malfunctioned ? 'x' : ''}`);
+  const key = [u.type, nation, u.broken, u.berserk, selected, u.name ?? '', weapons.join(','), u.firedPhase ? 'f' : '', u.moved ? 'm' : ''].join('|');
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const S = 128;
+  const cv = document.createElement('canvas');
+  cv.width = S;
+  cv.height = S;
+  const c = cv.getContext('2d')!;
+  const pal = NATION[nation];
+  const k = S / 44;
+  c.scale(k, k);
+  c.fillStyle = u.berserk ? '#c75b45' : u.broken ? shade(pal.bg, 0.55) : pal.bg;
+  roundRect(c, 1, 1, 42, 42, 4);
+  c.fill();
+  c.lineWidth = selected ? 3 : 1.2;
+  c.strokeStyle = selected ? '#f0c66b' : 'rgba(0,0,0,0.6)';
+  c.stroke();
+  const ink = u.broken ? '#ece4cf' : pal.ink;
+  if (t.kind === 'leader') soldier(c, 14, 17, 1.25, ink);
+  else if (t.kind === 'crew') soldier(c, 22, 16, 1.1, ink);
+  else {
+    soldier(c, 15, 17, 1.05, ink);
+    soldier(c, 28, 17, 1.05, ink);
+  }
+  c.fillStyle = ink;
+  c.font = 'bold 12px "Roboto Condensed", "Arial Narrow", sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'alphabetic';
+  const label = t.kind === 'leader' ? leaderRating(t.morale, t.leadership) : u.broken ? `${t.brokenMorale}` : `${t.fp}-${t.range}-${t.morale}`;
+  if (t.kind === 'leader') {
+    c.fillText(label, 31, 27);
+    c.font = 'bold 7px "Roboto Condensed", sans-serif';
+    c.fillText((u.name ?? '').split(' ').slice(-1)[0]!, 22, 40);
+  } else c.fillText(label, 22, 41);
+  weapons.forEach((w, i) => {
+    c.fillStyle = '#262b24';
+    roundRect(c, 2 + i * 20, 1.5, 19, 9, 2);
+    c.fill();
+    c.fillStyle = w.endsWith('x') ? '#ff8a7a' : '#f5f1e3';
+    c.font = 'bold 7px "Roboto Condensed", sans-serif';
+    c.fillText(w.replace(/x$/, ''), 11.5 + i * 20, 8.5);
+  });
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  cache.set(key, tex);
+  return tex;
+}
+
+function shade(hex: string, k: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * k);
+  const g = Math.round(((n >> 8) & 255) * k);
+  const b = Math.round((n & 255) * k);
+  return `rgb(${r},${g},${b})`;
+}
+
+function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+const textCache = new Map<string, THREE.CanvasTexture>();
+
+/** A small text label texture for 3D sprites. */
+export function labelTexture(text: string, size: number, color: number): { tex: THREE.CanvasTexture; aspect: number } {
+  const key = `${text}|${size}|${color}`;
+  let tex = textCache.get(key);
+  const px = size * 4;
+  const font = `bold ${px}px "Roboto Condensed", "Arial Narrow", sans-serif`;
+  const probe = document.createElement('canvas').getContext('2d')!;
+  probe.font = font;
+  const w = Math.ceil(probe.measureText(text).width + px * 0.6);
+  const h = Math.ceil(px * 1.4);
+  if (!tex) {
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const c = cv.getContext('2d')!;
+    c.font = font;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.lineWidth = px * 0.22;
+    c.strokeStyle = '#000';
+    c.strokeText(text, w / 2, h / 2);
+    c.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+    c.fillText(text, w / 2, h / 2);
+    tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    textCache.set(key, tex);
+  }
+  return { tex, aspect: w / h };
+}

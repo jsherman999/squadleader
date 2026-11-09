@@ -46,6 +46,8 @@ export class BoardRenderer {
   private drag?: { start: Vec2; worldStart: Vec2; moved: boolean };
   private pinch?: { dist: number; scale: number; mid: Vec2 };
   private resizeObserver?: ResizeObserver;
+  /** True while the camera shows the fitted board (no pan or zoom since). */
+  private fitted = false;
   onCameraChange?: (scale: number) => void;
 
   async init(host: HTMLElement): Promise<void> {
@@ -78,8 +80,18 @@ export class BoardRenderer {
     this.bindPointer();
     this.app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
     this.app.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Pixi only follows window resizes; split view changes the host alone.
     this.resizeObserver = new ResizeObserver(() => {
+      if (this.destroyed) return;
+      const before = { w: this.app.screen.width, h: this.app.screen.height };
+      const centre = this.toWorld({ x: before.w / 2, y: before.h / 2 });
+      this.app.resize();
       this.app.stage.hitArea = this.app.screen;
+      const { width: w, height: h } = this.app.screen;
+      if (!w || !h || !before.w || !before.h || (w === before.w && h === before.h)) return;
+      // Keep the same spot centred; refit if the board no longer fits sensibly.
+      if (this.fitted) this.fit();
+      else this.centerOn(centre);
     });
     this.resizeObserver.observe(host);
     this.ready = true;
@@ -174,10 +186,12 @@ export class BoardRenderer {
     this.world.scale.set(s);
     this.world.position.set((sw - w * s) / 2 - b.x0 * HEX_PX * s, (sh - h * s) / 2 - b.y0 * HEX_PX * s);
     this.applySemanticZoom();
+    this.fitted = true;
   }
 
   /** Centre the camera on a map-unit point, optionally zooming. */
   centerOn(p: Vec2, scale?: number): void {
+    this.fitted = false;
     if (scale) this.world.scale.set(scale);
     const s = this.world.scale.x;
     this.world.position.set(this.app.screen.width / 2 - p.x * HEX_PX * s, this.app.screen.height / 2 - p.y * HEX_PX * s);
@@ -185,6 +199,7 @@ export class BoardRenderer {
   }
 
   zoomBy(factor: number, at?: Vec2): void {
+    this.fitted = false;
     const pt = at ?? { x: this.app.screen.width / 2, y: this.app.screen.height / 2 };
     const minS = this.minScale();
     const s0 = this.world.scale.x;
@@ -197,6 +212,7 @@ export class BoardRenderer {
   }
 
   panBy(dx: number, dy: number): void {
+    this.fitted = false;
     this.world.position.set(this.world.position.x + dx, this.world.position.y + dy);
   }
 
@@ -280,6 +296,7 @@ export class BoardRenderer {
         const dy = e.global.y - this.drag.start.y;
         if (!this.drag.moved && Math.hypot(dx, dy) > 5) this.drag.moved = true;
         if (this.drag.moved) {
+          this.fitted = false;
           this.world.position.set(this.drag.worldStart.x + dx, this.drag.worldStart.y + dy);
           return;
         }

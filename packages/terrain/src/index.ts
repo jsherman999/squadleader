@@ -3,3 +3,4 @@ export * from './board';
 export * from './map';
 export * from './geometry';
 export * from './validate';
+export * from './roads';

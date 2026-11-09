@@ -2,7 +2,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M4 are built. You can play scenario 1 hot-seat or against the computer, with the line-of-sight lab, the move planner and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M5 are built. You can play scenario 1 hot-seat or against the computer on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 
@@ -24,16 +24,20 @@ Builds deploy to GitHub Pages from `main`. In the repository's Settings → Page
 | [docs/rulings.md](docs/rulings.md) | Interpretation calls the engine makes |
 | [docs/adr](docs/adr/README.md) | Architecture decision records |
 
+## Features
+
+- **Boards:** a zoomable top-down hex board in a printed-map style, plus a rotatable 3D landscape built from the same terrain data. Press `3` to switch between 2D, 3D and split.
+- **LOS Inspector:** pick two hexes to see the sight line, the exact obstruction, an elevation profile and a viewshed, in 2D or as a ray in 3D.
+- **Move Planner:** try moves with full movement-factor accounting and defensive-fire exposure, then revert or commit.
+- **Eyes:** press `E` to look from the selected unit's position. Enemy units show only where the rules give line of sight.
+
 ## Planned features
 
-- **Boards:** a zoomable top-down hex board in a printed-map style, plus a rotatable 3D landscape built from the same terrain data.
-- **LOS Inspector:** pick two hexes to see the sight line, the exact obstruction, an elevation profile and a viewshed.
-- **Move Planner:** try moves with full movement-factor accounting and defensive-fire exposure, then revert or commit.
 - **Fire Director:** tracers, shells, rockets and flames drawn from shooter to target during fire phases.
-- **POV Cam:** watch from a leader's eyes or a vehicle's cupola or gunsight, including incoming fire.
+- **POV Cam, part 2:** a vehicle's cupola or gunsight, follow-move, and incoming fire.
 - **LLM opponent:** enter your own API key and pick a provider and model. A scripted bot works offline and is the fallback.
 - **Automation levels:** from Manual to Delegated, with Standing Orders so phases flow quickly.
 
-## Planned stack
+## Stack
 
-TypeScript, React, Vite, PixiJS, three.js (react-three-fiber), Zod, Vitest and Playwright. It deploys as a static site and PWA.
+TypeScript, React, Vite, PixiJS, three.js, Zod and Vitest. It deploys as a static site.
