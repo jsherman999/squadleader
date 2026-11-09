@@ -21,8 +21,8 @@ describe('bot self-play (scenario 1)', () => {
   }, 120_000);
 });
 
-describe('bot self-play (scenarios 2–3: flamethrowers, charges, smoke, concealment, sewers)', () => {
-  for (const index of [1, 2]) {
+describe('bot self-play (scenarios 2–4: special weapons, concealment, sewers, armour)', () => {
+  for (const index of [1, 2, 3]) {
     const ctx = scenarioCtx(index);
     it(`${ctx.scenario.id} plays and replays cleanly`, () => {
       for (const seed of [1, 2]) {

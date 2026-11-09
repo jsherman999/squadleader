@@ -16,6 +16,7 @@ import {
 } from '../queries';
 import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
+import { enemyVehiclesIn, preAfvCheck, vehicleLabel } from './armor';
 
 export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexKey, emit: Emit): void {
   if (s.phase !== 'advance') throw new RuleError('Units advance only in the Advance Phase', '§4.7');
@@ -34,19 +35,24 @@ export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexK
   }
   if (range(from!, to) !== 1) throw new RuleError('Advance is one hex', '§4.7');
   if (!Number.isFinite(moveCost(ctx, from!, to).mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}`);
-  for (const u of units as Unit[]) {
+  // Onto an enemy AFV with no enemy infantry: each unit must pass a pre-AFV attack check (§36.21).
+  const afv = enemyVehiclesIn(s, to, s.phasing)[0];
+  const going = afv && !enemiesIn(s, to, s.phasing).length ? (units as Unit[]).filter((u) => preAfvCheck(ctx, s, u, emit)) : (units as Unit[]);
+  for (const u of units as Unit[]) u.advanced = true;
+  if (!going.length) return;
+  for (const u of going) {
     u.hex = to;
-    u.advanced = true;
     for (const w of carried(s, u)) w.hex = to;
+    if (afv && !enemiesIn(s, to, s.phasing).length) s.afvAssaults.push({ unit: u.id, vehicle: afv.id, from: from! });
   }
   const bad = stackingProblem(ctx, s, to, s.phasing);
   if (bad) throw new RuleError(`Stacking limit in ${hexLabel(ctx, to)}: ${bad}`, '§6.1');
   const intoEnemy = enemiesIn(s, to, s.phasing).length > 0;
   emit({
     kind: 'advance',
-    text: `${(units as Unit[]).map((u) => unitLabel(ctx, u)).join(', ')} advance ${hexLabel(ctx, from!)} → ${hexLabel(ctx, to)}${intoEnemy ? ' into close combat' : ''}`,
+    text: `${going.map((u) => unitLabel(ctx, u)).join(', ')} advance ${hexLabel(ctx, from!)} → ${hexLabel(ctx, to)}${intoEnemy ? ' into close combat' : afv ? ` onto ${vehicleLabel(ctx, afv)} to attack it` : ''}`,
     side: s.phasing,
-    units: [...ids],
+    units: going.map((u) => u.id),
     from: from!,
     to,
   });

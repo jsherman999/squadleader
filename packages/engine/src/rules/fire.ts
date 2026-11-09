@@ -28,6 +28,7 @@ import {
 import { RuleError, type FireUnit, type GameState, type Phase, type SideId, type Unit } from '../types';
 import { applyHexResults } from './morale';
 import { canOperateSpecial, reveal, smokeOnLine } from './special';
+import { chargeVsVehicles, fireOnExposedCrews } from './armor';
 import type { Emit } from './common';
 
 export interface FireContribution {
@@ -238,7 +239,8 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
   // Targets: main hex plus MG penetration hexes.
   const targets: TargetHex[] = [];
   const main = targetUnits(ctx, s, side, target, hexes, leaderDrm, false, flamethrower);
-  if (!main.units.some((t) => s.units[t.unit]!.side !== side)) throw new RuleError(`No enemy units to attack in ${hexLabel(ctx, target)}`);
+  const exposedCrew = Object.values(s.vehicles).some((v) => v.hex === target && v.side !== side && v.ce);
+  if (!main.units.some((t) => s.units[t.unit]!.side !== side) && !exposedCrew) throw new RuleError(`No enemy units to attack in ${hexLabel(ctx, target)}`);
   targets.push(main);
   for (const h of flamethrower ? [] : penetrationHexes(ctx, s, contributions, hexes, target)) {
     const t = targetUnits(ctx, s, side, h, hexes, leaderDrm, true, false);
@@ -284,7 +286,7 @@ function fmtFp(x: number): string {
 }
 
 /** Units affected in a target hex and their DRMs (§11, §16.5–16.6, §20.83). */
-function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, firerHexes: readonly HexKey[], leaderDrm: number, penetration: boolean, flamethrower: boolean): TargetHex {
+export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, firerHexes: readonly HexKey[], leaderDrm: number, penetration: boolean, flamethrower: boolean): TargetHex {
   const tem = hexTem(ctx, hex);
   const t = ctx.data.tables.tem;
   // Hexside wall/hedge applies only if every firing hex's LOS crosses it (§11.53, §11.6).
@@ -316,6 +318,20 @@ function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, firerHex
     }
   }
   const units: TargetUnit[] = [];
+  // A vehicle or wreck in the hex just before the target acts like a wall (§32.3); vehicles that just moved don't (§32.6).
+  const screened = firerHexes.every((f) => {
+    const hs = losFrom(ctx, f, hex).hexes;
+    const prev = hs.length >= 3 ? hs[hs.length - 2]!.key : undefined;
+    if (!prev || prev === f) return false;
+    if (s.wrecks.some((w) => w.hex === prev)) return true;
+    return Object.values(s.vehicles).some((v) => v.hex === prev && !(s.phase === 'defensiveFire' && v.moved));
+  });
+  if (screened && !sideDrm) {
+    sideDrm = t.wall;
+    sideNote = `+${t.wall} a vehicle or wreck in the way (§32.3)`;
+  }
+  // Infantry beside a friendly AFV or a wreck: +1 (§32.5, §40.5).
+  const shelter = (u: Unit) => s.wrecks.some((w) => w.hex === hex) || Object.values(s.vehicles).some((v) => v.hex === hex && v.side === u.side);
   // A flamethrower in the target hex draws fire: −1 (§22.7).
   const ftHere = unitsIn(s, hex).some((u) => carried(s, u).some((w) => weaponType(ctx, w).kind === 'FT'));
   for (const u of affected.values()) {
@@ -336,6 +352,10 @@ function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, firerHex
       notes.push('−1 flamethrower in the hex (§22.7)');
     }
     if (tem.drm) notes.push(`${tem.drm > 0 ? '+' : ''}${tem.drm} ${tem.label} (§11.1)`);
+    if (shelter(u)) {
+      drm += 1;
+      notes.push('+1 beside an AFV or wreck (§32.5)');
+    }
     if (sideDrm) notes.push(sideNote);
     if (leaderDrm) notes.push(`${leaderDrm > 0 ? '+' : ''}${leaderDrm} leader`);
     if (tracked.has(u.id) && isOpenGround(ctx, hex)) {
@@ -484,6 +504,8 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     emit({ kind: 'breakdown', text: `${weaponType(ctx, w).name} malfunctions (unmodified ${dr} ≥ B${b.number}, §18.1)`, side: w.side, hexes: [w.hex] });
   }
 
+  // Crews riding exposed get shot at too (§34.8).
+  if (!a.flamethrower) fireOnExposedCrews(ctx, s, target, a.side, a.column, dr + smokeDie, emit);
   // Desperation morale marker for everyone fired on (§14.6).
   if (a.column >= 0) for (const o of outcomes) for (const r of o.results) if (s.units[r.unit]) s.units[r.unit]!.dm = true;
   for (const o of outcomes) {
@@ -537,6 +559,7 @@ export function detonate(ctx: Ctx, s: GameState, weaponId: string, emit: Emit): 
   const tem = hexTem(ctx, c.target);
   const melee = inMelee(s, c.target);
   const victims = unitsIn(s, c.target).filter((u) => u.side !== c.side || melee);
+  const hasAfv = Object.values(s.vehicles).some((v) => v.hex === c.target && v.side !== c.side);
   const trace = [`Demolition charge ${fp} FP on ${hexLabel(ctx, c.target)}; ${tem.drm ? `${tem.drm > 0 ? '+' : ''}${tem.drm} ${tem.label}` : 'no terrain modifier'}; no leadership (§23.5)`, `Dice ${d1}+${d2} = ${dr}`];
   s.charges = s.charges.filter((x) => x !== c);
   delete s.weapons[weaponId];
@@ -544,6 +567,7 @@ export function detonate(ctx: Ctx, s: GameState, weaponId: string, emit: Emit): 
     emit({ kind: 'breakdown', text: `The charge on ${hexLabel(ctx, c.target)} fails to go off (roll 12, §23.8)`, trace, side: c.side, dice: [d1, d2], hexes: [c.target] });
     return;
   }
+  if (hasAfv) chargeVsVehicles(ctx, s, c.target, c.side, c.from, dr, emit);
   const results = victims.map((u) => {
     const fin = dr + tem.drm;
     return { unit: u.id, result: iftLookup(ctx, colFor(u.concealed ? fp / 2 : fp), fin), finalDr: fin };

@@ -10,5 +10,7 @@
   {"id": "ger-ft", "nation": "german", "kind": "FT", "name": "Flamethrower", "fp": 20, "range": 2, "breakdown": 9, "portage": 2, "leaderPortage": 2, "penetration": 1},
   {"id": "ger-dc", "nation": "german", "kind": "DC", "name": "Demolition charge", "fp": 30, "range": 1, "breakdown": 12, "portage": 1, "leaderPortage": 1, "penetration": 1},
   {"id": "us-ft", "nation": "american", "kind": "FT", "name": "Flamethrower", "fp": 20, "range": 2, "breakdown": 9, "portage": 2, "leaderPortage": 2, "penetration": 1},
-  {"id": "us-dc", "nation": "american", "kind": "DC", "name": "Demolition charge", "fp": 30, "range": 1, "breakdown": 12, "portage": 1, "leaderPortage": 1, "penetration": 1}
+  {"id": "us-dc", "nation": "american", "kind": "DC", "name": "Demolition charge", "fp": 30, "range": 1, "breakdown": 12, "portage": 1, "leaderPortage": 1, "penetration": 1},
+  {"id": "ger-pf", "nation": "german", "kind": "PF", "name": "Panzerfaust", "fp": 0, "range": 3, "breakdown": 13, "portage": 0.5, "leaderPortage": 1, "penetration": 0},
+  {"id": "us-baz", "nation": "american", "kind": "BAZ", "name": "Bazooka", "fp": 6, "range": 4, "breakdown": 11, "portage": 1, "leaderPortage": 2, "penetration": 0}
 ]

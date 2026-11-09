@@ -8,6 +8,7 @@ import type { Emit } from './rules/common';
 import { doRout, pendingRouts } from './rules/rout';
 import { evaluateVictory } from './rules/victory';
 import { armCharges, clearSmoke, expireCharges, gainConcealment, returnLostUnits, revealAdjacent, setupConcealment } from './rules/special';
+import { displaceOverrun, endFirePhase, resetVehicles, resolveAfvAssaults } from './rules/armor';
 
 export function sideName(s: GameState, id: SideId): string {
   return s.sides.find((x) => x.id === id)?.name ?? id;
@@ -43,10 +44,12 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
     w.usedThisTurn = false;
     w.repairTried = false;
   }
+  resetVehicles(s);
   s.tracks = {};
   s.moving = [];
   s.attacks = [];
   s.ccPlans = {};
+  s.afvAssaults = [];
   s.phase = 'rally';
   s.awaiting = s.phasing;
   announce(s, emit);
@@ -88,6 +91,11 @@ export function phaseBlockers(ctx: Ctx, s: GameState): string[] {
       const p = stackingProblem(ctx, s, h, side);
       if (p) out.push(`${hexLabel(ctx, h)}: ${p} (§6.1)`);
     }
+    // One vehicle per hex at the end of movement (§29.1, §30.8).
+    for (const v of Object.values(s.vehicles)) {
+      if (v.side !== side || (s.phase === 'movement' && !v.moved)) continue;
+      if (Object.values(s.vehicles).some((o) => o.id !== v.id && o.hex === v.hex)) out.push(`${hexLabel(ctx, v.hex)}: two vehicles may not end in one hex (§29.1)`);
+    }
   }
   return out;
 }
@@ -125,6 +133,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       clearSmoke(ctx, s, s.phasing, emit);
       return;
     case 'prepFire':
+      endFirePhase(s, 'prepFire');
       s.phase = 'movement';
       s.attacks = [];
       announce(s, emit);
@@ -140,6 +149,8 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       announce(s, emit);
       return;
     case 'defensiveFire':
+      endFirePhase(s, 'defensiveFire');
+      displaceOverrun(ctx, s, emit);
       s.phase = 'advancingFire';
       s.awaiting = s.phasing;
       s.attacks = [];
@@ -148,6 +159,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       armCharges(ctx, s, emit);
       return;
     case 'advancingFire':
+      endFirePhase(s, 'advancingFire');
       expireCharges(ctx, s, emit);
       s.phase = 'rout';
       s.awaiting = s.phasing;
@@ -171,7 +183,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       s.phase = 'closeCombat';
       s.awaiting = s.phasing;
       purgeBrokenInMelee(ctx, s, emit);
-      if (!ccHexes(s).length) {
+      if (!ccHexes(s).length && !s.afvAssaults.length) {
         endPlayerTurn(ctx, s, emit);
         return;
       }
@@ -186,6 +198,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
         s.awaiting = other;
         return;
       }
+      resolveAfvAssaults(ctx, s, emit);
       resolveCloseCombat(ctx, s, emit);
       endPlayerTurn(ctx, s, emit);
       return;

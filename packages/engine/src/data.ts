@@ -43,7 +43,7 @@ export const WeaponTypeSchema = z
   .object({
     id: z.string(),
     nation: Nation,
-    kind: z.enum(['LMG', 'MMG', 'HMG', 'FT', 'DC']),
+    kind: z.enum(['LMG', 'MMG', 'HMG', 'FT', 'DC', 'PF', 'BAZ']),
     name: z.string(),
     fp: z.number(),
     range: z.number().int(),
@@ -58,6 +58,67 @@ export const WeaponTypeSchema = z
   })
   .strict();
 export type WeaponType = z.infer<typeof WeaponTypeSchema>;
+
+export const VehicleTypeSchema = z
+  .object({
+    id: z.string(),
+    nation: Nation,
+    kind: z.enum(['tank', 'spg']),
+    name: z.string(),
+    /** Movement points (§28.1). */
+    mp: z.number(),
+    /** Main gun calibre in mm, or null (§28.2). */
+    gun: z.number().nullable(),
+    /** Overscored gun: HE only (§33.6). */
+    heOnly: z.boolean(),
+    /** "*" gun: worse at long range (§33.6, To Hit cases B–C). */
+    lowVelocity: z.boolean(),
+    /** Covered-arc MG and all-round MG firepower (§28.4). */
+    mgCA: z.number(),
+    mg360: z.number(),
+    /** Modifier to the AFV Kill dice roll (§33.41). */
+    armor: z.number().int(),
+    turret: z.boolean(),
+    openTop: z.boolean(),
+    /** Crew survival number on the wreck (§33.9). */
+    survival: z.number().int(),
+    /** Crew counter type that bails out (§33.9). */
+    crew: z.string(),
+    /** Main gun shots per player turn (M-10, §33.2). */
+    rof: z.number().int().optional(),
+    /** German smoke dischargers (§41.4). */
+    smokeDischarger: z.boolean().optional(),
+  })
+  .strict();
+export type VehicleType = z.infer<typeof VehicleTypeSchema>;
+
+const Pair = z.tuple([z.number(), z.number()]);
+const KillRow = z.array(z.number());
+export const ArmorTablesSchema = z
+  .object({
+    toHit: z
+      .object({
+        /** Upper range of each band; beyond the last is the last column. */
+        bands: z.array(z.number().int()),
+        /** Per target type: [black, red] hit numbers per range band (§33.3). */
+        rows: z.record(z.string(), z.array(Pair)),
+        drm: z.record(z.string(), z.number()),
+      })
+      .strict(),
+    kill: z.object({ columns: z.array(z.string()), front: KillRow, side: KillRow, rear: KillRow }).strict(),
+    /** Gun calibre (mm) → infantry firepower equivalent (§34.2). */
+    heEquivalent: z.array(Pair),
+    movement: z.record(z.string(), z.number()),
+    /** Breakdown on entering woods/wooden buildings at or above (§39.1). */
+    immobilize: z.record(z.string(), z.number().int()),
+    defensiveImmobilize: z.record(z.string(), z.number().int()),
+    overrun: z.record(z.string(), z.number()),
+    panzerfaust: z.object({ range: z.number().int(), toHit: z.array(Pair) }).strict(),
+    bazooka: z.object({ range: z.number().int(), toHit: z.array(Pair), outOfAmmo: z.number().int() }).strict(),
+    mgRange: z.number().int(),
+  })
+  .strict();
+export type ArmorTables = z.infer<typeof ArmorTablesSchema>;
 
 const IftResult = z.union([z.literal('KIA'), z.literal('M'), z.literal('-'), z.number().int().min(1).max(4)]);
 export type IftResult = 'KIA' | 'M' | '-' | number;
@@ -125,6 +186,8 @@ const UnitEntry = z
     hex: z.string().optional(),
     names: z.array(z.string()).optional(),
     weapons: z.array(z.string()).optional(),
+    /** Vehicles: the covered arc, as its two hexsides, e.g. "N-NE" (§29.4). */
+    facing: z.enum(['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N']).optional(),
   })
   .strict();
 
@@ -200,19 +263,25 @@ export type Scenario = z.infer<typeof ScenarioSchema>;
 export interface RulesData {
   readonly units: Readonly<Record<string, UnitType>>;
   readonly weapons: Readonly<Record<string, WeaponType>>;
+  readonly vehicles: Readonly<Record<string, VehicleType>>;
   readonly tables: Tables;
+  readonly armor: ArmorTables;
 }
 
-export function parseRulesData(raw: { units: unknown; weapons: unknown; tables: unknown }): RulesData {
+export function parseRulesData(raw: { units: unknown; weapons: unknown; tables: unknown; vehicles: unknown; armor: unknown }): RulesData {
   const units = z.array(UnitTypeSchema).parse(raw.units);
   const weapons = z.array(WeaponTypeSchema).parse(raw.weapons);
+  const vehicles = z.array(VehicleTypeSchema).parse(raw.vehicles);
+  const armor = ArmorTablesSchema.parse(raw.armor);
   const tables = TablesSchema.parse(raw.tables);
   if (tables.ift.rows.length !== 15) throw new Error('IFT needs 15 rows');
   for (const r of tables.ift.rows) if (r.length !== tables.ift.columns.length) throw new Error('IFT row width mismatch');
   return {
     units: Object.fromEntries(units.map((u) => [u.id, u])),
     weapons: Object.fromEntries(weapons.map((w) => [w.id, w])),
+    vehicles: Object.fromEntries(vehicles.map((v) => [v.id, v])),
     tables,
+    armor,
   };
 }
 

@@ -81,6 +81,57 @@ export interface Unit {
   sewerAssault: boolean;
 }
 
+/** A tank or self-propelled gun (§28). JSON-serializable. */
+export interface Vehicle {
+  readonly id: string;
+  readonly type: string;
+  readonly side: SideId;
+  readonly name?: string;
+  hex: HexKey;
+  /** Covered arc between hexside directions `facing` and `facing + 1` (§29.4). */
+  facing: number;
+  // ---- per player turn ----
+  mpSpent: number;
+  /** Entered a new hex this player turn. */
+  moved: boolean;
+  /** Changed facing in its hex without moving this player turn (To Hit cases E, G). */
+  pivoted: boolean;
+  moveDone: boolean;
+  /** Main gun shots this player turn (§33.2). */
+  mainShots: number;
+  mgCaUsed: boolean;
+  mg360Used: boolean;
+  /** Phase the vehicle first fired in this player turn: firing in Prep Fire forbids moving (§33.2). */
+  firedPhase: Phase | null;
+  /** Hex the main gun fired at this phase: the covered-arc MG may only join it (§28.4). */
+  mainTarget: HexKey | null;
+  /** Made its one overrun this player turn (§35.8–35.9). */
+  overran: boolean;
+  /** An SP gun pivoted during this Defensive Fire Phase (case I). */
+  dfPivot: boolean;
+  // ---- lasting ----
+  gun: 'ok' | 'malfunctioned' | 'disabled';
+  mg: 'ok' | 'malfunctioned' | 'disabled';
+  repairTried: boolean;
+  immobilized: boolean;
+  /** Crew exposed after using the all-round MG (§34.8). */
+  ce: boolean;
+  smokeUsed: boolean;
+}
+
+export interface Wreck {
+  readonly hex: HexKey;
+  readonly type: string;
+  readonly side: SideId;
+}
+
+/** Infantry that advanced onto an enemy AFV to attack it in Close Combat (§36.2). */
+export interface AfvAssault {
+  readonly unit: string;
+  readonly vehicle: string;
+  readonly from: HexKey;
+}
+
 export interface Weapon {
   readonly id: string;
   readonly type: string;
@@ -169,7 +220,7 @@ export interface GameState {
   /** Sides that have finished setting up. */
   setupDone: SideId[];
   /** Units eliminated so far, by side. */
-  losses: Record<SideId, { squads: number; leaders: number }>;
+  losses: Record<SideId, { squads: number; leaders: number; vehicles?: number }>;
   /** Smoke counters on the map (§24). */
   smoke: Smoke[];
   /** Smoke counters each side has left (§24.1). */
@@ -179,6 +230,12 @@ export interface GameState {
   /** Sewer entrances closed by a demolition charge (§27.6). */
   closedSewers: HexKey[];
   lostInSewers: LostInSewers[];
+  /** Tanks and SP guns (§28). */
+  vehicles: Record<string, Vehicle>;
+  wrecks: Wreck[];
+  /** Hexes each vehicle occupied during this Movement Phase, start included (§36.1, Defensive Fire). */
+  vtracks: Record<string, HexKey[]>;
+  afvAssaults: AfvAssault[];
   /** Test hook: dice values used before the PRNG. Never set in normal play. */
   diceQueue?: number[];
   winner?: SideId | 'draw';
@@ -219,6 +276,27 @@ export type Action =
   | { readonly type: 'detonate'; readonly weapon: string }
   /** Sewer movement to an entrance within 3 hexes (§27). */
   | { readonly type: 'sewer'; readonly units: readonly string[]; readonly to: HexKey }
+  /** Set up or turn a vehicle (setup; or pivot during movement, §30.5). */
+  | { readonly type: 'face'; readonly vehicle: string; readonly facing: number }
+  /** A vehicle moves one hex (§30). */
+  | { readonly type: 'vmove'; readonly vehicle: string; readonly to: HexKey }
+  | { readonly type: 'vstop'; readonly vehicle: string }
+  /** A tank or SP gun fires its main gun or MGs (§33–34). `vs` picks a vehicle in the hex; otherwise infantry. */
+  | {
+      readonly type: 'vfire';
+      readonly vehicle: string;
+      readonly target: HexKey;
+      readonly weapon: 'main' | 'mg';
+      readonly vs?: string;
+      readonly ammo?: 'AP' | 'HE';
+      readonly mgs?: readonly ('ca' | 'aa')[];
+    }
+  /** Infantry attack on an AFV: flamethrower, panzerfaust or bazooka (§37), or a Defensive Fire immobilization attempt (§36.1). */
+  | { readonly type: 'antiTank'; readonly units: readonly string[]; readonly vehicle: string; readonly weapon?: string }
+  /** German smoke dischargers (§41.4). */
+  | { readonly type: 'discharge'; readonly vehicle: string }
+  /** Repair a vehicle's main gun or MGs in the Rally Phase (§38.1). */
+  | { readonly type: 'vrepair'; readonly vehicle: string }
   | { readonly type: 'endPhase' };
 
 // ---- Events ------------------------------------------------------------------

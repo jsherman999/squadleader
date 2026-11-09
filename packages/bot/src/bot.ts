@@ -44,6 +44,7 @@ import {
 } from '@squadwar/engine';
 import { chanceAtMost, hexId, leaderNote, objectiveNear, pct, stackName, terrainNote, unitList, type Decision, type Rationale } from './explain';
 import { canOperateSpecial, isSewerEntrance } from '@squadwar/engine';
+import { afvAssaultTarget, antiTankDecision, vehicleFireDecision, vehicleMoveDecision, vehicleRepairDecision } from './armor';
 
 export interface BotOptions {
   /** Minimum expected casualties (broken-or-worse) before firing. */
@@ -73,15 +74,15 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
         weight: 'routine',
       });
     case 'rally':
-      return rallyDecision(ctx, s, side) ?? end({ goal: 'Finish the Rally Phase', reasons: ['No broken unit has a leader to rally it, and no weapon needs repair.'], weight: 'routine' });
+      return vehicleRepairDecision(ctx, s, side) ?? rallyDecision(ctx, s, side) ?? end({ goal: 'Finish the Rally Phase', reasons: ['No broken unit has a leader to rally it, and no weapon needs repair.'], weight: 'routine' });
     case 'prepFire':
-      return smokeDecision(ctx, s, side) ?? fireDecision(ctx, s, side, opts.fireThreshold ?? 0.35, true);
+      return smokeDecision(ctx, s, side) ?? antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.3) ?? fireDecision(ctx, s, side, opts.fireThreshold ?? 0.35, true);
     case 'defensiveFire':
-      return fireDecision(ctx, s, side, opts.fireThreshold ?? 0.12, false);
+      return antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.1) ?? fireDecision(ctx, s, side, opts.fireThreshold ?? 0.12, false);
     case 'advancingFire':
-      return detonateDecision(ctx, s, side) ?? fireDecision(ctx, s, side, 0.05, false);
+      return detonateDecision(ctx, s, side) ?? antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.05) ?? fireDecision(ctx, s, side, 0.05, false);
     case 'movement':
-      return chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
+      return chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? vehicleMoveDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
     case 'advance':
       return advanceDecision(ctx, s, side);
     default:
@@ -764,6 +765,22 @@ function advanceDecision(ctx: Ctx, s: GameState, side: string): Decision {
     if (inMelee(s, h)) continue;
     const group = sideUnitsIn(s, h, side).filter((u) => !u.broken && !u.advanced);
     if (!group.length) continue;
+    // A lone enemy AFV next door: close assault it if the odds are fair (§36.2).
+    const afv = afvAssaultTarget(ctx, s, side, h);
+    if (afv && afv.p >= 0.3) {
+      const a: Action = { type: 'advance', units: group.map((u) => u.id), to: afv.to };
+      if (legal(ctx, s, a))
+        return {
+          action: a,
+          why: {
+            goal: `Close assault on ${afv.label} in ${hexId(ctx, afv.to)}`,
+            reasons: [`It has no infantry with it. Each unit that passes a pre-attack morale check gets an attack that kills it on its firepower or less (§36.21–36.23): about ${pct(afv.p)} overall.`, 'If they fail, they fall back to where they came from (§36.24).'],
+            tip: 'A tank without infantry support is vulnerable to close assault; keep friendly squads near your own armour.',
+            weight: 'key',
+            focus: { from: h, to: afv.to },
+          },
+        };
+    }
     const portable = group.filter((u) => {
       const pp = carried(s, u).reduce((a, w) => a + weaponType(ctx, w).portage, 0);
       return pp <= (isLeader(ctx, u) ? 3 : 5);

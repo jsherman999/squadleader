@@ -1,0 +1,287 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s4",
+  "title": "Armor in the Streets",
+  "date": "November 1943",
+  "location": "Zhitomir",
+  "briefing": "A German panzer battlegroup counter-attacks to retake the town from the north, through the factory district. A Soviet rifle battalion, backed by two T-34s and an SU-122 assault gun, holds the old town around the market square. Both sides now fight with armour in streets too narrow for it: the tanks need their infantry to keep enemy tank-hunters at bay, and the infantry needs the tanks' guns to crack the strongpoints.",
+  "rulesLevel": 41,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "board": "A",
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "smoke": {
+    "ger": 2
+  },
+  "concealment": {
+    "rus": 3
+  },
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first, anywhere on board A or in rows 8–11 of board B. Three stacks start concealed.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "A",
+            "GG"
+          ]
+        },
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            8,
+            11
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "hex": "A-Q2",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "A-Q2",
+          "names": [
+            "Lt. Markov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-R3"
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-O6",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "A-O6"
+        },
+        {
+          "type": "rus-L81",
+          "hex": "A-O6",
+          "names": [
+            "Sgt. Zuev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-Y2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-W5"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-S9"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-S9",
+          "names": [
+            "Sgt. Popov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-L8"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "A-S4",
+          "names": [
+            "Rodina"
+          ],
+          "facing": "NW-N"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "A-K5",
+          "names": [
+            "Za Stalina"
+          ],
+          "facing": "N-NE"
+        },
+        {
+          "type": "rus-su122",
+          "hex": "A-U3",
+          "facing": "NW-N"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in rows 1–6 of board B. Moves first. Two smoke counters for the engineers.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            1,
+            6
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "B-T3",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "B-T3",
+          "names": [
+            "Hptm. Ritter"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-S5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-U6",
+          "weapons": [
+            "ger-pf",
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-U6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "B-U6",
+          "names": [
+            "Fw. Kurz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M5",
+          "weapons": [
+            "ger-pf",
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-M5",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "B-M5",
+          "names": [
+            "Uffz. Haas"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-pz4f2",
+          "hex": "B-O3",
+          "names": [
+            "Anton"
+          ],
+          "facing": "SE-S"
+        },
+        {
+          "type": "ger-pz4f2",
+          "hex": "B-W5",
+          "names": [
+            "Berta"
+          ],
+          "facing": "S-SW"
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "B-Q4",
+          "facing": "SE-S"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 8, they control at least three of the four strongpoints around the market square (church, town hall, factory, timber barn). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes; vehicles do not control buildings. Otherwise the Soviets win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-O6",
+          "name": "Town hall"
+        },
+        {
+          "hex": "A-Y2",
+          "name": "Factory"
+        },
+        {
+          "hex": "A-W5",
+          "name": "Timber barn"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–41: Game Set I with armour (tanks, SP guns, overruns, infantry anti-tank attacks, panzerfausts).",
+    "The Soviets conceal three stacks at setup (§25.6). The German engineers have two smoke counters (§24).",
+    "German tanks and SP guns carry smoke dischargers, usable once each (§41.4)."
+  ]
+}

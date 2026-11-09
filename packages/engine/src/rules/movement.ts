@@ -63,7 +63,7 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
   const from = movers[0]!.hex;
   if (movers.some((u) => u.hex !== from)) throw new RuleError('Units moving together must start in the same hex', '§19.4');
   if (range(from, to) !== 1) throw new RuleError('Units move one hex at a time');
-  if (enemiesIn(s, to, s.phasing).length) throw new RuleError('Infantry may enter an enemy-occupied hex only in the Advance Phase', '§5.6');
+  if (enemiesIn(s, to, s.phasing).length || Object.values(s.vehicles).some((v) => v.hex === to && v.side !== s.phasing)) throw new RuleError('Infantry may enter an enemy-occupied hex only in the Advance Phase', '§5.6');
 
   // A new group finishes the previous one (§19.2, §19.4).
   const continuing = s.moving.length > 0 && ids.every((id) => s.moving.includes(id));

@@ -35,7 +35,7 @@ export function evaluateVictory(ctx: Ctx, s: GameState): { winner: SideId; text:
 export function suddenDeath(ctx: Ctx, s: GameState, emit: Emit): void {
   if (s.phase === 'setup' || s.phase === 'gameOver') return;
   for (const side of s.sides) {
-    if (!allUnits(s, side.id).length) {
+    if (!allUnits(s, side.id).length && !Object.values(s.vehicles).some((v) => v.side === side.id)) {
       const other = s.sides.find((x) => x.id !== side.id)!;
       s.phase = 'gameOver';
       s.winner = other.id;

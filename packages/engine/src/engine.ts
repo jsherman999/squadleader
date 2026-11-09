@@ -1,11 +1,12 @@
 import type { Ctx } from './ctx';
 import { hexLabel, otherSide, unitLabel } from './queries';
-import { RuleError, type Action, type GameEvent, type GameState, type Unit, type Weapon } from './types';
+import { RuleError, type Action, type GameEvent, type GameState, type Unit, type Vehicle, type Weapon } from './types';
 import { endPhase, sideName } from './phases';
 import { advance } from './rules/advance';
 import { designate } from './rules/closeCombat';
 import { detonate, resolveFire } from './rules/fire';
 import { placeCharge, placeSmoke, sewerMove } from './rules/special';
+import { antiTank, discharge, faceVehicle, facingIndex, newVehicle, resolveVehicleFire, vehicleLabel, vehicleMove, vehicleRepair, vehicleStop } from './rules/armor';
 import { endMove, moveStep, transferWeapon } from './rules/movement';
 import { rallyAttempt, repairAttempt } from './rules/rally';
 import { doRout } from './rules/rout';
@@ -22,12 +23,23 @@ export function createGame(ctx: Ctx, seed: number): Step {
   const sc = ctx.scenario;
   const units: Record<string, Unit> = {};
   const weapons: Record<string, Weapon> = {};
+  const vehicles: Record<string, Vehicle> = {};
   let un = 0;
   let wn = 0;
+  let vn = 0;
   for (const side of sc.sides) {
     for (const entry of side.units) {
       const count = entry.count ?? 1;
       const firstIds: string[] = [];
+      if (ctx.data.vehicles[entry.type]) {
+        for (let i = 0; i < count; i++) {
+          const id = `v${++vn}`;
+          const hex = entry.hex ? ctx.map.byId[entry.hex] : [...ctx.zones[side.id]!][0];
+          if (!hex) throw new Error(`${sc.id}: bad start hex ${entry.hex}`);
+          vehicles[id] = newVehicle(id, entry.type, side.id, hex, facingIndex(entry.facing ?? 'N-NE'), entry.names?.[i]);
+        }
+        continue;
+      }
       for (let i = 0; i < count; i++) {
         const id = `u${++un}`;
         const hex = entry.hex ? ctx.map.byId[entry.hex] : [...ctx.zones[side.id]!][0];
@@ -94,6 +106,10 @@ export function createGame(ctx: Ctx, seed: number): Step {
     charges: [],
     closedSewers: [],
     lostInSewers: [],
+    vehicles,
+    wrecks: [],
+    vtracks: {},
+    afvAssaults: [],
   };
   return {
     state,
@@ -150,6 +166,27 @@ export function applyAction(ctx: Ctx, state: GameState, action: Action): Step {
     case 'sewer':
       sewerMove(ctx, s, action.units, action.to, emit);
       break;
+    case 'face':
+      faceVehicle(ctx, s, action.vehicle, action.facing, emit);
+      break;
+    case 'vmove':
+      vehicleMove(ctx, s, action.vehicle, action.to, emit);
+      break;
+    case 'vstop':
+      vehicleStop(ctx, s, action.vehicle);
+      break;
+    case 'vfire':
+      resolveVehicleFire(ctx, s, action, emit);
+      break;
+    case 'antiTank':
+      antiTank(ctx, s, action.units, action.vehicle, action.weapon, emit);
+      break;
+    case 'discharge':
+      discharge(ctx, s, action.vehicle, emit);
+      break;
+    case 'vrepair':
+      vehicleRepair(ctx, s, action.vehicle, emit);
+      break;
     case 'endPhase':
       endPhase(ctx, s, emit);
       break;
@@ -184,6 +221,19 @@ export function replay(ctx: Ctx, seed: number, actions: readonly Action[]): { st
 
 function place(ctx: Ctx, s: GameState, unitId: string, hex: string, emit: Emit): void {
   if (s.phase !== 'setup') throw new RuleError('Units are placed during setup', '§21');
+  const v = s.vehicles[unitId];
+  if (v) {
+    if (v.side !== s.awaiting) throw new RuleError('Not your vehicle');
+    if (!ctx.zones[v.side]!.has(hex)) throw new RuleError(`${hexLabel(ctx, hex)} is outside your setup area`, '§21');
+    const t = ctx.map.hexes[hex]!.terrain;
+    if (t === 'stoneBuilding' || t === 'water') throw new RuleError('Vehicles cannot be there', '§30.1');
+    if (Object.values(s.vehicles).some((o) => o.hex === hex && o.id !== v.id)) throw new RuleError('One vehicle per hex', '§29.1');
+    if (Object.values(s.units).some((o) => o.hex === hex && o.side !== v.side)) throw new RuleError('Enemy units are there');
+    const from = v.hex;
+    v.hex = hex;
+    emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} placed in ${hexLabel(ctx, hex)}`, side: v.side, from, to: hex, fx: { vehicles: [v.id] } });
+    return;
+  }
   const u = s.units[unitId];
   if (!u || u.side !== s.awaiting) throw new RuleError('Not your unit');
   if (!ctx.zones[u.side]!.has(hex)) throw new RuleError(`${hexLabel(ctx, hex)} is outside your setup area`, '§21');

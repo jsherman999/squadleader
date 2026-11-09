@@ -1,9 +1,10 @@
 import type { HexKey } from '@squadwar/hex';
-import { hexLabel, unitLabel, type Action, type Ctx, type GameState } from '@squadwar/engine';
+import { FACING_NAMES, hexLabel, unitLabel, vehicleLabel, type Action, type Ctx, type GameState } from '@squadwar/engine';
 
 /** A short, plain description of an action, for lists. */
 export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
   const units = (ids: readonly string[]) => ids.map((id) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id)).join(', ');
+  const veh = (id: string) => (s.vehicles[id] ? vehicleLabel(ctx, s.vehicles[id]!) : 'vehicle');
   switch (a.type) {
     case 'move':
       return `${units(a.units)} → ${hexLabel(ctx, a.to)}`;
@@ -35,6 +36,20 @@ export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
       return 'Set off a demolition charge';
     case 'sewer':
       return `${units(a.units)} through the sewers → ${hexLabel(ctx, a.to)}`;
+    case 'face':
+      return `${veh(a.vehicle)} faces ${FACING_NAMES[a.facing]}`;
+    case 'vmove':
+      return `${veh(a.vehicle)} → ${hexLabel(ctx, a.to)}`;
+    case 'vstop':
+      return `${veh(a.vehicle)} stops`;
+    case 'vfire':
+      return `${veh(a.vehicle)} ${a.weapon === 'main' ? 'fires its gun' : 'fires its MGs'} at ${a.vs ? veh(a.vs) : hexLabel(ctx, a.target)}`;
+    case 'antiTank':
+      return `${units(a.units)} attack ${veh(a.vehicle)}`;
+    case 'discharge':
+      return `${veh(a.vehicle)} smoke dischargers`;
+    case 'vrepair':
+      return `Repair ${veh(a.vehicle)}`;
   }
 }
 
@@ -55,7 +70,15 @@ export function actionUnits(a: Action | undefined): string[] {
     case 'placeCharge':
       return [a.unit];
     case 'sewer':
+    case 'antiTank':
       return [...a.units];
+    case 'face':
+    case 'vmove':
+    case 'vstop':
+    case 'vfire':
+    case 'discharge':
+    case 'vrepair':
+      return [a.vehicle];
     default:
       return [];
   }
@@ -74,5 +97,5 @@ export const ACTION_ICON: Record<string, string> = {
 
 export function hexOf(s: GameState, a: Action | undefined): HexKey | undefined {
   const id = actionUnits(a)[0];
-  return id ? s.units[id]?.hex : undefined;
+  return id ? (s.units[id]?.hex ?? s.vehicles[id]?.hex) : undefined;
 }

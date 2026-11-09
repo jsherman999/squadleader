@@ -2,7 +2,8 @@ import { rawRules } from '@squadwar/content';
 import { parseBoard, type BoardHex } from '@squadwar/terrain';
 import { makeCtx, parseRulesData, parseScenario, type Ctx } from '../index';
 import { createGame } from '../engine';
-import type { GameState, Unit } from '../types';
+import type { GameState, Unit, Vehicle } from '../types';
+import { facingIndex, newVehicle } from '../rules/armor';
 
 export const data = parseRulesData(rawRules);
 
@@ -38,6 +39,7 @@ export function blankState(ctx: Ctx, phase: GameState['phase'] = 'prepFire'): Ga
   const s = structuredClone(createGame(ctx, 1).state);
   s.units = {};
   s.weapons = {};
+  s.vehicles = {};
   s.phase = phase;
   s.turn = 1;
   s.half = 0;
@@ -89,3 +91,14 @@ export function put(ctx: Ctx, s: GameState, type: string, at: string, opts: Part
 }
 
 export const hexOf = (ctx: Ctx, at: string) => ctx.map.byId[`T-${at}`]!;
+
+/** Put a vehicle on the test board, covered arc given as e.g. "N-NE". */
+export function putVehicle(ctx: Ctx, s: GameState, type: string, at: string, facing = 'N-NE', opts: Partial<Vehicle> = {}): Vehicle {
+  const id = `v${next++}`;
+  const side = type.startsWith('ger') ? 'ger' : type.startsWith('rus') ? 'rus' : 'us';
+  const hex = ctx.map.byId[`T-${at}`];
+  if (!hex) throw new Error(`bad hex ${at}`);
+  const v = { ...newVehicle(id, type, side, hex, facingIndex(facing)), ...opts };
+  s.vehicles[id] = v;
+  return v;
+}
