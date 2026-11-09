@@ -108,6 +108,15 @@ export class BoardRenderer {
       this.terrainLayer.addChild(this.painted.terrain);
       this.gridLayer.addChild(this.painted.grid);
       this.labelLayer.addChild(this.painted.labels);
+      // Clip map-space overlays (shading, viewsheds) to the board outline.
+      for (const layer of [this.underLayer, this.overLayer]) {
+        const old = layer.mask;
+        if (old instanceof Graphics) old.destroy();
+        const m = new Graphics();
+        for (const r of map.boards) m.rect(r.x0 * HEX_PX, r.y0 * HEX_PX, (r.x1 - r.x0) * HEX_PX, (r.y1 - r.y0) * HEX_PX).fill(0xffffff);
+        this.world.addChild(m);
+        layer.mask = m;
+      }
     }
     if (fit) this.fit();
     this.applySemanticZoom();

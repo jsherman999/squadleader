@@ -263,3 +263,129 @@ button {
     border-bottom: 1px solid var(--c-line);
   }
 }
+
+/* ---- LOS inspector -------------------------------------------------- */
+.hud-right {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 330px;
+  max-width: calc(100% - 24px);
+  display: grid;
+  gap: 8px;
+}
+.panel-card {
+  background: rgba(24, 28, 24, 0.94);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+.toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.toolbar .btn {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid var(--c-line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+  color: var(--c-text-dim);
+}
+.los-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.los-badge {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.los-badge.ok {
+  background: #2f5a2a;
+  color: #b9f0a8;
+}
+.los-badge.bad {
+  background: #6a2a22;
+  color: #ffc2b8;
+}
+.los-reason {
+  margin: 8px 0 6px;
+  line-height: 1.4;
+}
+.los-meta {
+  font-size: 12px;
+  display: grid;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.profile {
+  width: 100%;
+  height: auto;
+  background: #11140f;
+  border-radius: 4px;
+}
+.profile-grid {
+  stroke: #2b3129;
+  stroke-width: 1;
+}
+.profile-axis {
+  fill: #8d8c7a;
+  font-size: 9px;
+  font-family: var(--font-mono);
+}
+.profile-ground {
+  fill: #6f5a37;
+}
+.profile-woods {
+  fill: #4f7a3a;
+}
+.profile-building {
+  fill: #8b6a4c;
+}
+.profile-wall {
+  fill: #8a877e;
+}
+.profile-hedge {
+  fill: #4b7535;
+}
+.profile-hit {
+  stroke: #ff5a46;
+  stroke-width: 1.5;
+}
+.profile-sight {
+  stroke: #6fe06a;
+  stroke-width: 1.8;
+}
+.profile-sight.blocked {
+  stroke: #ff5a46;
+  stroke-dasharray: 4 3;
+}
+.profile-stop {
+  fill: #ff5a46;
+}
+.profile-end {
+  fill: #f0c66b;
+}
+.level-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.field.compact {
+  grid-template-columns: auto 1fr;
+  margin: 0;
+}
