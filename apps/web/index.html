@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1d2119" />
+    <!-- Network calls only to this site and the LLM providers (the API key goes nowhere else); localhost for local models. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="connect-src 'self' data: blob: https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*"
+    />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='8,3 24,3 31,16 24,29 8,29 1,16' fill='%236b7350' stroke='%23c9a75d' stroke-width='2'/%3E%3C/svg%3E" />
     <title>Squad War</title>
   </head>

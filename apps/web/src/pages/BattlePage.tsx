@@ -33,6 +33,8 @@ import { FxSettingsButton } from '../fx/FxSettings';
 import { fxPlayer } from '../fx/player';
 import { SPEED_SCALE, useFxSettings } from '../fx/settings';
 import { buildTimeline } from '../fx/timeline';
+import { cancelLlm, llmBusy, runLlmPhase, useLlm } from '../game/llm';
+import { STANDING_PRESETS, standingFire } from '@squadwar/agent';
 import { go } from '../router';
 import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
@@ -100,7 +102,13 @@ function Battle() {
   const fxs = useFxSettings();
   const fxBusy = useSyncExternalStore(fxPlayer.subscribe, () => fxPlayer.busy);
   const [threat, setThreat] = useState(false);
-  const [automation, setAutomation] = useState<'assisted' | 'manual'>(() => (localStorage.getItem('squadwar:automation') as 'assisted' | 'manual' | null) ?? 'assisted');
+  type Automation = 'assisted' | 'streamlined' | 'manual';
+  const [automation, setAutomation] = useState<Automation>(() => {
+    const v = localStorage.getItem('squadwar:automation');
+    return v === 'manual' || v === 'streamlined' ? v : 'assisted';
+  });
+  /** Your standing orders for Defensive Fire under Streamlined automation. */
+  const [standing, setStanding] = useState<string>(() => localStorage.getItem('squadwar:standing') ?? 'open');
   const [notice, setNotice] = useState<string>();
   const [help, setHelp] = useState(false);
   const map = ctx.map;
@@ -110,7 +118,7 @@ function Battle() {
   const [losA, setLosA] = useState<HexKey>();
   const [view, setView] = useState<ViewMode>(loadViewMode);
   const [povHex, setPovHex] = useState<HexKey>();
-  const aiVsAi = Object.values(session.controllers).every((c) => c === 'bot');
+  const aiVsAi = Object.values(session.controllers).every((c) => c !== 'human');
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState<Speed>(loadSpeed);
   const human = session.controllers[s.awaiting] === 'human';
@@ -160,13 +168,32 @@ function Battle() {
 
   // Bot turns. In AI vs AI the pace follows the speed setting and pauses longer after key decisions.
   const lastNote = session.notes[session.notes.length - 1];
+  const controller = session.controllers[real.awaiting];
   useEffect(() => {
-    if (human || real.phase === 'gameOver' || plan || (aiVsAi && paused) || fxBusy) return;
+    if (controller !== 'bot' || real.phase === 'gameOver' || plan || (aiVsAi && paused) || fxBusy) return;
     const base = aiVsAi ? SPEED_MS[speed] : 280;
     const delay = aiVsAi && lastNote?.weight !== 'key' ? base / 4 : base;
     const t = setTimeout(() => session.stepBot(), delay);
     return () => clearTimeout(t);
-  }, [real, human, session, plan, aiVsAi, paused, speed, lastNote, fxBusy]);
+  }, [real, controller, session, plan, aiVsAi, paused, speed, lastNote, fxBusy]);
+
+  // LLM turns: one model decision per phase; the scripted AI covers routine phases and fallbacks.
+  const llm = useLlm();
+  const llmRun = llm.runs[real.awaiting];
+  const llmThinking = llmRun?.status === 'thinking';
+  useEffect(() => {
+    if (controller !== 'llm' || real.phase === 'gameOver' || plan || (aiVsAi && paused) || fxBusy || llmBusy(real.awaiting)) return;
+    const t = setTimeout(() => void runLlmPhase(real.awaiting), 200);
+    return () => clearTimeout(t);
+  }, [real, controller, plan, aiVsAi, paused, fxBusy, llmThinking]);
+  const llmSides = Object.entries(session.controllers).filter(([, c]) => c === 'llm').map(([id]) => id);
+  const llmNotice = llmSides.map((id) => llm.runs[id]?.notice).find(Boolean);
+  useEffect(() => {
+    if (llmNotice) setNotice(llmNotice);
+  }, [llmNotice]);
+  const llmSpend = llmSides.reduce((acc, id) => acc + (llm.runs[id]?.spend.usd ?? 0), 0);
+  const llmCostKnown = llmSides.every((id) => llm.runs[id]?.spend.usd !== undefined);
+  const radio = llmSides.flatMap((id) => (llm.runs[id]?.memory.radio ?? []).map((r) => ({ side: id, text: r })));
 
   // Finished AI vs AI games go to the library for review.
   useEffect(() => {
@@ -196,9 +223,25 @@ function Battle() {
     go('review');
   }, [session]);
 
+  // Streamlined automation: your standing orders fire in Defensive Fire, one attack at a time.
+  useEffect(() => {
+    if (!human || plan || automation !== 'streamlined' || real.phase !== 'defensiveFire' || fxBusy) return;
+    const orders = STANDING_PRESETS[standing]?.orders;
+    if (!orders) return;
+    const t = setTimeout(() => {
+      const d = standingFire(ctx, real, real.awaiting, orders);
+      if (d) session.dispatch(d.action, d.why);
+      else {
+        setNotice('Standing orders carried out: Defensive Fire ends.');
+        session.dispatch({ type: 'endPhase' });
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [real, human, plan, automation, standing, ctx, session, fxBusy]);
+
   // Assisted automation: end phases with no decision to make.
   useEffect(() => {
-    if (!human || plan || automation !== 'assisted' || real.phase === 'gameOver' || real.phase === 'setup' || fxBusy) return;
+    if (!human || plan || automation === 'manual' || real.phase === 'gameOver' || real.phase === 'setup' || fxBusy) return;
     const why = autoSkipReason(ctx, real);
     if (!why) return;
     const t = setTimeout(() => {
@@ -469,8 +512,24 @@ function Battle() {
         </span>
         {s.phase !== 'gameOver' && (
           <span className={`awaiting ${human ? 'you' : 'bot'}`}>
-            {human ? `${sideName(s.awaiting)} to act` : aiVsAi && paused ? 'Paused' : `${sideName(s.awaiting)} (bot) thinking…`}
+            {human
+              ? `${sideName(s.awaiting)} to act`
+              : aiVsAi && paused
+                ? 'Paused'
+                : controller === 'llm'
+                  ? `${sideName(real.awaiting)} (LLM): ${llmRun?.progress ?? 'waiting'}…`
+                  : `${sideName(s.awaiting)} (bot) thinking…`}
           </span>
+        )}
+        {llmSides.length > 0 && (
+          <span className="status small" title="Estimated LLM cost this game">
+            LLM {llmCostKnown ? `$${llmSpend.toFixed(2)}` : `${llmSides.reduce((a, id) => a + (llm.runs[id]?.spend.calls ?? 0), 0)} calls`}
+          </span>
+        )}
+        {controller === 'llm' && llmThinking && (
+          <button className="btn" onClick={() => cancelLlm(real.awaiting)} title="Stop the model; the scripted AI finishes this phase">
+            Cancel
+          </button>
         )}
         {aiVsAi && (
           <>
@@ -547,7 +606,7 @@ function Battle() {
           className="auto-select"
           value={automation}
           onChange={(e) => {
-            const v = e.target.value as 'assisted' | 'manual';
+            const v = e.target.value as Automation;
             setAutomation(v);
             try {
               localStorage.setItem('squadwar:automation', v);
@@ -559,6 +618,7 @@ function Battle() {
           aria-label="Automation level"
         >
           <option value="assisted">Assisted</option>
+          <option value="streamlined">Streamlined</option>
           <option value="manual">Manual</option>
         </select>
         )}
@@ -729,6 +789,58 @@ function Battle() {
               />
             </>
           )}
+          {human && automation === 'streamlined' && (
+            <div className="panel-card small">
+              <label className="field compact">
+                Standing orders
+                <select
+                  value={standing}
+                  onChange={(e) => {
+                    setStanding(e.target.value);
+                    try {
+                      localStorage.setItem('squadwar:standing', e.target.value);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  {Object.entries(STANDING_PRESETS).map(([k, p]) => (
+                    <option key={k} value={k}>
+                      {p.label}
+                    </option>
+                  ))}
+                  <option value="none">None (ask me)</option>
+                </select>
+              </label>
+              <p className="small faint">Streamlined: these fire for you in Defensive Fire during the opponent’s turn.</p>
+            </div>
+          )}
+          {radio.length > 0 && (
+            <>
+              <h3 className="panel-h">Radio</h3>
+              <div className="radio-log" aria-label="Opponent radio">
+                {radio.slice(-8).map((r, i) => (
+                  <div key={i}>
+                    <span className="dim">{sideName(r.side)}:</span> {r.text}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {llmSides.length > 0 && (
+            <label className="check small">
+              <input type="checkbox" checked={llm.showThinking} onChange={(e) => llm.setShowThinking(e.target.checked)} /> Show AI thinking
+            </label>
+          )}
+          {llm.showThinking &&
+            llmSides.map((id) =>
+              llm.runs[id]?.thoughts ? (
+                <div key={id} className="panel-card">
+                  <div className="panel-h">{sideName(id)} commander’s thinking</div>
+                  <div className="thoughts">{llm.runs[id]!.thoughts}</div>
+                </div>
+              ) : null,
+            )}
           {tutor && (
             <WhyCard
               ctx={ctx}

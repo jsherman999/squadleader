@@ -1768,3 +1768,71 @@ kbd {
     animation: none;
   }
 }
+
+/* ---- LLM opponent ------------------------------------------------------- */
+.modal-back {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 10, 8, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  overflow: auto;
+}
+.modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+.modal .field {
+  grid-template-columns: 70px 1fr;
+  margin: 0;
+}
+.modal .small {
+  margin: 0;
+}
+.modal-title {
+  margin: 0;
+  color: var(--c-brass);
+  font-size: 20px;
+}
+.ok {
+  color: var(--c-ok);
+}
+.llm-summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.radio-log {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: #141813;
+  border: 1px solid var(--c-line);
+  border-left: 3px solid var(--c-warn);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  color: var(--c-accent);
+}
+.radio-log div + div {
+  margin-top: 3px;
+}
+.thoughts {
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: var(--c-text-dim);
+  max-height: 200px;
+  overflow-y: auto;
+}
+/* Side panels scroll as a whole; their cards keep their size. */
+.side-right > * {
+  flex-shrink: 0;
+}

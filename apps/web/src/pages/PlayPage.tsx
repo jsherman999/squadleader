@@ -6,6 +6,8 @@ import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '
 import { useReview } from '../game/review';
 import { loadAutosave, useSession, type Controller, type SaveFile } from '../game/session';
 import { go } from '../router';
+import { useLlm } from '../game/llm';
+import { LlmSettings } from '../ui/LlmSettings';
 import { TopBar } from '../ui/TopBar';
 
 export function PlayPage() {
@@ -18,7 +20,12 @@ export function PlayPage() {
   const [error, setError] = useState<string>();
   const auto = loadAutosave();
   const file = useRef<HTMLInputElement>(null);
+  const [llmOpen, setLlmOpen] = useState(false);
+  const llmCfg = useLlm((l) => l.config);
+  const llmKey = useLlm((l) => l.keys[l.config.provider]);
+  const usesLlm = Object.values(controllers).includes('llm');
   const start = () => {
+    useLlm.getState().reset();
     useSession.getState().start(chosen, controllers);
     go('battle');
   };
@@ -91,6 +98,7 @@ export function PlayPage() {
                   <select value={controllers[side.id]} onChange={(e) => setControllers({ ...controllers, [side.id]: e.target.value as Controller })} aria-label={`${side.name} player`}>
                     <option value="human">Human</option>
                     <option value="bot">Computer (bot)</option>
+                    <option value="llm">Computer (LLM)</option>
                   </select>
                 </div>
                 <div className="small dim">{side.notes}</div>
@@ -107,6 +115,18 @@ export function PlayPage() {
               </div>
             ))}
           </div>
+          {usesLlm && (
+            <div className="panel-card small llm-summary">
+              <span>
+                LLM opponent: <strong>{llmCfg.model || 'no model chosen'}</strong> via {llmCfg.provider}, {llmCfg.persona}, budget ${llmCfg.budgetUsd.toFixed(2)}.{' '}
+                {!llmKey && llmCfg.provider !== 'local' && <span className="warn">No API key yet: the scripted AI will play until you add one.</span>}
+              </span>
+              <button className="btn tiny" onClick={() => setLlmOpen(true)}>
+                LLM settings…
+              </button>
+            </div>
+          )}
+          {llmOpen && <LlmSettings onClose={() => setLlmOpen(false)} />}
           <div className="play-actions">
             <button className="btn primary big" onClick={start}>
               Start game
@@ -146,7 +166,7 @@ export function PlayPage() {
               <tbody>
                 {games.map((g) => {
                   const scn = scenarios.find((x) => x.id === g.scenario);
-                  const vs = Object.values(g.controllers).every((c) => c === 'bot') ? 'AI vs AI' : Object.values(g.controllers).every((c) => c === 'human') ? 'Hot-seat' : 'vs computer';
+                  const vs = Object.values(g.controllers).every((c) => c !== 'human') ? 'AI vs AI' : Object.values(g.controllers).every((c) => c === 'human') ? 'Hot-seat' : 'vs computer';
                   return (
                     <tr key={g.id}>
                       <td>

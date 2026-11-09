@@ -46,7 +46,7 @@ function Review() {
   const fxBusy = useSyncExternalStore(fxPlayer.subscribe, () => fxPlayer.busy);
   const action = index < n ? sv.actions[index] : undefined;
   const note = index < n ? (sv.notes?.[index] ?? undefined) : undefined;
-  const actor: 'bot' | 'human' = sv.controllers[s.awaiting] === 'bot' ? 'bot' : 'human';
+  const actor: 'bot' | 'human' = sv.controllers[s.awaiting] !== 'human' ? 'bot' : 'human';
   const [keyOnly, setKeyOnly] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<Speed>('normal');
@@ -58,7 +58,7 @@ function Review() {
   const isKey = useCallback(
     (i: number) => {
       const st = states[i]!;
-      if (sv.controllers[st.awaiting] !== 'bot') return sv.actions[i]!.type !== 'endPhase';
+      if (sv.controllers[st.awaiting] === 'human') return sv.actions[i]!.type !== 'endPhase';
       return sv.notes?.[i]?.weight === 'key';
     },
     [states, sv],

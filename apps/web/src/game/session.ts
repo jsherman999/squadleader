@@ -10,7 +10,8 @@ import { decide, type Rationale } from '@squadwar/bot';
 import { putGame } from './library';
 import { ctxFor } from './scenarios';
 
-export type Controller = 'human' | 'bot';
+/** Who plays a side: a person, the scripted AI, or an LLM (with the scripted AI as fallback). */
+export type Controller = 'human' | 'bot' | 'llm';
 
 export interface LoggedEvent extends GameEvent {
   readonly n: number;

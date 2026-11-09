@@ -2,7 +2,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M6 are built. You can play scenario 1 hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M7 are built. You can play scenario 1 hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 
@@ -33,13 +33,14 @@ Builds deploy to GitHub Pages from `main`. In the repository's Settings → Page
 - **AI vs AI tutor:** watch the computer play both sides, with the reasoning behind every move: the goal, the odds and rules it weighed, the options it rejected and a lesson. Finished games are saved to a library in the browser. **Review** steps through any saved game decision by decision, and you can take over either side from any point.
 
 - **Fire Director:** tracers, muzzle flashes, impacts and result labels play in 2D and 3D, with sound and a dice tray. Choose the battle speed or reduced motion under Effects. In Eyes view you see and hear incoming fire.
+- **LLM opponent:** set a side to "Computer (LLM)", then enter your own API key and choose Anthropic, OpenAI, Gemini, OpenRouter or a local model. It plays through the same rules, explains its orders, talks on the radio, and stays within your budget. The scripted bot plays offline and takes over whenever the model can't.
+- **Standing orders:** with Streamlined automation, your units fire on their own in Defensive Fire, following orders such as "fire at units moving in the open".
 
 ## Planned features
 
 - **Fire Director, part 2:** shells, rockets and flames for the later weapons, and animated movement.
 - **POV Cam, part 2:** a vehicle's cupola or gunsight, and follow-move.
-- **LLM opponent:** enter your own API key and pick a provider and model. A scripted bot works offline and is the fallback.
-- **Automation levels:** from Manual to Delegated, with Standing Orders so phases flow quickly.
+- **Delegated automation:** let a helper play chosen phases for your side.
 
 ## Stack
 

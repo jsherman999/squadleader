@@ -175,7 +175,7 @@ function bestLeader(ctx: Ctx, s: GameState, hex: HexKey, side: string, firers: F
   return best?.id;
 }
 
-interface FireOption {
+export interface FireOption {
   readonly a: Action & { type: 'fire' };
   readonly score: number;
   readonly from: HexKey;
@@ -184,7 +184,8 @@ interface FireOption {
   readonly odds: FireOdds;
 }
 
-function fireDecision(ctx: Ctx, s: GameState, side: string, threshold: number, isPrep: boolean): Decision {
+/** Every attack the side could make now, best first (expected enemy units broken or worse). */
+export function fireOptions(ctx: Ctx, s: GameState, side: string, isPrep = s.phase === 'prepFire'): { options: FireOption[]; heldBack: number } {
   const myHexes = [...new Set(Object.values(s.units).filter((u) => u.side === side).map((u) => u.hex))];
   const targets = new Set<HexKey>();
   for (const u of Object.values(s.units)) if (u.side !== side) targets.add(u.hex);
@@ -237,6 +238,11 @@ function fireDecision(ctx: Ctx, s: GameState, side: string, threshold: number, i
   }
   // Highest score first; ties keep the search order (first found wins).
   const ranked = options.map((o, i) => ({ o, i })).sort((x, y) => y.o.score - x.o.score || x.i - y.i).map((x) => x.o);
+  return { options: ranked, heldBack };
+}
+
+function fireDecision(ctx: Ctx, s: GameState, side: string, threshold: number, isPrep: boolean): Decision {
+  const { options: ranked, heldBack } = fireOptions(ctx, s, side, isPrep);
   const best = ranked[0];
   if (best && best.score > threshold && legal(ctx, s, best.a)) return { action: best.a, why: explainFire(ctx, s, side, best, ranked.slice(1), threshold, isPrep) };
   return end(explainHoldFire(ctx, s, best, threshold, isPrep, heldBack));
