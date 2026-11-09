@@ -177,6 +177,7 @@ function Battle() {
   useEffect(() => {
     if (!import.meta.env.DEV || !renderer) return;
     Object.assign((window as unknown as { __sw: object }).__sw, {
+      renderer,
       screenOf: (id: string) => {
         const k = map.byId[id];
         if (!k) return undefined;

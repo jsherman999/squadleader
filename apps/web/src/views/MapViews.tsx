@@ -9,6 +9,7 @@ import type { BoardRenderer, OverlayLayer, RendererEvents } from '../board/rende
 import { hexOutline, type Pen } from '../draw/pen';
 import { pixiPen } from '../draw/pixiPen';
 import type { PovSpec, Quality, Scene3D } from '../scene3d/scene';
+import { slidingGroupState } from './slideState';
 import { hexToPixel, parseHexKey } from '@squadwar/hex';
 import { playCue, setListener } from '../fx/audio';
 import { DiceTray } from '../fx/DiceTray';
@@ -175,7 +176,7 @@ export function MapViews(p: MapViewsProps) {
     const subs: { box: Container; ids: string[] }[] = [];
     for (const ids of groups) {
       const box = new Container();
-      drawUnits(box, units.ctx, { ...keep((id) => ids.includes(id)), vehicles: {}, wrecks: [] }, opts);
+      drawUnits(box, units.ctx, slidingGroupState(units.s, ids), opts);
       sc.addChild(box);
       subs.push({ box, ids });
     }
