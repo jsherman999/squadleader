@@ -8,5 +8,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "scripts": {
+    "gen:boards": "tsx scripts/build-boards.ts"
+  },
+  "devDependencies": {
+    "@squadwar/terrain": "workspace:*"
+  }
 }
