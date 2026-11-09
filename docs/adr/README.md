@@ -10,3 +10,4 @@ Short records of decisions that shape the codebase. Each one says what was decid
 | [0004](0004-los-model.md) | Line-of-sight model: categorical heights, symbols, blind zones | Accepted |
 | [0005](0005-3d-view.md) | 3D view: plain three.js built from board data, shared Pen overlays, rules-decided visibility | Accepted |
 | [0006](0006-bot-explanations.md) | The bot explains each move; saves keep the explanations for review | Accepted |
+| [0007](0007-fire-director.md) | Fire Director: pure timeline and sampler, one clock for 2D, 3D, sound and dice; hold the board until results land | Accepted |

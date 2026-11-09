@@ -33,7 +33,7 @@ export function rallyAttempt(ctx: Ctx, s: GameState, unitId: string, emit: Emit)
     `Dice ${a}+${b} = ${raw}${drm ? `, ${drm > 0 ? '+' : ''}${drm} ${leader?.name ?? 'leader'} (§14.2)` : ''} → ${total}`,
   ];
   if (raw === 12) {
-    emit({ kind: 'rally', text: `${unitLabel(ctx, u)} rolls 12 while rallying: extra casualties (§18.3)`, trace, side: u.side, units: [u.id], dice: [a, b] });
+    emit({ kind: 'rally', text: `${unitLabel(ctx, u)} rolls 12 while rallying: extra casualties (§18.3)`, trace, side: u.side, units: [u.id], dice: [a, b], fx: { result: 'casualty' } });
     const wasLeader = isLeader(ctx, u);
     const hex = u.hex;
     eliminate(ctx, s, u, 'rolled 12 attempting to rally (§18.3)', emit);
@@ -48,7 +48,7 @@ export function rallyAttempt(ctx: Ctx, s: GameState, unitId: string, emit: Emit)
     u.broken = false;
     emit({ kind: 'rally', text: `${unitLabel(ctx, u)} in ${hexLabel(ctx, u.hex)} rallies (${total} ≤ ${need})`, trace, side: u.side, units: [u.id], dice: [a, b], fx: { result: 'rallied' } });
   } else {
-    emit({ kind: 'rally', text: `${unitLabel(ctx, u)} fails to rally (${total} > ${need})`, trace, side: u.side, units: [u.id], dice: [a, b] });
+    emit({ kind: 'rally', text: `${unitLabel(ctx, u)} fails to rally (${total} > ${need})`, trace, side: u.side, units: [u.id], dice: [a, b], fx: { result: 'failed' } });
   }
 }
 
@@ -74,12 +74,12 @@ export function repairAttempt(ctx: Ctx, s: GameState, weaponId: string, emit: Em
   const name = weaponType(ctx, w).name;
   if (r === 1) {
     w.malfunctioned = false;
-    emit({ kind: 'repair', text: `${name} repaired (rolled 1, §18.2)`, side: w.side, dice: [r], hexes: [w.hex] });
+    emit({ kind: 'repair', text: `${name} repaired (rolled 1, §18.2)`, side: w.side, dice: [r], hexes: [w.hex], fx: { result: 'repaired' } });
   } else if (r === 6) {
     if (w.owner && s.units[w.owner]) s.units[w.owner]!.weapons = s.units[w.owner]!.weapons.filter((x) => x !== w.id);
     delete s.weapons[w.id];
-    emit({ kind: 'repair', text: `${name} is beyond repair and removed (rolled 6, §18.2)`, side: w.side, dice: [r], hexes: [w.hex] });
+    emit({ kind: 'repair', text: `${name} is beyond repair and removed (rolled 6, §18.2)`, side: w.side, dice: [r], hexes: [w.hex], fx: { result: 'removed' } });
   } else {
-    emit({ kind: 'repair', text: `${name} still malfunctioning (rolled ${r})`, side: w.side, dice: [r], hexes: [w.hex] });
+    emit({ kind: 'repair', text: `${name} still malfunctioning (rolled ${r})`, side: w.side, dice: [r], hexes: [w.hex], fx: { result: 'jammed' } });
   }
 }

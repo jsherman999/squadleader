@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DIRECTIONS, hexDistance, hexKey, hexToPixel, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
   PHASE_NAMES,
@@ -29,6 +29,10 @@ import { downloadSave } from '../game/library';
 import { useReview } from '../game/review';
 import { useSession } from '../game/session';
 import { WhyCard } from '../tutor/WhyCard';
+import { FxSettingsButton } from '../fx/FxSettings';
+import { fxPlayer } from '../fx/player';
+import { SPEED_SCALE, useFxSettings } from '../fx/settings';
+import { buildTimeline } from '../fx/timeline';
 import { go } from '../router';
 import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
@@ -86,8 +90,15 @@ function Battle() {
   const ctx = ctxFor(session.scenarioId!);
   const real = session.states[session.states.length - 1]!;
   const plan = session.plan;
+  /** While fire plays out, the board keeps showing the state before the shots land. */
+  const [hold, setHold] = useState<number>();
+  const held = hold !== undefined ? session.states[hold] : undefined;
   /** What the board shows: the plan's state while planning. */
-  const s = plan ? plan.states[plan.states.length - 1]! : real;
+  const s = plan ? plan.states[plan.states.length - 1]! : (held ?? real);
+  /** Log entries shown: the results of the action being animated appear when they land. */
+  const shownEvents = useMemo(() => (hold === undefined ? session.events : session.events.filter((e) => e.action < hold)), [session.events, hold]);
+  const fxs = useFxSettings();
+  const fxBusy = useSyncExternalStore(fxPlayer.subscribe, () => fxPlayer.busy);
   const [threat, setThreat] = useState(false);
   const [automation, setAutomation] = useState<'assisted' | 'manual'>(() => (localStorage.getItem('squadwar:automation') as 'assisted' | 'manual' | null) ?? 'assisted');
   const [notice, setNotice] = useState<string>();
@@ -124,15 +135,37 @@ function Battle() {
     });
   }, [renderer, map]);
 
+  // Fire Director: animate each new action's fire, close combat and results.
+  const seen = useRef(session.actions.length);
+  const nActions = session.actions.length;
+  useEffect(() => {
+    const prev = seen.current;
+    seen.current = nActions;
+    if (nActions !== prev + 1) return; // undo, load, or several at once
+    if (aiVsAi && speed === 'max') return;
+    const st = useSession.getState();
+    const before = st.states[nActions - 1];
+    if (!before) return;
+    const tl = buildTimeline(ctx, before, st.events.filter((e) => e.action === nActions - 1), {
+      scale: SPEED_SCALE[fxs.speed],
+      reducedMotion: fxs.reducedMotion,
+      dice: fxs.dice,
+    });
+    if (!tl) return;
+    setHold(nActions - 1);
+    fxPlayer.play(tl, { onCommit: () => setHold(undefined) });
+  }, [nActions, ctx, aiVsAi, speed, fxs.speed, fxs.reducedMotion, fxs.dice]);
+  useEffect(() => () => fxPlayer.skip(), []);
+
   // Bot turns. In AI vs AI the pace follows the speed setting and pauses longer after key decisions.
   const lastNote = session.notes[session.notes.length - 1];
   useEffect(() => {
-    if (human || real.phase === 'gameOver' || plan || (aiVsAi && paused)) return;
+    if (human || real.phase === 'gameOver' || plan || (aiVsAi && paused) || fxBusy) return;
     const base = aiVsAi ? SPEED_MS[speed] : 280;
     const delay = aiVsAi && lastNote?.weight !== 'key' ? base / 4 : base;
     const t = setTimeout(() => session.stepBot(), delay);
     return () => clearTimeout(t);
-  }, [real, human, session, plan, aiVsAi, paused, speed, lastNote]);
+  }, [real, human, session, plan, aiVsAi, paused, speed, lastNote, fxBusy]);
 
   // Finished AI vs AI games go to the library for review.
   useEffect(() => {
@@ -164,7 +197,7 @@ function Battle() {
 
   // Assisted automation: end phases with no decision to make.
   useEffect(() => {
-    if (!human || plan || automation !== 'assisted' || real.phase === 'gameOver' || real.phase === 'setup') return;
+    if (!human || plan || automation !== 'assisted' || real.phase === 'gameOver' || real.phase === 'setup' || fxBusy) return;
     const why = autoSkipReason(ctx, real);
     if (!why) return;
     const t = setTimeout(() => {
@@ -172,7 +205,7 @@ function Battle() {
       session.dispatch({ type: 'endPhase' });
     }, 450);
     return () => clearTimeout(t);
-  }, [real, human, plan, automation, ctx, session]);
+  }, [real, human, plan, automation, ctx, session, fxBusy]);
 
   const dangers = useMemo(() => (threat ? exposureMap(ctx, s, s.awaiting) : undefined), [threat, ctx, s]);
   const planScore = useMemo(() => {
@@ -288,6 +321,8 @@ function Battle() {
   const onClick = useCallback(
     (p: PointerInfo) => {
       if (!p.hex) return;
+      // On your own turn, a click during an animation jumps to its end first.
+      if (fxPlayer.busy && session.controllers[real.awaiting] === 'human') fxPlayer.skip();
       const h = p.hex;
       if (losMode) {
         setLosA(h);
@@ -350,7 +385,7 @@ function Battle() {
       }
       session.select(h, mine);
     },
-    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn],
+    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting],
   );
 
   const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);
@@ -374,6 +409,8 @@ function Battle() {
         session.stepBot();
       } else if (e.key === 'z' || e.key === 'Z') {
         if (canUndo) session.undo();
+      } else if (e.key === 'Enter' && fxPlayer.busy) {
+        fxPlayer.skip();
       } else if (e.key === '3') {
         setView(nextViewMode);
       } else if (e.key === 'e' || e.key === 'E') {
@@ -497,6 +534,7 @@ function Battle() {
           Eyes <kbd>E</kbd>
         </button>
         <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
+        <FxSettingsButton />
         <button className="btn" onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
           ?
         </button>
@@ -588,6 +626,7 @@ function Battle() {
                     ['Shift-click', 'Add an adjacent hex to the fire group, or move onto your own stack'],
                     ['Space', 'End the phase (in AI vs AI: pause or resume)'],
                     ['N', 'AI vs AI, paused: play one decision'],
+                    ['Enter', 'Skip the fire animation (Effects sets speed, sound, dice and reduced motion)'],
                     ['P', 'Plan moves without committing (rehearsal before your Movement Phase)'],
                     ['T', 'Danger map: chance a moving squad breaks under defensive fire'],
                     ['L', 'Line-of-sight check between two hexes'],
@@ -619,6 +658,11 @@ function Battle() {
               <span className="swatch" style={{ background: '#e08a3a' }} /> 25–50%
               <span className="swatch" style={{ background: '#d0402e' }} /> &gt;50%
             </div>
+          )}
+          {fxBusy && (
+            <button className="btn tiny fx-skip" onClick={() => fxPlayer.skip()} title="Skip the animation (Enter)">
+              Skip ▸▸
+            </button>
           )}
           {notice && (
             <div className="notice" onAnimationEnd={() => setNotice(undefined)}>
@@ -690,12 +734,12 @@ function Battle() {
               s={tutor.before}
               note={tutor.note}
               actor="bot"
-              events={tutor.events}
+              events={tutor.i === hold ? [] : tutor.events}
               title={aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision'}
             />
           )}
           <h3 className="panel-h">Combat log</h3>
-          <LogPanel events={session.events} />
+          <LogPanel events={shownEvents} />
         </aside>
       </div>
     </div>

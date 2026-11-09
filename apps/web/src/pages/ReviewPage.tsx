@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { HexKey } from '@squadwar/hex';
 import { PHASE_NAMES, type SideId } from '@squadwar/engine';
 import type { PointerInfo } from '../board/renderer';
@@ -10,6 +10,10 @@ import { useSession, type Controller } from '../game/session';
 import { go } from '../router';
 import { ACTION_ICON, actionSummary, actionUnits } from '../tutor/actions';
 import { WhyCard } from '../tutor/WhyCard';
+import { FxSettingsButton } from '../fx/FxSettings';
+import { fxPlayer } from '../fx/player';
+import { SPEED_SCALE, useFxSettings } from '../fx/settings';
+import { buildTimeline } from '../fx/timeline';
 import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
 import { TopBar } from '../ui/TopBar';
@@ -35,6 +39,11 @@ function Review() {
   const map = ctx.map;
   const n = sv.actions.length;
   const s = states[index]!;
+  /** While a decision's fire plays out, the map shows the state before it. */
+  const [hold, setHold] = useState<number>();
+  const shown = states[hold ?? index]!;
+  const fxs = useFxSettings();
+  const fxBusy = useSyncExternalStore(fxPlayer.subscribe, () => fxPlayer.busy);
   const action = index < n ? sv.actions[index] : undefined;
   const note = index < n ? (sv.notes?.[index] ?? undefined) : undefined;
   const actor: 'bot' | 'human' = sv.controllers[s.awaiting] === 'bot' ? 'bot' : 'human';
@@ -61,12 +70,28 @@ function Review() {
     return out;
   }, [n, keyOnly, isKey]);
 
+  /** Play the decision on show (its fire, close combat, results) as the review moves past it. */
+  const animate = useCallback(
+    (i: number) => {
+      if (i >= n) return;
+      const tl = buildTimeline(ctx, states[i]!, events.filter((e) => e.action === i), { scale: SPEED_SCALE[fxs.speed], reducedMotion: fxs.reducedMotion, dice: fxs.dice });
+      if (!tl) return;
+      setHold(i);
+      fxPlayer.play(tl, { onCommit: () => setHold(undefined) });
+    },
+    [n, ctx, states, events, fxs.speed, fxs.reducedMotion, fxs.dice],
+  );
+  useEffect(() => () => fxPlayer.skip(), []);
+
   const step = useCallback(
     (dir: 1 | -1) => {
-      if (dir > 0) seek(visible.find((i) => i > index) ?? n);
-      else seek([...visible].reverse().find((i) => i < index) ?? 0);
+      if (fxPlayer.busy) fxPlayer.skip();
+      if (dir > 0) {
+        animate(index);
+        seek(visible.find((i) => i > index) ?? n);
+      } else seek([...visible].reverse().find((i) => i < index) ?? 0);
     },
-    [visible, index, n, seek],
+    [visible, index, n, seek, animate],
   );
   const jumpTurn = useCallback(
     (dir: 1 | -1) => {
@@ -84,16 +109,16 @@ function Review() {
     [s.turn, states, index, n, seek],
   );
 
-  // Playback.
+  // Playback waits for each decision's animation to finish.
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || fxBusy) return;
     if (index >= n) {
       setPlaying(false);
       return;
     }
     const t = setTimeout(() => step(1), STEP_MS[speed]);
     return () => clearTimeout(t);
-  }, [playing, index, n, speed, step]);
+  }, [playing, index, n, speed, step, fxBusy]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -118,7 +143,7 @@ function Review() {
   }, [step, jumpTurn, seek, n]);
 
   const selected = useMemo(() => new Set(actionUnits(action)), [action]);
-  const units = useMemo(() => ({ ctx, s, selected }), [ctx, s, selected]);
+  const units = useMemo(() => ({ ctx, s: shown, selected }), [ctx, shown, selected]);
   const prevFire = useMemo(() => [...events].reverse().find((e) => e.kind === 'fire' && e.action === index - 1), [events, index]);
   const layers: OverlayLayers = useMemo(
     () => ({
@@ -180,6 +205,7 @@ function Review() {
           <input type="checkbox" checked={keyOnly} onChange={(e) => setKeyOnly(e.target.checked)} /> Key decisions
         </label>
         <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
+        <FxSettingsButton />
         <button className="btn" onClick={() => downloadSave(sv, `squadwar-${sv.scenario}-review.json`)} title="Download this game as a save file">
           Download
         </button>

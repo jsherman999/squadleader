@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { HexKey } from '@squadwar/hex';
 import type { GameMap } from '@squadwar/terrain';
 import type { LosResult } from '@squadwar/los';
@@ -9,6 +9,11 @@ import type { BoardRenderer, OverlayLayer, RendererEvents } from '../board/rende
 import { hexOutline, type Pen } from '../draw/pen';
 import { pixiPen } from '../draw/pixiPen';
 import type { PovSpec, Quality, Scene3D } from '../scene3d/scene';
+import { hexToPixel, parseHexKey } from '@squadwar/hex';
+import { playCue, setListener } from '../fx/audio';
+import { DiceTray } from '../fx/DiceTray';
+import { Fx2D } from '../fx/fx2d';
+import { fxPlayer } from '../fx/player';
 
 // three.js is large: load it the first time the 3D view is shown.
 const Scene3DView = lazy(() => import('../scene3d/Scene3DView').then((m) => ({ default: m.Scene3DView })));
@@ -93,6 +98,44 @@ export function MapViews(p: MapViewsProps) {
     onReady2d?.(r);
   };
 
+  // ---- Fire Director: every frame goes to the visible views ----
+  const hitRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!r2 || !show2d) return;
+    const fx = new Fx2D(r2);
+    const off = fxPlayer.onFrame((f) => fx.draw(f));
+    return () => {
+      off();
+      fx.destroy();
+    };
+  }, [r2, show2d]);
+  useEffect(() => {
+    if (!s3 || !show3d) return;
+    return fxPlayer.onFrame((f) => {
+      s3.setFxFrame(f);
+      const pv = s3.povHex;
+      if (hitRef.current) hitRef.current.style.opacity = String(pv ? Math.min(0.9, (f.hits.get(pv) ?? 0) * 0.9) : 0);
+    });
+  }, [s3, show3d]);
+  // Sound is heard from the POV unit when there is one.
+  const povHex = pov?.hex;
+  useEffect(() => {
+    if (povHex) {
+      const c = hexToPixel(parseHexKey(povHex));
+      setListener(c.x, c.y, true);
+    } else {
+      const b = map.bounds;
+      setListener((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, false);
+    }
+    if (!povHex) return;
+    return fxPlayer.onCue((c) => {
+      if (c.kind === 'hit' && c.hex === povHex) {
+        const at = hexToPixel(parseHexKey(povHex));
+        playCue({ kind: 'sound', t0: 0, sound: 'whizz', at: { ...at, z: 0 } });
+      }
+    });
+  }, [povHex, map]);
+
   // ---- 2D ----
   useEffect(() => {
     if (!r2 || !show2d) return;
@@ -151,6 +194,7 @@ export function MapViews(p: MapViewsProps) {
 
   return (
     <div className={`map-views mode-${mode}`}>
+      <DiceTray />
       {mounted2d && (
         <div className="map-pane" hidden={!show2d}>
           <BoardView map={map} onReady={ready2d} {...events(p)} />
@@ -164,6 +208,7 @@ export function MapViews(p: MapViewsProps) {
           {pov ? (
             <div className="pov-hud">
               <div className="pov-vignette" />
+              <div className="pov-hit" ref={hitRef} />
               <div className="pov-reticle" />
               <div className="pov-card panel-card">
                 <span className="stencil">{pov.title}</span>

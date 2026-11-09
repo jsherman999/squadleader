@@ -1616,4 +1616,155 @@ kbd {
   .editor .board-wrap {
     order: 1;
   }
+  .fx-pop {
+    top: 92px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+  .dice-tray {
+    right: 6px;
+    top: 6px;
+    padding: 6px 8px;
+  }
+}
+
+/* ---- Fire Director ------------------------------------------------------ */
+.fx-settings {
+  position: relative;
+}
+.fx-pop {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  z-index: 70;
+  width: 260px;
+  display: grid;
+  gap: 8px;
+}
+.fx-pop .field {
+  grid-template-columns: 56px 1fr;
+  margin: 0;
+}
+.fx-pop .small {
+  margin: 0;
+}
+.fx-skip {
+  position: absolute;
+  right: 12px;
+  bottom: 56px;
+  z-index: 6;
+}
+.dice-tray {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 8px;
+  background: rgba(20, 24, 20, 0.88);
+  border: 1px solid var(--c-line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  animation: tray-in 0.18s ease-out;
+}
+@keyframes tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.dice-row {
+  display: flex;
+  gap: 14px;
+  perspective: 300px;
+}
+.die {
+  width: 34px;
+  height: 34px;
+}
+.die-cube {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  transform-style: preserve-3d;
+  transform: var(--to);
+  animation: tumble 0.75s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+.die-cube.still {
+  animation: none;
+}
+@keyframes tumble {
+  from {
+    transform: translateY(-14px) var(--from);
+  }
+  to {
+    transform: var(--to);
+  }
+}
+.die-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 5px;
+  background: #ece6d4;
+  border: 1px solid #b6ad94;
+  border-radius: 6px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.25);
+}
+.die.red .die-face {
+  background: #b9473a;
+  border-color: #7d2b22;
+}
+.die-face span {
+  place-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.die-face .pip {
+  background: #1b1b18;
+}
+.die.red .die-face .pip {
+  background: #f3ece0;
+}
+.f1 {
+  transform: translateZ(17px);
+}
+.f6 {
+  transform: rotateY(180deg) translateZ(17px);
+}
+.f3 {
+  transform: rotateY(90deg) translateZ(17px);
+}
+.f4 {
+  transform: rotateY(-90deg) translateZ(17px);
+}
+.f2 {
+  transform: rotateX(90deg) translateZ(17px);
+}
+.f5 {
+  transform: rotateX(-90deg) translateZ(17px);
+}
+.dice-text {
+  font-family: var(--font-cond);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.pov-hit {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(170, 20, 10, 0.7) 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .die-cube {
+    animation: none;
+  }
 }

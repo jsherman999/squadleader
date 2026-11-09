@@ -2,7 +2,7 @@
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** M0–M5 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
+**Status:** M0–M6 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -20,7 +20,8 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 | M4 Planner and first playable | Done | Move Planner (alternatives, exposure badges, expected breaks, commit or revert), danger map, fire odds and suggested targets, Assisted automation. The planner allows only dice-free actions, so it can't reveal future rolls. Before the Movement Phase it runs as a rehearsal. |
 | M5 3D view | Done | 3D landscape built from the board data (ADR 0005): painted ground, extruded buildings with hip roofs, instanced trees, walls and hedges, counter standees. 2D, 3D and split views share every overlay. 3D LOS ray between eye heights, draped viewshed, Eyes (leader POV) with rules-decided enemy visibility. Quality presets and a height slider. |
 | Tutor mode | Done | Added on request after M5: AI vs AI play with pause, step and speed; the bot explains every decision (goal, reasons with odds and rule references, options weighed, a lesson); finished games go to a saved-game library; Review steps through any saved game decision by decision, with the outcome and map highlights, and lets you take over either side from any point (ADR 0006). |
-| M6–M12 | Not started | |
+| M6 Fire Director | Done | Fire, close combat and results animate in 2D and 3D from a pure, tested timeline (ADR 0007): tracer bursts per weapon, muzzle flashes, impacts, smoke, result labels, ghosts for Defensive Fire on moved units. Synthesised sound, 3D dice tray, battle speed, skip, reduced motion. In Eyes view, incoming fire shakes the camera and flashes red. Review steps animate too. Phones get a scrolling layout. |
+| M7–M12 | Not started | |
 
 Deviations from this plan so far:
 
@@ -28,7 +29,7 @@ Deviations from this plan so far:
 - **The bot exists early.** It was built in M3 instead of M7, for soak testing and the offline opponent.
 - **Rulings** are tracked in [docs/rulings.md](rulings.md).
 - **3D uses plain three.js**, not react-three-fiber (ADR 0005). There is no Ultra preset yet, and the "drone" free-fly camera and camera bookmarks are deferred.
-- **POV incoming fire** is part of the Fire Director (M6). M5's Eyes view is static: it shows what the unit sees, with rules visibility.
+- **Sound is synthesised** with the Web Audio API instead of Howler.js and sample files (ADR 0007). Movement isn't animated yet.
 
 ## Contents
 

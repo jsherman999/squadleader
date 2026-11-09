@@ -1,4 +1,5 @@
 import { useRoute } from './router';
+import { FxAudio } from './fx/FxAudio';
 import { HomePage } from './pages/HomePage';
 import { MapLabPage } from './pages/MapLabPage';
 import { EditorPage } from './pages/EditorPage';
@@ -7,6 +8,15 @@ import { BattlePage } from './pages/BattlePage';
 import { ReviewPage } from './pages/ReviewPage';
 
 export function App() {
+  return (
+    <>
+      <FxAudio />
+      <Page />
+    </>
+  );
+}
+
+function Page() {
   const [page] = useRoute();
   if (page === 'lab') return <MapLabPage />;
   if (page === 'editor') return <EditorPage />;

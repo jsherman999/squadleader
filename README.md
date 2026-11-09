@@ -2,7 +2,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M5 are built. You can play scenario 1 hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M6 are built. You can play scenario 1 hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 
@@ -32,10 +32,12 @@ Builds deploy to GitHub Pages from `main`. In the repository's Settings → Page
 - **Eyes:** press `E` to look from the selected unit's position. Enemy units show only where the rules give line of sight.
 - **AI vs AI tutor:** watch the computer play both sides, with the reasoning behind every move: the goal, the odds and rules it weighed, the options it rejected and a lesson. Finished games are saved to a library in the browser. **Review** steps through any saved game decision by decision, and you can take over either side from any point.
 
+- **Fire Director:** tracers, muzzle flashes, impacts and result labels play in 2D and 3D, with sound and a dice tray. Choose the battle speed or reduced motion under Effects. In Eyes view you see and hear incoming fire.
+
 ## Planned features
 
-- **Fire Director:** tracers, shells, rockets and flames drawn from shooter to target during fire phases.
-- **POV Cam, part 2:** a vehicle's cupola or gunsight, follow-move, and incoming fire.
+- **Fire Director, part 2:** shells, rockets and flames for the later weapons, and animated movement.
+- **POV Cam, part 2:** a vehicle's cupola or gunsight, and follow-move.
 - **LLM opponent:** enter your own API key and pick a provider and model. A scripted bot works offline and is the fallback.
 - **Automation levels:** from Manual to Delegated, with Standing Orders so phases flow quickly.
 

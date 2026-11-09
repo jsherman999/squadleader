@@ -60,11 +60,11 @@ export function moraleCheck(ctx: Ctx, s: GameState, u: Unit, mc: number, opts: M
     return 'pass';
   }
   if (u.broken) {
-    emit({ kind: 'morale', text: `${unitLabel(ctx, u)} fails (${total} > ${morale}) while broken`, trace, units: [u.id], side: u.side, dice: [a, b] });
+    emit({ kind: 'morale', text: `${unitLabel(ctx, u)} fails (${total} > ${morale}) while broken`, trace, units: [u.id], side: u.side, dice: [a, b], fx: { result: 'failed' } });
     eliminate(ctx, s, u, 'failed a morale check while broken (§12.3)', emit);
     return 'eliminated';
   }
-  emit({ kind: 'morale', text: `${unitLabel(ctx, u)} fails (${total} > ${morale})`, trace, units: [u.id], side: u.side, dice: [a, b] });
+  emit({ kind: 'morale', text: `${unitLabel(ctx, u)} fails (${total} > ${morale})`, trace, units: [u.id], side: u.side, dice: [a, b], fx: { result: 'failed' } });
   breakUnit(ctx, s, u, emit);
   return 'broke';
 }

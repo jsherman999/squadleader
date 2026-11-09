@@ -404,7 +404,16 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     to: target,
     hexes: outcomes.map((o) => o.hex),
     units: a.contributions.map((c) => c.unit),
-    fx: { firerHexes: a.firerHexes, targets: outcomes.map((o) => o.hex), kinds, results: outcomes.flatMap((o) => o.results.map((r) => r.result)) },
+    fx: {
+      firerHexes: a.firerHexes,
+      targets: outcomes.map((o) => o.hex),
+      kinds,
+      results: outcomes.flatMap((o) => o.results.map((r) => r.result)),
+      // For the Fire Director: who fired what from where, and the result in each hex.
+      shooters: a.contributions.map((c) => ({ hex: c.hex, kind: c.weapon ? weaponType(ctx, s.weapons[c.weapon]!).kind : 'rifle', unit: c.unit })),
+      outcomes: outcomes.map((o) => ({ hex: o.hex, penetration: a.targets.find((t) => t.hex === o.hex)?.penetration ?? false, results: o.results.map((r) => ({ unit: r.unit, result: r.result })) })),
+      column: a.columnFp,
+    },
   });
 
   for (const b of broke) {

@@ -12,7 +12,9 @@ import type { Ctx, GameState } from '@squadwar/engine';
 import type { PointerInfo, RendererEvents } from '../board/renderer';
 import { canvasPen } from '../draw/canvasPen';
 import type { Pen } from '../draw/pen';
+import type { FxFrame } from '../fx/sample';
 import { counterTexture, labelTexture } from './counters3d';
+import { Fx3D } from './fx3d';
 import { paintGround } from './ground';
 import { buildingLevels, EYE, LEVEL, terrainHeight } from './heights';
 import { buildingMeshes, hexsideMeshes, terrainGeometry, treeInstances } from './meshes';
@@ -63,6 +65,9 @@ export class Scene3D {
   private pov?: { spec: PovSpec; yaw: number; pitch: number; saved: { pos: THREE.Vector3; target: THREE.Vector3; fov: number } };
   private lastUnits?: () => void;
   private userMoved = false;
+  private fx = new Fx3D();
+  private shake = 0;
+  private povBase?: THREE.Vector3;
   private buildingGroup?: THREE.Group;
   private excluded?: string;
   private focusAnim?: { from: THREE.Vector3; to: THREE.Vector3; fromPos: THREE.Vector3; toPos: THREE.Vector3; t: number };
@@ -76,7 +81,7 @@ export class Scene3D {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.background = new THREE.Color(0xaebcc4);
     this.scene.add(this.root);
-    this.root.add(this.landscape, this.units, this.labels, this.losGroup);
+    this.root.add(this.landscape, this.units, this.labels, this.losGroup, this.fx.group);
     this.root.scale.y = this.exaggeration;
     this.scene.add(new THREE.HemisphereLight(0xdfe7ec, 0x4d4630, 1.1));
     this.sun.position.set(-18, 30, -12);
@@ -117,6 +122,7 @@ export class Scene3D {
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
+    this.fx.dispose();
     this.resize?.disconnect();
     this.controls?.dispose();
     this.renderer.dispose();
@@ -430,6 +436,20 @@ export class Scene3D {
     if (r.blockedBy) ball(stop, 0xff5a46, 0.08);
   }
 
+  // ---- Fire Director ---------------------------------------------------------------
+
+  /** Draw one frame of fire effects; `povHit` (0..1) shakes the POV camera. */
+  setFxFrame(f: FxFrame): void {
+    const px = this.renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
+    this.fx.update(f, px, this.exaggeration);
+    if (this.pov) this.shake = Math.max(this.shake, f.hits.get(this.pov.spec.hex) ?? 0);
+  }
+
+  /** The POV unit's hex, if in POV. */
+  get povHex(): HexKey | undefined {
+    return this.pov?.spec.hex;
+  }
+
   // ---- Point of view ---------------------------------------------------------------
 
   enterPov(spec: PovSpec): void {
@@ -451,6 +471,7 @@ export class Scene3D {
     if (this.excluded !== h.building) this.buildBuildings(this.map, h.building);
     const upper = spec.upper && canBeUpper(this.map, spec.hex) ? 2 : 0;
     this.camera.position.set(c.x, (h.level + upper + EYE) * LEVEL * this.exaggeration + 0.02, c.y);
+    this.povBase = this.camera.position.clone();
     this.applyPov();
     this.lastUnits?.();
     if (this.hoverLine) this.hoverLine.visible = false;
@@ -460,6 +481,8 @@ export class Scene3D {
     if (!this.pov || !this.controls) return;
     const { saved } = this.pov;
     this.pov = undefined;
+    this.povBase = undefined;
+    this.shake = 0;
     if (this.excluded && this.map) this.buildBuildings(this.map);
     this.camera.position.copy(saved.pos);
     this.controls.target.copy(saved.target);
@@ -504,6 +527,17 @@ export class Scene3D {
     } else if (this.pov && this.camera.near !== 0.03) {
       this.camera.near = 0.03;
       this.camera.updateProjectionMatrix();
+    }
+    // Incoming fire shakes the POV camera.
+    if (this.pov && this.povBase) {
+      this.camera.position.copy(this.povBase);
+      if (this.shake > 0.01) {
+        const a = this.shake * 0.025;
+        this.camera.position.x += (Math.random() - 0.5) * a;
+        this.camera.position.y += (Math.random() - 0.5) * a;
+        this.camera.position.z += (Math.random() - 0.5) * a;
+        this.shake *= 0.9;
+      }
     }
     // Standees turn to face the camera (yaw only).
     for (const o of this.units.children) {
