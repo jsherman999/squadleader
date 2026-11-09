@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand';
 import type { HexKey } from '@squadwar/hex';
-import { createGame, parseScenario, tryAction, type Action, type Ctx, type GameEvent, type GameState, type SideId } from '@squadwar/engine';
+import { createGame, parseScenario, tryAction, type Action, type Ctx, type GameEvent, type GameOptions, type GameState, type SideId } from '@squadwar/engine';
 import { decide, type Rationale } from '@squadwar/bot';
 import { putGame } from './library';
 import { ctxFor, customScenario, registerScenario, scenarioById } from './scenarios';
@@ -25,6 +25,8 @@ export interface SaveFile {
   /** The scenario itself, for custom scenarios (Design Your Own, the editor, campaigns). */
   readonly scenarioData?: unknown;
   readonly seed: number;
+  /** Optional rules in force. */
+  readonly options?: GameOptions;
   readonly controllers: Record<SideId, Controller>;
   readonly actions: Action[];
   /** The bot's reasoning for each action (null for human actions). Optional in older saves. */
@@ -81,7 +83,7 @@ interface SessionState {
   commitPlan(): void;
   newPlanSlot(): void;
   switchPlan(i: number): void;
-  start(scenarioId: string, controllers: Record<SideId, Controller>, seed?: number): void;
+  start(scenarioId: string, controllers: Record<SideId, Controller>, seed?: number, options?: GameOptions): void;
   load(save: SaveFile): void;
   dispatch(a: Action, note?: Rationale): boolean;
   undo(): void;
@@ -90,6 +92,7 @@ interface SessionState {
   toggleUnit(id: string): void;
   setTarget(hex: HexKey | undefined): void;
   stepBot(): boolean;
+  stepHelper(): boolean;
   save(): SaveFile | undefined;
   /** Store the game in the browser's library; returns its id. */
   saveToLibrary(): Promise<string | undefined>;
@@ -101,7 +104,7 @@ let eventN = 0;
 export function replaySave(save: SaveFile): { states: GameState[]; events: LoggedEvent[]; rolled: boolean[] } {
   if (save.scenarioData && !scenarioById(save.scenario)) registerScenario(parseScenario(save.scenarioData));
   const ctx = ctxFor(save.scenario);
-  const first = createGame(ctx, save.seed);
+  const first = createGame(ctx, save.seed, save.options);
   const states = [first.state];
   const events: LoggedEvent[] = first.events.map((e) => ({ ...e, n: eventN++, action: -1 }));
   const rolled: boolean[] = [];
@@ -132,9 +135,9 @@ export const useSession = create<SessionState>((set, get) => ({
   selection: { units: [] },
   botBusy: false,
 
-  start(scenarioId, controllers, seed = Math.floor(Math.random() * 2 ** 31)) {
+  start(scenarioId, controllers, seed = Math.floor(Math.random() * 2 ** 31), options) {
     const ctx = ctxFor(scenarioId);
-    const first = createGame(ctx, seed);
+    const first = createGame(ctx, seed, options);
     set({
       scenarioId,
       seed,
@@ -297,6 +300,18 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ target: hex });
   },
 
+  /** Delegated automation: the scripted AI takes one action for the human side. */
+  stepHelper() {
+    const st = get();
+    if (!st.scenarioId) return false;
+    const cur = st.states[st.states.length - 1]!;
+    if (cur.phase === 'gameOver' || st.controllers[cur.awaiting] !== 'human') return false;
+    const d = decide(ctxFor(st.scenarioId), cur);
+    const note = { ...d.why, goal: `Delegated: ${d.why.goal}` };
+    if (get().dispatch(d.action, note)) return true;
+    return get().dispatch({ type: 'endPhase' }, { goal: 'Delegated: end the phase', reasons: ['The helper had nothing legal left to do.'], weight: 'routine' });
+  },
+
   /** Let the bot take one action if it is the bot's turn. Returns true if it acted. */
   stepBot() {
     const st = get();
@@ -327,6 +342,7 @@ export const useSession = create<SessionState>((set, get) => ({
       scenario: st.scenarioId,
       ...(customScenario(st.scenarioId) ? { scenarioData: customScenario(st.scenarioId) } : {}),
       seed: st.seed,
+      ...(st.states[0]?.options ? { options: st.states[0].options } : {}),
       controllers: st.controllers,
       actions: st.actions,
       ...(st.notes.some(Boolean) ? { notes: st.notes.map((n) => n ?? null) } : {}),

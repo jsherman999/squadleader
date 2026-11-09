@@ -64,6 +64,18 @@ function loadSpeed(): Speed {
   }
 }
 
+/** Phases a helper can play for you (Delegated automation). */
+const DELEGABLE: readonly (readonly [string, string])[] = [
+  ['rally', 'Rally'],
+  ['prepFire', 'Prep Fire'],
+  ['movement', 'Movement'],
+  ['defensiveFire', 'Defensive Fire'],
+  ['advancingFire', 'Advancing Fire'],
+  ['rout', 'Rout'],
+  ['advance', 'Advance'],
+  ['closeCombat', 'Close Combat'],
+];
+
 export function BattlePage() {
   const session = useSession();
   const { scenarioId } = session;
@@ -109,10 +121,19 @@ function Battle() {
   const fxs = useFxSettings();
   const fxBusy = useSyncExternalStore(fxPlayer.subscribe, () => fxPlayer.busy);
   const [threat, setThreat] = useState(false);
-  type Automation = 'assisted' | 'streamlined' | 'manual';
+  type Automation = 'assisted' | 'streamlined' | 'delegated' | 'manual';
   const [automation, setAutomation] = useState<Automation>(() => {
     const v = localStorage.getItem('squadwar:automation');
-    return v === 'manual' || v === 'streamlined' ? v : 'assisted';
+    return v === 'manual' || v === 'streamlined' || v === 'delegated' ? v : 'assisted';
+  });
+  /** Phases the scripted AI plays for you under Delegated automation. */
+  const [delegated, setDelegated] = useState<ReadonlySet<string>>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('squadwar:delegate') ?? 'null') as string[] | null;
+      return new Set(v ?? ['rally', 'rout', 'defensiveFire', 'closeCombat']);
+    } catch {
+      return new Set(['rally', 'rout', 'defensiveFire', 'closeCombat']);
+    }
   });
   /** Your standing orders for Defensive Fire under Streamlined automation. */
   const [standing, setStanding] = useState<string>(() => localStorage.getItem('squadwar:standing') ?? 'open');
@@ -260,6 +281,13 @@ function Battle() {
     }, 500);
     return () => clearTimeout(t);
   }, [real, human, plan, automation, standing, ctx, session, fxBusy]);
+
+  // Delegated automation: the scripted AI plays the chosen phases for you, one action at a time.
+  useEffect(() => {
+    if (!human || plan || automation !== 'delegated' || !delegated.has(real.phase) || fxBusy) return;
+    const t = setTimeout(() => session.stepHelper(), 350);
+    return () => clearTimeout(t);
+  }, [real, human, plan, automation, delegated, session, fxBusy]);
 
   // Assisted automation: end phases with no decision to make.
   useEffect(() => {
@@ -708,6 +736,7 @@ function Battle() {
         >
           <option value="assisted">Assisted</option>
           <option value="streamlined">Streamlined</option>
+          <option value="delegated">Delegated</option>
           <option value="manual">Manual</option>
         </select>
         )}
@@ -906,6 +935,32 @@ function Battle() {
                 {...(human && (s.phase === 'movement' || s.phase === 'setup') ? { onTransfer: (w: string, to: string | null) => session.dispatch({ type: 'transfer', weapon: w, to }) } : {})}
               />
             </>
+          )}
+          {!aiVsAi && automation === 'delegated' && (
+            <div className="panel-card small delegate">
+              <div className="panel-h">Delegated phases</div>
+              {DELEGABLE.map(([ph, label]) => (
+                <label key={ph} className="check">
+                  <input
+                    type="checkbox"
+                    checked={delegated.has(ph)}
+                    onChange={(e) => {
+                      const next = new Set(delegated);
+                      if (e.target.checked) next.add(ph);
+                      else next.delete(ph);
+                      setDelegated(next);
+                      try {
+                        localStorage.setItem('squadwar:delegate', JSON.stringify([...next]));
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  />
+                  {label}
+                </label>
+              ))}
+              <p className="small faint">The computer plays these phases for your side, with its reasons in the log; Undo takes back what has no dice in it.</p>
+            </div>
           )}
           {human && automation === 'streamlined' && (
             <div className="panel-card small">

@@ -15,6 +15,7 @@ import {
   mfLeft,
   moveCost,
   objectiveStatus,
+  OPTIONAL_RULES,
   PHASE_NAMES,
   unitLabel,
   weaponType,
@@ -150,6 +151,8 @@ function vehicleLines(ctx: Ctx, s: GameState, side: string): string[] {
 /** Smoke, charges and sewers in play (§23–27). */
 function specialLines(ctx: Ctx, s: GameState, side: string): string[] {
   const out: string[] = [];
+  const opts = OPTIONAL_RULES.filter((r) => s.options?.[r.id]);
+  if (opts.length) out.push('', `OPTIONAL RULES IN FORCE: ${opts.map((r) => `${r.rule}: ${r.text}`).join(' ')}`);
   const left = s.smokeLeft[side] ?? 0;
   if (left || s.smoke.length) out.push('', `SMOKE: ${s.smoke.length ? s.smoke.map((x) => hexId(ctx, x.hex)).join(', ') : 'none on the map'}; you have ${left} smoke counter${left === 1 ? '' : 's'} left.`);
   if (s.charges.length) out.push(`DEMOLITION CHARGES: ${s.charges.map((c) => `${c.side === side ? 'yours' : 'enemy'} ${c.weapon} on ${hexId(ctx, c.target)}${c.armed ? ' (armed)' : ''}`).join('; ')}`);

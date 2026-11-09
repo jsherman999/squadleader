@@ -123,7 +123,12 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
     }
   }
   // Moving gives a concealed stack away (§25.4, §25.42); at night only hidden units, or into a lit hex the enemy sees (§49.4).
-  if (!ctx.scenario.night) reveal(ctx, s, from, emit, 'moved');
+  // Optional §25.4: a concealed stack out of every enemy's sight keeps its concealment.
+  const unseen =
+    !!s.options?.concealedMove &&
+    movers.every((u) => u.concealed) &&
+    !Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && (ctx.los(e.hex, from).clear || ctx.los(e.hex, to).clear));
+  if (!ctx.scenario.night && !unseen) reveal(ctx, s, from, emit, 'moved');
   else {
     for (const u of movers) u.hidden = false;
     const lit = illuminated(s, to) && Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && ctx.los(e.hex, to).clear);

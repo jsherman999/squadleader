@@ -201,7 +201,13 @@ export function mineVsVehicle(ctx: Ctx, s: GameState, v: Vehicle, hex: HexKey, e
  */
 export function buildingHit(ctx: Ctx, s: GameState, hex: HexKey, kind: 'arty' | 'he' | 'mine' | 'dc' | 'ft', emit: Emit, again?: () => boolean): void {
   const h = ctx.map.hexes[hex];
-  if (!h?.building || ctx.scenario.rulesLevel < 58) return;
+  if (!h) return;
+  // Optional §59.1: woods and wheat burn in summer, lit like buildings.
+  if (!h.building) {
+    if (woodsCanBurn(ctx, s, hex) && (kind === 'ft' || ((kind === 'arty' || kind === 'he') && !!again?.()))) startFire(ctx, s, hex, emit);
+    return;
+  }
+  if (ctx.scenario.rulesLevel < 58) return;
   if (kind !== 'ft' && !rubbled(s, hex)) {
     (s.rubble ??= []).push(hex);
     for (const u of Object.values(s.units)) if (u.hex === hex) eliminate(ctx, s, u, 'the building came down on them (§58.1)', emit);
@@ -219,10 +225,20 @@ export function startFire(ctx: Ctx, s: GameState, hex: HexKey, emit: Emit): void
   emit({ kind: 'info', text: `Fire breaks out in ${hexLabel(ctx, hex)}: no line of sight through it, and anyone inside must get out (§59)`, hexes: [hex], fx: { fire: hex } });
 }
 
-/** End of Advancing Fire: fires spread to adjacent buildings, and in summer to woods and grain (§59.1, §59.4). */
+function summer(ctx: Ctx): boolean {
+  return /jun|jul|aug|sep|oct/i.test(ctx.scenario.date);
+}
+
+/** Optional §59.1: woods and wheatfields burn from June to October. */
+export function woodsCanBurn(ctx: Ctx, s: GameState, hex: HexKey): boolean {
+  const t = ctx.map.hexes[hex]?.terrain;
+  return !!s.options?.woodsFires && ctx.scenario.rulesLevel >= 59 && summer(ctx) && (t === 'woods' || t === 'wheat');
+}
+
+/** End of Advancing Fire: fires spread to adjacent buildings, and with the optional §59.1 in summer to woods and grain (§59.4). */
 export function spreadFires(ctx: Ctx, s: GameState, emit: Emit): void {
   if (!s.fires?.length) return;
-  const summer = /jun|jul|aug|sep|oct/i.test(ctx.scenario.date);
+  const wild = !!s.options?.woodsFires && summer(ctx);
   const done = new Set<HexKey>();
   for (const f of [...s.fires]) {
     const src = ctx.map.hexes[f]!;
@@ -232,8 +248,8 @@ export function spreadFires(ctx: Ctx, s: GameState, emit: Emit): void {
       if (!h || onFire(s, n) || done.has(n)) continue;
       let need = 0;
       if (h.building) need = h.building === src.building ? (h.terrain === 'stoneBuilding' ? 9 : 8) : 10;
-      else if (summer && h.terrain === 'woods') need = 7;
-      else if (summer && h.terrain === 'wheat') need = 6;
+      else if (wild && h.terrain === 'woods') need = 7;
+      else if (wild && h.terrain === 'wheat') need = 6;
       if (!need) continue;
       done.add(n);
       const [a, b] = roll2d6(s);

@@ -1952,3 +1952,19 @@ kbd {
 .campaign-next {
   margin: 16px 0;
 }
+
+/* ---- Optional rules and Delegated automation ---- */
+.optional-rules {
+  margin: 12px 0;
+}
+.optional-rules summary {
+  cursor: pointer;
+}
+.optional-rules .check {
+  align-items: flex-start;
+  margin: 6px 0;
+}
+.delegate .check {
+  display: flex;
+  margin: 3px 0;
+}

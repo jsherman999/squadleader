@@ -1,6 +1,6 @@
 import type { Ctx } from './ctx';
 import { hexLabel, otherSide, unitLabel } from './queries';
-import { RuleError, type Action, type GameEvent, type GameState, type Unit, type Vehicle, type Weapon } from './types';
+import { RuleError, type Action, type GameEvent, type GameOptions, type GameState, type Unit, type Vehicle, type Weapon } from './types';
 import { endPhase, sideName } from './phases';
 import { advance } from './rules/advance';
 import { designate } from './rules/closeCombat';
@@ -23,7 +23,7 @@ export interface Step {
 }
 
 /** Build the initial state from the scenario's order of battle. */
-export function createGame(ctx: Ctx, seed: number): Step {
+export function createGame(ctx: Ctx, seed: number, options?: GameOptions): Step {
   const sc = ctx.scenario;
   const units: Record<string, Unit> = {};
   const weapons: Record<string, Weapon> = {};
@@ -118,6 +118,7 @@ export function createGame(ctx: Ctx, seed: number): Step {
     v: 1,
     scenario: sc.id,
     seed,
+    ...(options && Object.values(options).some(Boolean) ? { options } : {}),
     rng: seed >>> 0,
     sides,
     turn: 0,

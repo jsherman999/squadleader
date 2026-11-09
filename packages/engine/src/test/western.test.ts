@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createGame, tryAction } from '../engine';
 import { analyzeFire } from '../rules/fire';
 import { moveCost } from '../queries';
+import { buildingHit } from '../rules/western';
 import { blankState, hexOf, put, putVehicle, testCtx } from './helpers';
 
 describe('§50 Americans', () => {
@@ -117,5 +118,28 @@ describe('§60 reinforcements', () => {
     const r = applyAction(ctx, s, { type: 'enter', units: [id], hex });
     expect(r.state.units[id]!.hex).toBe(hex);
     expect(r.state.reserves).toHaveLength(0);
+  });
+});
+
+describe('optional rules', () => {
+  it('§59.1: woods catch fire in summer only with the option', () => {
+    const ctx = testCtx({ K5: { t: 'woods' }, K4: { t: 'woods' } }, {}, { rulesLevel: 63, date: 'July 1944' });
+    const s = blankState(ctx, 'prepFire');
+    const k5 = hexOf(ctx, 'K5');
+    buildingHit(ctx, s, k5, 'ft', () => undefined);
+    expect(s.fires ?? []).toEqual([]);
+    const o = { ...blankState(ctx, 'prepFire'), options: { woodsFires: true } };
+    buildingHit(ctx, o, k5, 'ft', () => undefined);
+    expect(o.fires).toEqual([k5]);
+  });
+  it('§25.4: a concealed stack moving out of sight stays concealed', () => {
+    const ctx = testCtx({ K5: { t: 'woods' }, K6: { t: 'woods' }, K7: { t: 'woods' }, K8: { t: 'woods' } }, {}, { rulesLevel: 27 });
+    for (const on of [false, true]) {
+      const s = { ...blankState(ctx, 'movement'), ...(on ? { options: { concealedMove: true } } : {}) };
+      const g = put(ctx, s, 'ger-467', 'K5', { concealed: true });
+      put(ctx, s, 'rus-447', 'K9');
+      const st = applyAction(ctx, s, { type: 'move', units: [g.id], to: hexOf(ctx, 'K6') }).state;
+      expect(st.units[g.id]!.concealed).toBe(on);
+    }
   });
 });

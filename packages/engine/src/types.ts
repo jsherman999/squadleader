@@ -262,10 +262,25 @@ export interface CloseCombatAttack {
   readonly leader?: string;
 }
 
+/** Optional rules both players agreed on before play (rulebook page 22). */
+export interface GameOptions {
+  /** §25.4 optional: concealed units keep concealment while they move out of enemy sight. */
+  readonly concealedMove?: boolean;
+  /** §59.1: fires start and spread in woods and wheatfields from June to October. */
+  readonly woodsFires?: boolean;
+}
+
+export const OPTIONAL_RULES: readonly { readonly id: keyof GameOptions; readonly rule: string; readonly text: string }[] = [
+  { id: 'concealedMove', rule: '§25.4', text: 'Concealed units that move stay concealed as long as no enemy unit can see any hex they move through.' },
+  { id: 'woodsFires', rule: '§59.1', text: 'From June to October, flamethrowers and high explosive can set woods and wheatfields alight, and fires spread through them.' },
+];
+
 export interface GameState {
   readonly v: 1;
   readonly scenario: string;
   readonly seed: number;
+  /** Optional rules in force. */
+  readonly options?: GameOptions;
   /** PRNG state for dice. */
   rng: number;
   readonly sides: readonly [SideState, SideState];

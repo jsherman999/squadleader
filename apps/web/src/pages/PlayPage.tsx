@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
-import { leaderRating, parseScenario } from '@squadwar/engine';
+import { leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions } from '@squadwar/engine';
 import { allScenarios, customScenarios, registerScenario, removeScenario, rulesData, scenarioById } from '../game/scenarios';
 import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '../game/library';
 import { useReview } from '../game/review';
@@ -41,13 +41,22 @@ export function PlayPage() {
   const llmCfg = useLlm((l) => l.config);
   const llmKey = useLlm((l) => l.keys[l.config.provider]);
   const usesLlm = Object.values(controllers).includes('llm');
+  const [options, setOptions] = useState<GameOptions>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('squadwar:options') ?? '{}') as GameOptions;
+    } catch {
+      return {};
+    }
+  });
+  const applies = (id: keyof GameOptions) => (id === 'woodsFires' ? sc.rulesLevel >= 59 : sc.rulesLevel >= 25);
+  const inForce = Object.fromEntries(OPTIONAL_RULES.filter((r) => options[r.id] && applies(r.id)).map((r) => [r.id, true])) as GameOptions;
   const start = () => {
     useLlm.getState().reset();
-    useSession.getState().start(sc.id, controllers);
+    useSession.getState().start(sc.id, controllers, undefined, inForce);
     go('battle');
   };
   const watch = () => {
-    useSession.getState().start(sc.id, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as Controller])));
+    useSession.getState().start(sc.id, Object.fromEntries(sc.sides.map((x) => [x.id, 'bot' as Controller])), undefined, inForce);
     go('battle');
   };
   const [games, setGames] = useState<GameSummary[]>();
@@ -173,6 +182,31 @@ export function PlayPage() {
             </div>
           )}
           {llmOpen && <LlmSettings onClose={() => setLlmOpen(false)} />}
+          {OPTIONAL_RULES.some((r) => applies(r.id)) && (
+            <details className="optional-rules">
+              <summary className="panel-h">Optional rules{Object.keys(inForce).length ? ` (${Object.keys(inForce).length} on)` : ''}</summary>
+              {OPTIONAL_RULES.filter((r) => applies(r.id)).map((r) => (
+                <label key={r.id} className="check small">
+                  <input
+                    type="checkbox"
+                    checked={!!options[r.id]}
+                    onChange={(e) => {
+                      const next = { ...options, [r.id]: e.target.checked };
+                      setOptions(next);
+                      try {
+                        localStorage.setItem('squadwar:options', JSON.stringify(next));
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  />
+                  <span>
+                    <strong>{r.rule}</strong> {r.text}
+                  </span>
+                </label>
+              ))}
+            </details>
+          )}
           <div className="play-actions">
             <button className="btn primary big" onClick={start}>
               Start game
