@@ -101,8 +101,9 @@ export function stackingProblem(ctx: Ctx, s: GameState, hex: HexKey, side: SideI
   const squads = units.filter((u) => !isLeader(ctx, u)).length;
   if (units.length > t.units) return `more than ${t.units} units`;
   if (squads > t.squads) return `more than ${t.squads} squads`;
+  // Only weapons the side carries count; abandoned weapons belong to nobody.
   const pp = weaponsIn(s, hex)
-    .filter((w) => w.owner === null || s.units[w.owner]?.side === side)
+    .filter((w) => w.owner !== null && s.units[w.owner]?.side === side)
     .reduce((a, w) => a + weaponType(ctx, w).portage, 0);
   if (pp > t.portage) return `more than ${t.portage} portage points of weapons`;
   return undefined;

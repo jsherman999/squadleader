@@ -74,7 +74,11 @@ export function phaseBlockers(ctx: Ctx, s: GameState): string[] {
   const out: string[] = [];
   if (s.phase === 'movement' || s.phase === 'setup') {
     const side = s.awaiting;
-    const hexes = new Set(allUnits(s, side).map((u) => u.hex));
+    // In the Movement Phase, the stacks the moving player made this phase (§6.3).
+    const hexes =
+      s.phase === 'setup'
+        ? new Set(allUnits(s, side).map((u) => u.hex))
+        : new Set(allUnits(s, side).filter((u) => u.mfSpent > 0).map((u) => u.hex));
     for (const h of hexes) {
       const p = stackingProblem(ctx, s, h, side);
       if (p) out.push(`${hexLabel(ctx, h)}: ${p} (§6.1)`);

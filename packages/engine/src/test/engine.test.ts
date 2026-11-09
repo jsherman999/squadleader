@@ -166,7 +166,7 @@ describe('movement (§5)', () => {
   it('refuses to end the phase overstacked (§6.3)', () => {
     const ctx = testCtx();
     const s = blankState(ctx, 'movement');
-    for (let i = 0; i < 4; i++) put(ctx, s, 'ger-467', 'K6');
+    for (let i = 0; i < 4; i++) put(ctx, s, 'ger-467', 'K6', { mfSpent: 1, moved: true });
     expect(tryAction(ctx, s, { type: 'endPhase' }).ok).toBe(false);
   });
 });

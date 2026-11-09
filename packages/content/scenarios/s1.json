@@ -4,7 +4,7 @@
   "title": "Into the Riverside District",
   "date": "July 1942",
   "location": "Voronezh",
-  "briefing": "German infantry have broken into the eastern district of Voronezh. A Soviet rifle company holds the strongpoints around the market square: the walled factory, the church, the town hall and a big timber barn on the main street. The Germans must clear at least three of them before Soviet reinforcements arrive.",
+  "briefing": "German infantry, led by a company of assault engineers, have broken into the eastern district of Voronezh. A depleted Soviet rifle company holds the strongpoints around the market square: the walled factory, the church, the town hall and a big timber barn on the main street. The Germans must clear at least three of them before Soviet reinforcements arrive.",
   "rulesLevel": 21,
   "layout": [
     {
@@ -13,7 +13,7 @@
       "y": 0
     }
   ],
-  "turns": 6,
+  "turns": 7,
   "setupFirst": "rus",
   "moveFirst": "ger",
   "sides": [
@@ -85,10 +85,6 @@
           "names": [
             "Lt. Volkov"
           ]
-        },
-        {
-          "type": "rus-447",
-          "hex": "A-P5"
         }
       ]
     },
@@ -165,13 +161,29 @@
         {
           "type": "ger-467",
           "hex": "A-EE8"
+        },
+        {
+          "type": "ger-838",
+          "count": 2,
+          "hex": "A-DD3"
+        },
+        {
+          "type": "ger-L102",
+          "hex": "A-DD3",
+          "names": [
+            "Hptm. Lenz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-DD4"
         }
       ]
     }
   ],
   "victory": {
     "side": "ger",
-    "text": "The Germans win if, at the end of turn 6, they control at least three of the four objective buildings (factory, church, town hall, timber barn). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "text": "The Germans win if, at the end of turn 7, they control at least three of the four objective buildings (factory, church, town hall, timber barn). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
     "controlBuildings": {
       "buildings": [
         {

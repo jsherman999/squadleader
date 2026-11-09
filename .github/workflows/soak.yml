@@ -1,0 +1,23 @@
+name: Nightly soak
+
+# Long bot-vs-bot runs: catches rule crashes and invariant breaches, and
+# prints win statistics per scenario for balance tuning.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm soak
+        env:
+          SOAK_GAMES: 200

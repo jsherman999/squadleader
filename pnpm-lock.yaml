@@ -102,6 +102,10 @@ importers:
       '@squadwar/terrain':
         specifier: workspace:*
         version: link:../terrain
+    devDependencies:
+      '@squadwar/content':
+        specifier: workspace:*
+        version: link:../content
 
   packages/content:
     devDependencies:

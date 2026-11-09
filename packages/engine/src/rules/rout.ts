@@ -84,6 +84,14 @@ export function routOptions(ctx: Ctx, s: GameState, u: Unit): RoutPlan[] {
     return !bad;
   };
 
+  const canStop = (h: HexKey) => {
+    const prev = u.hex;
+    u.hex = h;
+    const bad = stackingProblem(ctx, s, h, u.side);
+    u.hex = prev;
+    return !bad;
+  };
+
   // Dijkstra over MF.
   const dist = new Map<HexKey, number>([[u.hex, 0]]);
   const prevOf = new Map<HexKey, HexKey>();
@@ -126,7 +134,8 @@ export function routOptions(ctx: Ctx, s: GameState, u: Unit): RoutPlan[] {
       for (let i = 0; i < path.length; i++) {
         spent += moveCost(ctx, from, path[i]!).mf;
         if (spent > mfMax + 1e-9) break;
-        stopIdx = i;
+        // Only stop where stacking allows (Q&A 13.44); otherwise keep the last good hex.
+        if (canStop(path[i]!)) stopIdx = i;
         from = path[i]!;
       }
       const stopPath = path.slice(0, stopIdx + 1);

@@ -108,7 +108,7 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
 export function endMove(s: GameState, ids: readonly string[]): void {
   for (const id of ids) {
     const u = s.units[id];
-    if (u && u.moved) u.moveDone = true;
+    if (u && u.side === s.phasing) u.moveDone = true;
   }
   s.moving = s.moving.filter((id) => !ids.includes(id));
 }
