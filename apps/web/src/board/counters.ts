@@ -211,22 +211,36 @@ export function drawUnits(layer: Container, ctx: Ctx, s: GameState, opts: Counte
   const loose = Object.values(s.weapons).filter((w) => w.owner === null);
   const looseByHex = new Map<HexKey, typeof loose>();
   for (const w of loose) (looseByHex.get(w.hex) ?? looseByHex.set(w.hex, []).get(w.hex)!).push(w);
+  // Drawn inside the hex, along its bottom, tilted like a counter lying on the ground.
   for (const [hex, ws] of looseByHex) {
     const c = hexToPixel(parseHexKey(hex));
-    ws.forEach((w, i) => {
+    const W = 28;
+    const H = 14;
+    const shown = ws.slice(0, 3);
+    const span = shown.length * W + (shown.length - 1) * 2;
+    shown.forEach((w, i) => {
       const box = new Container();
       const g = new Graphics();
       const n = NATION[nationOf(w.side)];
-      g.roundRect(0, 0, 26, 14, 2).fill(n.bg).stroke({ width: 1, color: 0x222222 });
-      if (w.malfunctioned) g.moveTo(2, 2).lineTo(24, 12).moveTo(24, 2).lineTo(2, 12).stroke({ width: 1.5, color: 0xb02a1e });
+      g.roundRect(1.5, 2, W, H, 2).fill({ color: 0x000000, alpha: 0.3 });
+      g.roundRect(0, 0, W, H, 2).fill(n.bg).stroke({ width: 1.2, color: 0x222222 });
+      if (w.malfunctioned) g.moveTo(2, 2).lineTo(W - 2, H - 2).moveTo(W - 2, 2).lineTo(2, H - 2).stroke({ width: 1.5, color: 0xb02a1e });
       box.addChild(g);
       const t = new Text({ text: weaponType(ctx, w).kind, style: tiny, resolution: 3 });
       t.anchor.set(0.5);
-      t.position.set(13, 7);
+      t.position.set(W / 2, H / 2);
       box.addChild(t);
-      box.position.set(c.x * HEX_PX - 34 + i * 4, c.y * HEX_PX + 12 + i * 4);
+      box.pivot.set(W / 2, H / 2);
+      box.rotation = (i % 2 ? 1 : -1) * 0.12;
+      box.position.set(c.x * HEX_PX - span / 2 + W / 2 + i * (W + 2), c.y * HEX_PX + HEX_PX * 0.62);
       layer.addChild(box);
     });
+    if (ws.length > shown.length) {
+      const t = new Text({ text: `+${ws.length - shown.length}`, style: small, resolution: 3 });
+      t.anchor.set(0.5);
+      t.position.set(c.x * HEX_PX + span / 2 + 8, c.y * HEX_PX + HEX_PX * 0.62);
+      layer.addChild(t);
+    }
   }
 }
 

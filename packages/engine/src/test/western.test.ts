@@ -143,3 +143,21 @@ describe('optional rules', () => {
     }
   });
 });
+
+describe('§29.1 with mines', () => {
+  it('a tank immobilized in a friendly vehicle’s hex does not block the end of movement', () => {
+    const ctx = testCtx({}, {}, { rulesLevel: 63 });
+    const s = blankState(ctx, 'movement');
+    (s as { phasing: string }).phasing = 'ger';
+    (s as { awaiting: string }).awaiting = 'ger';
+    putVehicle(ctx, s, 'ger-pz4f2', 'K5', 'N-NE', { moved: true, moveDone: true });
+    putVehicle(ctx, s, 'ger-pz4f2', 'K5', 'N-NE', { moved: true, immobilized: true, moveDone: true });
+    expect(tryAction(ctx, s, { type: 'endPhase' }).ok).toBe(true);
+    const t = blankState(ctx, 'movement');
+    (t as { phasing: string }).phasing = 'ger';
+    (t as { awaiting: string }).awaiting = 'ger';
+    putVehicle(ctx, t, 'ger-pz4f2', 'K5');
+    putVehicle(ctx, t, 'ger-pz4f2', 'K5', 'N-NE', { moved: true, moveDone: true });
+    expect(tryAction(ctx, t, { type: 'endPhase' }).ok).toBe(false);
+  });
+});

@@ -83,7 +83,7 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
     case 'advancingFire':
       return detonateDecision(ctx, s, side) ?? antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.05) ?? fireDecision(ctx, s, side, 0.05, false);
     case 'movement':
-      return enterDecision(ctx, s, side) ?? chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? vehicleMoveDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
+      return enterDecision(ctx, s, side) ?? recoverDecision(ctx, s, side) ?? chargeDecision(ctx, s, side) ?? sewerDecision(ctx, s, side) ?? vehicleMoveDecision(ctx, s, side) ?? moveDecision(ctx, s, side) ?? end({ goal: 'Finish movement', reasons: ['Every group has moved or chosen to stay.'], weight: 'routine' });
     case 'advance':
       return advanceDecision(ctx, s, side);
     default:
@@ -241,6 +241,79 @@ function enterDecision(ctx: Ctx, s: GameState, side: string): Decision | undefin
         action: a,
         why: { goal: `Bring ${group.length} unit${group.length > 1 ? 's' : ''} on at ${hexId(ctx, h)}`, reasons: ['The entry hex nearest the objectives that the enemy does not hold.', ...(s.landing?.[side] !== undefined ? [`The boats can still land ${limit} squads this turn (§60.3).`] : [])], weight: 'key', focus: { to: h } },
       };
+    }
+  }
+  return undefined;
+}
+
+const RECOVER_VALUE: Record<string, number> = { HMG: 6, MMG: 5, LMG: 4, FT: 4, BAZ: 4, DC: 3, PF: 3, RADIO: 2 };
+
+/**
+ * Movement: pick up support weapons left lying by units that broke or died
+ * (§13.5), or send a free squad into the next hex to fetch one (§5.7).
+ */
+function recoverDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  const armed = new Set(s.charges.map((c) => c.weapon));
+  const lying = Object.values(s.weapons)
+    .filter((w) => !w.owner && !armed.has(w.id) && !enemiesIn(s, w.hex, side).length && !inMelee(s, w.hex))
+    .map((w) => ({ w, value: (RECOVER_VALUE[weaponType(ctx, w).kind] ?? 1) + (w.side === side ? 0.5 : 0) - (w.malfunctioned ? 2 : 0) }))
+    .sort((a, b) => b.value - a.value || a.w.id.localeCompare(b.w.id));
+  if (!lying.length) return undefined;
+  // Legal, and leaves the hex within the stacking limits (squads, units and portage, §6.1).
+  const fits = (a: Action, hex: HexKey) => {
+    const r = tryAction(ctx, s, a);
+    return r.ok && !stackingProblem(ctx, r.state, hex, side);
+  };
+  const name = (w: (typeof lying)[number]['w']) => `${w.side === side ? '' : 'enemy '}${weaponType(ctx, w).name}`;
+  const why = (w: (typeof lying)[number]['w']) => (w.side === side ? 'It was dropped when its crew broke or fell (§13.5).' : 'Captured weapons can be used, and it denies the gun to the enemy (§13.5).');
+  // 1. Anyone already in the hex picks it up: a squad with free hands first, then a leader.
+  for (const { w } of lying) {
+    const takers = sideUnitsIn(s, w.hex, side)
+      .filter((u) => !u.broken && !u.riding && carried(s, u).length === 0)
+      .sort((a, b) => Number(isLeader(ctx, a)) - Number(isLeader(ctx, b)) || a.id.localeCompare(b.id));
+    for (const u of takers) {
+      const a: Action = { type: 'transfer', weapon: w.id, to: u.id };
+      if (!fits(a, w.hex)) continue;
+      return {
+        action: a,
+        why: {
+          goal: `${unitLabel(ctx, u)} picks up the ${name(w)} in ${hexId(ctx, w.hex)}`,
+          reasons: [why(w), 'Any unit in the hex may take it in its Movement Phase, at the cost of the portage (§5.7).'],
+          weight: 'key',
+          focus: { from: w.hex },
+        },
+      };
+    }
+  }
+  // 2. A squad next to it that has not moved steps over, unless the hex is a death trap. Not while another group is mid-move.
+  const objectives = new Set(ctx.objectives.flatMap((o) => o.hexes));
+  for (const { w, value } of lying) {
+    if (value < 3) continue;
+    const danger = exposureAt(ctx, s, side, w.hex).pBreak;
+    if (danger > 0.25) continue;
+    for (const d of DIRECTIONS) {
+      const from = hexKey(neighbor(parseHexKey(w.hex), d));
+      const fetchers = sideUnitsIn(s, from, side).filter(
+        (u) => squadType(ctx, u) && !u.broken && !u.berserk && !u.moveDone && !u.riding && u.mfSpent === 0 && u.firedPhase !== 'prepFire' && carried(s, u).length === 0 && (!s.moving.length || s.moving.includes(u.id)),
+      );
+      // Don't empty an objective building to do it.
+      const holders = sideUnitsIn(s, from, side).filter((u) => !u.broken);
+      for (const u of fetchers) {
+        if (objectives.has(from) && holders.length <= 1) continue;
+        const a: Action = { type: 'move', units: [u.id], to: w.hex };
+        // Room to stand there, and then to pick it up.
+        if (!fits(a, w.hex) || sideUnitsIn(s, w.hex, side).some((x) => !x.broken)) continue;
+        return {
+          action: a,
+          why: {
+            goal: `${unitLabel(ctx, u)} fetches the ${name(w)} from ${hexId(ctx, w.hex)}`,
+            reasons: [why(w), `${hexId(ctx, w.hex)} is next door, and a squad moving there breaks about ${pct(danger)} of the time under Defensive Fire.`],
+            tip: 'Machine guns left on the ground are lost firepower; recover them before the enemy does.',
+            weight: 'key',
+            focus: { from, to: w.hex },
+          },
+        };
+      }
     }
   }
   return undefined;

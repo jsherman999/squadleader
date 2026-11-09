@@ -346,9 +346,9 @@ describe('countryside rules for the LLM (§42–49)', () => {
     const { executeOrder } = await import('./orders');
     const { situation } = await import('./serialize');
     const kinds = new Set<string>();
-    for (const index of [4, 5, 6]) {
+    for (const [index, seed] of [4, 5, 6].flatMap((i) => [7, 8].map((sd) => [i, sd] as const))) {
       const c = scenarioCtx(index);
-      let s = createGame(c, 7).state;
+      let s = createGame(c, seed).state;
       for (let i = 0; i < 5000 && s.phase !== 'gameOver'; i++) {
         const d = botDecide(c, s);
         const o = actionToOrder(c, d.action);

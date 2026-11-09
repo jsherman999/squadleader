@@ -68,5 +68,6 @@ Interpretation calls the engine makes where the rulebook is silent, ambiguous, o
 | Campaign leader | The personal leader joins the side's first infantry stack (or its first reinforcements) with the counter of his rank. | `engine/campaign.ts` |
 | Optional rules | Only §25.4 and §59.1 are offered; §8.7, §16 and the optional §17.5 are not. | `engine/rules/movement.ts`, `engine/rules/western.ts` |
 | Delegated automation | The scripted AI plays the chosen phases for the human side through the same decisions the computer opponent uses; Undo takes back actions without dice. | `web/game/session.ts` |
+| §29.1 with immobilized vehicles | Two vehicles may end in one hex when one of them was immobilized there (mines, breakdown): it could not choose where to stop. | `engine/phases.ts` |
 | Victory: "control" | A building is controlled by the side that has an unbroken unit in it and no enemy unit in any of its hexes. | `engine/rules/victory.ts` |
 | Sudden death | A side with no units left loses at once. | `engine/rules/victory.ts` |

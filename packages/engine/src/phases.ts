@@ -100,8 +100,9 @@ export function phaseBlockers(ctx: Ctx, s: GameState): string[] {
     }
     // One vehicle per hex at the end of movement (§29.1, §30.8).
     for (const v of Object.values(s.vehicles)) {
-      if (v.side !== side || (s.phase === 'movement' && !v.moved)) continue;
-      if (Object.values(s.vehicles).some((o) => o.id !== v.id && o.hex === v.hex)) out.push(`${hexLabel(ctx, v.hex)}: two vehicles may not end in one hex (§29.1)`);
+      // A vehicle immobilized on the way (mines, breakdown) had no choice where it stopped, nor does one that finished its move there first.
+      if (v.side !== side || (s.phase === 'movement' && !v.moved) || v.immobilized) continue;
+      if (Object.values(s.vehicles).some((o) => o.id !== v.id && o.hex === v.hex && !o.immobilized)) out.push(`${hexLabel(ctx, v.hex)}: two vehicles may not end in one hex (§29.1)`);
     }
   }
   return out;

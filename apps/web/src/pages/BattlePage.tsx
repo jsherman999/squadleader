@@ -8,6 +8,7 @@ import {
   exposureMap,
   enemiesIn,
   hexTem,
+  weaponType,
   inMelee,
   moveCost,
   phaseBlockers,
@@ -638,6 +639,7 @@ function Battle() {
 
   const hoverInfo = hover ? describeHex(map, hover) : undefined;
   const tem = hover ? hexTem(ctx, hover) : undefined;
+  const loose = hover ? Object.values(fog.s.weapons).filter((w) => !w.owner && w.hex === hover && !s.charges.some((c) => c.weapon === w.id)) : [];
   const mf = hover && sel.hex && hover !== sel.hex ? moveCost(ctx, sel.hex, hover) : undefined;
 
   return (
@@ -877,10 +879,17 @@ function Battle() {
               d={hoverInfo}
               extra={
                 tem && (
-                  <div className="hex-card-line dim">
-                    Fire DRM {tem.drm > 0 ? `+${tem.drm}` : tem.drm}
-                    {mf && Number.isFinite(mf.mf) && sel.hex && mf.parts.length && hover && isAdj(sel.hex, hover) ? ` · enter for ${mf.mf} MF` : ''}
-                  </div>
+                  <>
+                    <div className="hex-card-line dim">
+                      Fire DRM {tem.drm > 0 ? `+${tem.drm}` : tem.drm}
+                      {mf && Number.isFinite(mf.mf) && sel.hex && mf.parts.length && hover && isAdj(sel.hex, hover) ? ` · enter for ${mf.mf} MF` : ''}
+                    </div>
+                    {loose.length > 0 && (
+                      <div className="hex-card-line">
+                        On the ground: {loose.map((w) => `${sideName(w.side)} ${weaponType(ctx, w).kind}${w.malfunctioned ? ' (malfunctioned)' : ''}`).join(', ')}. Any unit here can pick it up in its Movement Phase.
+                      </div>
+                    )}
+                  </>
                 )
               }
             />
