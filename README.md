@@ -1,5 +1,7 @@
 # Squad War
 
+**Play it in your browser: https://jsherman999.github.io/squadleader/**
+
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
 **Status:** milestones M0–M12 are built (release candidate). You can play the 12 scenarios (city and countryside, Eastern and Western Front, §1–63), deal your own with Design Your Own, build them in the scenario editor, or carry one leader through a six-scenario campaign, hot-seat, against the scripted computer or an LLM, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape (counters or miniatures) or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
