@@ -93,6 +93,7 @@ export function MapViews(p: MapViewsProps) {
   if (show3d && !mounted3d) setMounted3d(true);
   if (show2d && !mounted2d) setMounted2d(true);
   const [quality, setQuality] = useState<Quality>(() => load<Quality>('squadwar:quality', 'medium'));
+  const [unitStyle, setUnitStyle] = useState<'counters' | 'miniatures'>(() => load<'counters' | 'miniatures'>('squadwar:unitStyle', 'counters'));
   const [exag, setExag] = useState(() => Number(load('squadwar:exaggeration', '1.6')) || 1.6);
 
   const onReady2d = p.onReady2d;
@@ -251,6 +252,10 @@ export function MapViews(p: MapViewsProps) {
   }, [s3, quality]);
 
   useEffect(() => {
+    s3?.setUnitStyle(unitStyle);
+  }, [s3, unitStyle]);
+
+  useEffect(() => {
     s3?.setExaggeration(exag);
   }, [s3, exag]);
 
@@ -304,6 +309,22 @@ export function MapViews(p: MapViewsProps) {
                   <option value="high">High</option>
                 </select>
               </label>
+              {p.units && (
+                <label className="field compact" title="Counter standees or miniature figures">
+                  Units
+                  <select
+                    value={unitStyle}
+                    onChange={(e) => {
+                      const v = e.target.value as 'counters' | 'miniatures';
+                      setUnitStyle(v);
+                      store('squadwar:unitStyle', v);
+                    }}
+                  >
+                    <option value="counters">Counters</option>
+                    <option value="miniatures">Miniatures</option>
+                  </select>
+                </label>
+              )}
               <label className="field compact" title="Vertical exaggeration of hills and buildings">
                 Height ×{exag.toFixed(1)}
                 <input

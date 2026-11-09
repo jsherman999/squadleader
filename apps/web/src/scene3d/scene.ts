@@ -13,6 +13,7 @@ import type { PointerInfo, RendererEvents } from '../board/renderer';
 import { canvasPen } from '../draw/canvasPen';
 import type { Pen } from '../draw/pen';
 import type { FxFrame } from '../fx/sample';
+import { miniature } from './miniatures';
 import { counterTexture, labelTexture } from './counters3d';
 import { selectionRing, vehicleModel } from './vehicles3d';
 import { vehicleType } from '@squadwar/engine';
@@ -380,6 +381,15 @@ export class Scene3D {
   }
 
   /** Counter standees for the units, floating above roofs in building hexes. */
+  private unitStyle: 'counters' | 'miniatures' = 'counters';
+
+  /** Counter standees or miniature figures for the infantry. */
+  setUnitStyle(style: 'counters' | 'miniatures'): void {
+    if (this.unitStyle === style) return;
+    this.unitStyle = style;
+    this.lastUnits?.();
+  }
+
   setUnits(ctx: Ctx, s: GameState, selected: ReadonlySet<string>, hidden: ReadonlySet<string> = new Set(), vehicle?: string): void {
     this.lastUnits = () => this.setUnits(ctx, s, selected, hidden, vehicle);
     for (const c of [...this.units.children]) {
@@ -406,6 +416,17 @@ export class Scene3D {
         const ang = (i / Math.max(1, n)) * Math.PI * 2 + 0.6;
         const r = n > 1 ? 0.3 : 0;
         const size = pov ? 0.36 : 0.56;
+        // Miniatures: figures stand on the ground (or the roof), unless the enemy is unidentified.
+        if (this.unitStyle === 'miniatures' && !hidden.has(u.id)) {
+          const mini = miniature(ctx, s, u, selected.has(u.id));
+          const k = pov ? 1.6 : 2.6;
+          mini.scale.set(k, k / this.exaggeration, k);
+          const rr = n > 1 ? 0.34 : 0;
+          mini.position.set(c.x + Math.cos(ang) * rr, top * LEVEL + 0.002, c.y + Math.sin(ang) * rr);
+          mini.userData = { hex, unit: u.id, base: mini.position.clone() };
+          this.units.add(mini);
+          return;
+        }
         const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: counterTexture(ctx, s, u, selected.has(u.id), hidden.has(u.id)), transparent: true, side: THREE.DoubleSide }));
         mesh.scale.set(size, size / this.exaggeration, 1);
         mesh.position.set(c.x + Math.cos(ang) * r, top * LEVEL + (size * 0.62) / this.exaggeration + 0.02, c.y + Math.sin(ang) * r);
