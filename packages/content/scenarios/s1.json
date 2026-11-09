@@ -4,9 +4,15 @@
   "title": "Into the Riverside District",
   "date": "July 1942",
   "location": "Voronezh",
-  "briefing": "German infantry have crossed the Don and pushed into Voronezh. A Soviet rifle company holds the blocks east of the river: a gutted factory, a chapel, the town hall and a row of timber houses. The Germans must clear at least three of these strongpoints before Soviet reinforcements arrive.",
+  "briefing": "German infantry have broken into the eastern district of Voronezh. A Soviet rifle company holds the strongpoints around the market square: the walled factory, the church, the town hall and a big timber barn on the main street. The Germans must clear at least three of them before Soviet reinforcements arrive.",
   "rulesLevel": 21,
-  "layout": [{ "board": "A", "x": 0, "y": 0 }],
+  "layout": [
+    {
+      "board": "A",
+      "x": 0,
+      "y": 0
+    }
+  ],
   "turns": 6,
   "setupFirst": "rus",
   "moveFirst": "ger",
@@ -15,52 +21,180 @@
       "id": "rus",
       "nation": "russian",
       "name": "Soviet",
-      "notes": "Sets up first, anywhere in columns G–Y.",
-      "setup": [{ "board": "A", "cols": ["G", "Y"] }],
+      "notes": "Sets up first, anywhere in columns F–Z.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "F",
+            "Z"
+          ]
+        }
+      ],
       "units": [
-        { "type": "rus-447", "hex": "A-X1", "weapons": ["rus-lmg"] },
-        { "type": "rus-447", "hex": "A-W2", "weapons": ["rus-mmg"] },
-        { "type": "rus-L81", "hex": "A-W2", "names": ["Sgt. Orlov"] },
-        { "type": "rus-447", "hex": "A-V6" },
-        { "type": "rus-447", "hex": "A-W7", "weapons": ["rus-lmg"] },
-        { "type": "rus-447", "hex": "A-T3" },
-        { "type": "rus-L80", "hex": "A-T3", "names": ["Sgt. Belov"] },
-        { "type": "rus-628", "hex": "A-Q8" },
-        { "type": "rus-L91", "hex": "A-Q8", "names": ["Lt. Volkov"] },
-        { "type": "rus-447", "hex": "A-R7" }
+        {
+          "type": "rus-447",
+          "hex": "A-X1",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-Y2",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "A-Y2",
+          "names": [
+            "Sgt. Orlov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-W5"
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-X5",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-Q2"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "A-Q2",
+          "names": [
+            "Sgt. Belov"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "A-O6"
+        },
+        {
+          "type": "rus-L91",
+          "hex": "A-O6",
+          "names": [
+            "Lt. Volkov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-P5"
+        }
       ]
     },
     {
       "id": "ger",
       "nation": "german",
       "name": "German",
-      "notes": "Sets up second, anywhere in columns AA–GG. Moves first.",
-      "setup": [{ "board": "A", "cols": ["AA", "GG"] }],
+      "notes": "Sets up second, anywhere in columns BB–GG. Moves first.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "BB",
+            "GG"
+          ]
+        }
+      ],
       "units": [
-        { "type": "ger-467", "count": 2, "hex": "A-AA4", "weapons": ["ger-hmg"] },
-        { "type": "ger-L92", "hex": "A-AA4", "names": ["Lt. Brandt"] },
-        { "type": "ger-467", "hex": "A-CC2", "weapons": ["ger-mmg"] },
-        { "type": "ger-L81", "hex": "A-CC2", "names": ["Fw. Keller"] },
-        { "type": "ger-467", "hex": "A-DD4", "weapons": ["ger-lmg"] },
-        { "type": "ger-467", "hex": "A-EE5" },
-        { "type": "ger-467", "count": 2, "hex": "A-CC7", "weapons": ["ger-lmg"] },
-        { "type": "ger-L80", "hex": "A-CC7", "names": ["Uffz. Roth"] },
-        { "type": "ger-467", "hex": "A-CC8" }
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "A-CC2",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "A-CC2",
+          "names": [
+            "Lt. Brandt"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-CC3",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "A-CC3",
+          "names": [
+            "Fw. Keller"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-CC6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-DD7"
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "A-CC8",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-CC8",
+          "names": [
+            "Uffz. Roth"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-EE8"
+        }
       ]
     }
   ],
   "victory": {
     "side": "ger",
-    "text": "The Germans win if, at the end of turn 6, they control at least three of the four objective buildings. A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "text": "The Germans win if, at the end of turn 6, they control at least three of the four objective buildings (factory, church, town hall, timber barn). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
     "controlBuildings": {
       "buildings": [
-        { "hex": "A-W2", "name": "Factory" },
-        { "hex": "A-T3", "name": "Chapel" },
-        { "hex": "A-Q8", "name": "Town hall" },
-        { "hex": "A-V6", "name": "Timber row" }
+        {
+          "hex": "A-Y2",
+          "name": "Factory"
+        },
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-O6",
+          "name": "Town hall"
+        },
+        {
+          "hex": "A-W5",
+          "name": "Timber barn"
+        }
       ],
       "atLeast": 3
     }
   },
-  "specialRules": ["Rules §1–21 only (Game Set I, basic infantry)."]
+  "specialRules": [
+    "Rules §1–21 only (Game Set I, basic infantry)."
+  ]
 }

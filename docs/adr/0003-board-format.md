@@ -6,10 +6,24 @@
 
 - **What a board file stores** (`squadwar-board@1`):
   - per hex: terrain, building id, elevation, shellholes, sewer, stairway;
-  - per hexside: wall, hedge, cliff, road.
+  - per hexside: wall, hedge, cliff, road;
+  - per building, optionally: a cosmetic style.
+- **City A** is authored in `packages/content/scripts/build-boards.ts`:
+  - roads follow waypoint paths;
+  - landmarks are placed by hand;
+  - street-front houses, terraces, infill and gardens come from a seeded generator, denser near the centre.
+
+  Roads are drawn as splines through hexside midpoints, so they bend naturally.
 - **The shapes of woods and building symbols are generated deterministically** from those attributes (`packages/terrain/src/geometry.ts`). The plan had proposed hand-drawn vector layers instead.
   - **Woods** fill most of the hex with an irregular outline. They run right up to any hexside shared with another woods hex, so forests are continuous.
-  - **Buildings** are a centre rectangle plus a "bridge" to each neighbouring hex of the same building.
+  - **Buildings** get a footprint from rectangles chosen by style:
+    - single houses: a main block turned parallel to the street they front, often with a rear wing;
+    - elongated buildings: one long block;
+    - compact buildings: wings along a spanning tree of their hexes, which reads as L and V shapes;
+    - factories: parallel saw-tooth halls;
+    - churches: nave, transept and tower.
+
+    The footprint is clipped into each building hex, with a 0.10–0.15 hex inset from hexsides facing other terrain. Styles (`house`, `barn`, `block`, `factory`, `church`, `hall`) are cosmetic and optional per building.
   - **A symbol touches a hexside only when the same obstacle continues across it.** So an LOS traced exactly along a hexside is blocked only when the obstacle lies on both sides of the string (§7.1).
 - **Hills** are whole hexes with one level each. Crest lines therefore coincide with hexsides. The rules let a hex contain two levels, with the centre dot deciding (§43.14); this model simplifies that.
 - **Boards are geomorphic**: 33 columns × 10 rows, flat-top hexes. The end columns (A, GG) and the odd-column rows 0 and 10 are half hexes, which merge when boards are butted together. Where two half hexes overlap, the board listed first in the layout supplies terrain and the display id.

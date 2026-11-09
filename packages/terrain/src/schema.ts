@@ -25,6 +25,9 @@ export const BoardHexSchema = z
   });
 export type BoardHex = z.infer<typeof BoardHexSchema>;
 
+export const BUILDING_STYLES = ['house', 'barn', 'block', 'factory', 'church', 'hall'] as const;
+export type BuildingStyle = (typeof BUILDING_STYLES)[number];
+
 export const ROAD_KINDS = ['paved', 'dirt'] as const;
 
 export const BoardHexsideSchema = z
@@ -53,6 +56,8 @@ export const BoardSchema = z
     seed: z.number().int().optional(),
     hexes: z.record(z.string().regex(LOCAL_HEX_ID), BoardHexSchema),
     hexsides: z.record(z.string().regex(LOCAL_HEXSIDE_ID), BoardHexsideSchema),
+    /** Cosmetic style per building id (house, barn, block, factory, church, hall). */
+    styles: z.record(z.string(), z.enum(BUILDING_STYLES)).optional(),
   })
   .strict();
 export type BoardDef = z.infer<typeof BoardSchema>;

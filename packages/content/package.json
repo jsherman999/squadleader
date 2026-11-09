@@ -13,6 +13,7 @@
     "gen:boards": "tsx scripts/build-boards.ts"
   },
   "devDependencies": {
-    "@squadwar/terrain": "workspace:*"
+    "@squadwar/terrain": "workspace:*",
+    "@squadwar/hex": "workspace:*"
   }
 }

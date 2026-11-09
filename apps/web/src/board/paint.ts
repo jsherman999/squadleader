@@ -18,10 +18,15 @@ import {
   mulberry32,
   neighbor,
   pointInPolygon,
+  clipConvex,
+  rotatedRect,
+  segmentInsideIntervals,
+  type HexKey,
   type Polygon,
   type Vec2,
 } from '@squadwar/hex';
 import { mapGeometry, roadDirections, type GameMap } from '@squadwar/terrain';
+
 import { HEX_PX, MAP } from './palette';
 
 const S = HEX_PX;
@@ -115,41 +120,7 @@ export function paintBoard(map: GameMap): PaintedBoard {
   }
   terrain.addChild(woods);
 
-  // Buildings: outline underlay, fill, roof details.
-  const bld = new Graphics();
-  const bSyms = geo.symbols.filter((s) => s.kind === 'building');
-  for (const s of bSyms) {
-    const stone = map.buildings[s.building!]?.material === 'stone';
-    bld.poly(flat(inflatePolygon(s.polygon, 0.045))).fill(stone ? MAP.stoneBldgEdge : MAP.woodBldgEdge);
-  }
-  for (const s of bSyms) {
-    const stone = map.buildings[s.building!]?.material === 'stone';
-    bld.poly(flat(s.polygon)).fill(stone ? MAP.stoneBldg : MAP.woodBldg);
-  }
-  for (const b of Object.values(map.buildings)) {
-    const stone = b.material === 'stone';
-    for (const hk of b.hexes) {
-      const c = hexToPixel(map.hexes[hk]!.hex);
-      // Roof ridge and a lighter roof panel.
-      bld
-        .rect((c.x - 0.42) * S, (c.y - 0.3) * S, 0.84 * S, 0.6 * S)
-        .fill({ color: stone ? MAP.stoneRoof : MAP.woodRoof, alpha: 0.55 });
-      bld
-        .moveTo((c.x - 0.42) * S, c.y * S)
-        .lineTo((c.x + 0.42) * S, c.y * S)
-        .stroke({ width: 1.5, color: stone ? MAP.stoneBldgEdge : MAP.woodBldgEdge, alpha: 0.6 });
-      if (b.multiStory) {
-        // Multi-story buildings get hatching so they read as tall.
-        for (let i = -2; i <= 2; i++) {
-          bld
-            .moveTo((c.x + i * 0.16 - 0.1) * S, (c.y - 0.28) * S)
-            .lineTo((c.x + i * 0.16 + 0.1) * S, (c.y + 0.28) * S)
-            .stroke({ width: 1, color: stone ? MAP.stoneBldgEdge : MAP.woodBldgEdge, alpha: 0.35 });
-        }
-      }
-    }
-  }
-  terrain.addChild(bld);
+  terrain.addChild(paintBuildings(map));
 
   terrain.addChild(paintHexsides(map));
   terrain.addChild(paintSewers(map));
@@ -214,28 +185,183 @@ function paperGrain(map: GameMap): Graphics {
 
 function paintRoads(map: GameMap): Graphics {
   const g = new Graphics();
-  // Each road hex contributes either a smooth curve (road passes through) or
-  // spokes from the centre (junctions and dead ends).
-  type Piece = { kind: 'curve'; a: Vec2; c: Vec2; b: Vec2; paved: boolean } | { kind: 'spoke'; a: Vec2; b: Vec2; paved: boolean };
-  const pieces: Piece[] = [];
+  const rnd = mulberry32(map.seed + 5);
+  // Road graph: nodes are road hexes, edges are road hexsides.
+  type Edge = { key: string; a: HexKey; b: HexKey | null; mid: Vec2; dirt: boolean; d: number };
+  const edges = new Map<string, Edge>();
+  const adj = new Map<HexKey, Edge[]>();
   for (const h of Object.values(map.hexes)) {
-    const dirs = roadDirections(map, h.hex);
-    if (!dirs.length) continue;
-    const c = hexToPixel(h.hex);
-    const paved = dirs.every((d) => map.hexsides[hexsideKey(h.hex, d)]?.road !== 'dirt');
-    if (dirs.length === 2) {
-      pieces.push({ kind: 'curve', a: hexsideMidpoint(h.hex, dirs[0]!), c, b: hexsideMidpoint(h.hex, dirs[1]!), paved });
-    } else {
-      for (const d of dirs) pieces.push({ kind: 'spoke', a: c, b: hexsideMidpoint(h.hex, d), paved });
+    for (const d of roadDirections(map, h.hex)) {
+      const key = hexsideKey(h.hex, d);
+      const nk = hexKey(neighbor(h.hex, d));
+      const nb = map.hexes[nk] ? nk : null;
+      let e = edges.get(key);
+      if (!e) {
+        const m = hexsideMidpoint(h.hex, d);
+        const c = hexToPixel(h.hex);
+        // Small sideways jitter so straight runs are not ruler-straight.
+        const px2 = { x: -(m.y - c.y), y: m.x - c.x };
+        const len = Math.hypot(px2.x, px2.y) || 1;
+        const j = (rnd() - 0.5) * 0.12;
+        e = { key, a: h.key, b: nb, mid: { x: m.x + (px2.x / len) * j, y: m.y + (px2.y / len) * j }, dirt: map.hexsides[key]?.road === 'dirt', d };
+        edges.set(key, e);
+      }
+      (adj.get(h.key) ?? adj.set(h.key, []).get(h.key)!).push(e);
     }
   }
-  const draw = (p: Piece, width: number, color: number) => {
-    if (p.kind === 'curve') g.moveTo(...px(p.a)).quadraticCurveTo(...px(p.c), ...px(p.b));
-    else g.moveTo(...px(p.a)).lineTo(...px(p.b));
-    g.stroke({ width, color, cap: 'round' });
+  const deg = (k: HexKey) => adj.get(k)?.length ?? 0;
+  const seen = new Set<string>();
+  const chains: { pts: Vec2[]; dirt: boolean }[] = [];
+  const centre = (k: HexKey) => hexToPixel(map.hexes[k]!.hex);
+  const offEnd = (e: Edge): Vec2 => {
+    const c = centre(e.a);
+    return { x: e.mid.x + (e.mid.x - c.x) * 0.8, y: e.mid.y + (e.mid.y - c.y) * 0.8 };
   };
-  for (const p of pieces) draw(p, 0.46 * S, MAP.roadEdge);
-  for (const p of pieces) draw(p, 0.38 * S, p.paved ? MAP.road : MAP.dirtRoad);
+  const walk = (start: HexKey, first: Edge) => {
+    const pts: Vec2[] = [centre(start), first.mid];
+    seen.add(first.key);
+    let cur: HexKey | null = first.a === start ? first.b : first.a;
+    let dirt = first.dirt;
+    if (cur === null) {
+      pts.push(offEnd(first));
+      return { pts, dirt };
+    }
+    for (;;) {
+      if (deg(cur) !== 2) {
+        pts.push(centre(cur));
+        break;
+      }
+      const next: Edge | undefined = adj.get(cur)!.find((e) => !seen.has(e.key));
+      if (!next) {
+        pts.push(centre(cur));
+        break;
+      }
+      seen.add(next.key);
+      dirt = dirt && next.dirt;
+      pts.push(next.mid);
+      const nxt: HexKey | null = next.a === cur ? next.b : next.a;
+      if (nxt === null) {
+        pts.push(offEnd(next));
+        break;
+      }
+      cur = nxt;
+    }
+    return { pts, dirt };
+  };
+  for (const [k, es] of adj) {
+    if (es.length === 2) continue;
+    for (const e of es) if (!seen.has(e.key)) chains.push(walk(k, e));
+  }
+  for (const [k, es] of adj) for (const e of es) if (!seen.has(e.key)) chains.push(walk(k, e));
+
+  const sampled = chains.map((ch) => ({ dirt: ch.dirt, pts: catmullRom(ch.pts, 6) }));
+  const stroke = (pts: Vec2[], width: number, color: number) => {
+    g.moveTo(pts[0]!.x * S, pts[0]!.y * S);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i]!.x * S, pts[i]!.y * S);
+    g.stroke({ width, color, cap: 'round', join: 'round' });
+  };
+  for (const c of sampled) stroke(c.pts, (c.dirt ? 0.34 : 0.46) * S, c.dirt ? 0xa58f62 : MAP.roadEdge);
+  for (const c of sampled) stroke(c.pts, (c.dirt ? 0.27 : 0.38) * S, c.dirt ? MAP.dirtRoad : MAP.road);
+  return g;
+}
+
+/** Catmull-Rom spline through points, sampled `n` times per segment. */
+function catmullRom(p: Vec2[], n: number): Vec2[] {
+  if (p.length < 3) return p;
+  const out: Vec2[] = [p[0]!];
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[Math.max(0, i - 1)]!;
+    const p1 = p[i]!;
+    const p2 = p[i + 1]!;
+    const p3 = p[Math.min(p.length - 1, i + 2)]!;
+    for (let s = 1; s <= n; s++) {
+      const t = s / n;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      out.push({
+        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      });
+    }
+  }
+  return out;
+}
+
+function mix(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 255;
+  const ag = (a >> 8) & 255;
+  const ab = a & 255;
+  const br = (b >> 16) & 255;
+  const bg = (b >> 8) & 255;
+  const bb = b & 255;
+  return (Math.round(ar + (br - ar) * t) << 16) | (Math.round(ag + (bg - ag) * t) << 8) | Math.round(ab + (bb - ab) * t);
+}
+
+function paintBuildings(map: GameMap): Graphics {
+  const g = new Graphics();
+  const geo = mapGeometry(map);
+  const shapes = Object.values(geo.buildings);
+  const material = (id: string) => map.buildings[id]?.material ?? 'wood';
+  // Outline underlay for every piece, then fills: pieces of one building merge visually.
+  for (const b of shapes) {
+    const edge = material(b.id) === 'stone' ? MAP.stoneBldgEdge : MAP.woodBldgEdge;
+    for (const p of b.pieces) g.poly(flat(inflatePolygon(p.polygon, 0.04))).fill(edge);
+  }
+  for (const b of shapes) {
+    const stone = material(b.id) === 'stone';
+    const base = stone ? mix(MAP.stoneBldg, b.tint > 0 ? 0xa4a39b : 0x7c7b76, Math.abs(b.tint) * 0.6) : mix(MAP.woodBldg, b.tint > 0 ? 0xb07a4c : 0x80522f, Math.abs(b.tint) * 0.6);
+    const shade = mix(base, 0x000000, 0.22);
+    const light = mix(base, 0xffffff, 0.22);
+    for (const p of b.pieces) g.poly(flat(p.polygon)).fill(base);
+    for (const r of b.rects) {
+      const u = { x: Math.cos(r.theta), y: Math.sin(r.theta) };
+      const v = { x: -u.y, y: u.x };
+      if (r.kind === 'tower') {
+        const sq = rotatedRect(r.c, r.theta, r.a, r.b);
+        for (const p of b.pieces) {
+          const part = clipConvex(sq, p.polygon);
+          if (part.length >= 3) g.poly(flat(part)).fill(shade);
+        }
+        g.moveTo(sq[0]!.x * S, sq[0]!.y * S).lineTo(sq[2]!.x * S, sq[2]!.y * S).moveTo(sq[1]!.x * S, sq[1]!.y * S).lineTo(sq[3]!.x * S, sq[3]!.y * S).stroke({ width: 1.2, color: light, alpha: 0.8 });
+        continue;
+      }
+      // Pitched roof: darker half on one side of the ridge.
+      const half = rotatedRect({ x: r.c.x + v.x * r.b * 0.5, y: r.c.y + v.y * r.b * 0.5 }, r.theta, r.a, r.b * 0.5);
+      for (const p of b.pieces) {
+        const part = clipConvex(half, p.polygon);
+        if (part.length >= 3) g.poly(flat(part)).fill({ color: shade, alpha: 0.85 });
+      }
+      const lines: [Vec2, Vec2][] = [];
+      if (r.kind === 'hall') {
+        // Saw-tooth or long-hall roof: lines across the roof.
+        const n = Math.max(2, Math.round((r.a * 2) / 0.22));
+        for (let i = 1; i < n; i++) {
+          const t = -r.a + (2 * r.a * i) / n;
+          lines.push([
+            { x: r.c.x + u.x * t - v.x * r.b, y: r.c.y + u.y * t - v.y * r.b },
+            { x: r.c.x + u.x * t + v.x * r.b, y: r.c.y + u.y * t + v.y * r.b },
+          ]);
+        }
+      }
+      lines.push([
+        { x: r.c.x - u.x * r.a, y: r.c.y - u.y * r.a },
+        { x: r.c.x + u.x * r.a, y: r.c.y + u.y * r.a },
+      ]);
+      for (const [a, c] of lines) {
+        for (const p of b.pieces) {
+          for (const [t0, t1] of segmentInsideIntervals(a, c, p.polygon)) {
+            g.moveTo((a.x + (c.x - a.x) * t0) * S, (a.y + (c.y - a.y) * t0) * S)
+              .lineTo((a.x + (c.x - a.x) * t1) * S, (a.y + (c.y - a.y) * t1) * S)
+              .stroke({ width: 1.1, color: r.kind === 'hall' ? shade : light, alpha: 0.85 });
+          }
+        }
+      }
+    }
+    if (b.chimney) {
+      g.circle(b.chimney.x * S, b.chimney.y * S, 6).fill(0x3d3b37).stroke({ width: 2, color: 0x9a978f });
+      g.circle(b.chimney.x * S, b.chimney.y * S, 2.5).fill(0x151515);
+    }
+  }
   return g;
 }
 

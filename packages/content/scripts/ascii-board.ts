@@ -41,6 +41,15 @@ export function neighborCell(cell: Cell, d: DirName): Cell {
   }
 }
 
+export interface RoadSpec {
+  kind: 'paved' | 'dirt';
+  /** Consecutive adjacent cells. */
+  cells: Cell[];
+  /** Continue off the board edge beyond the first/last cell. */
+  offStart?: boolean;
+  offEnd?: boolean;
+}
+
 export interface AsciiBoardSpec {
   id: string;
   name: string;
@@ -52,6 +61,8 @@ export interface AsciiBoardSpec {
   hedges?: string[];
   cliffs?: string[];
   sewers?: string[];
+  roads?: RoadSpec[];
+  styles?: Record<string, 'house' | 'barn' | 'block' | 'factory' | 'church' | 'hall'>;
 }
 
 export function buildBoard(spec: AsciiBoardSpec): BoardDef {
@@ -135,6 +146,41 @@ export function buildBoard(spec: AsciiBoardSpec): BoardDef {
     });
   }
 
+  // Explicit road paths.
+  for (const road of spec.roads ?? []) {
+    const cells = road.cells;
+    for (let i = 0; i < cells.length - 1; i++) {
+      const a = cells[i]!;
+      const b = cells[i + 1]!;
+      const d = DIR_NAMES.find((dn) => {
+        const n = neighborCell(a, dn);
+        return n.c === b.c && n.k === b.k;
+      });
+      if (!d) throw new Error(`${spec.id}: road cells ${a.c},${a.k} and ${b.c},${b.k} are not adjacent`);
+      if (ch(b) !== '.' && ch(b) !== 'o' && ch(b) !== '=') throw new Error(`${spec.id}: road runs into '${ch(b)}' at ${localId(b)}`);
+      hexsides[`${localId(a)}/${d}`] = { road: road.kind };
+    }
+    const offDir = (from: Cell, to: Cell): DirName | undefined => {
+      // Direction from `from` to `to`, continued once more.
+      return DIR_NAMES.find((dn) => {
+        const n = neighborCell(from, dn);
+        return n.c === to.c && n.k === to.k;
+      });
+    };
+    if (road.offEnd && cells.length > 1) {
+      const d = offDir(cells[cells.length - 2]!, cells[cells.length - 1]!)!;
+      const last = cells[cells.length - 1]!;
+      const pick = [d, ...DIR_NAMES].find((dn) => !exists(neighborCell(last, dn)));
+      if (pick) hexsides[`${localId(last)}/${pick}`] = { road: road.kind };
+    }
+    if (road.offStart && cells.length > 1) {
+      const d = offDir(cells[1]!, cells[0]!)!;
+      const first = cells[0]!;
+      const pick = [d, ...DIR_NAMES].find((dn) => !exists(neighborCell(first, dn)));
+      if (pick) hexsides[`${localId(first)}/${pick}`] = { road: road.kind };
+    }
+  }
+
   const addSides = (list: string[] | undefined, prop: 'wall' | 'hedge' | 'cliff') => {
     for (const s of list ?? []) {
       hexsides[s] = { ...(hexsides[s] ?? {}), [prop]: true };
@@ -153,5 +199,13 @@ export function buildBoard(spec: AsciiBoardSpec): BoardDef {
     seed: spec.seed,
     hexes,
     hexsides,
+    ...(spec.styles ? { styles: Object.fromEntries(Object.entries(spec.styles).map(([letterAt, st]) => [buildingAt(letterAt), st])) } : {}),
   };
+
+  /** Resolve a style key "c,k" (any cell of the building) to its building id. */
+  function buildingAt(key: string): string {
+    const id = buildingIds.get(key);
+    if (!id) throw new Error(`${spec.id}: no building at ${key}`);
+    return id;
+  }
 }

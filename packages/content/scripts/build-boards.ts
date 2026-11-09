@@ -5,8 +5,10 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { mulberry32 } from '@squadwar/hex';
 import { parseBoard, lintBoard, localId } from '@squadwar/terrain';
-import { buildBoard, type AsciiBoardSpec } from './ascii-board';
+import { buildBoard, neighborCell, type AsciiBoardSpec, type RoadSpec } from './ascii-board';
+import { route } from './road-route';
 
 /** Local id of offset cell (c, k). */
 const cell = (c: number, k: number) => localId({ c, k });
@@ -28,67 +30,156 @@ class Grid {
   }
 }
 
-/** City A: a dense district of streets, a factory, a park and a town square. */
+/**
+ * City A: a district grown along old roads. Main street bends through a
+ * market square with the church and town hall; lanes run out to a farm and
+ * allotments; a walled factory sits at the north-east edge. Houses front the
+ * streets with gardens behind, denser towards the centre.
+ */
 function cityA(): AsciiBoardSpec {
+  const rnd = mulberry32(1942);
   const g = new Grid();
-  // Streets and the avenue.
-  for (const c of [6, 13, 20, 27]) g.fill(c, c, 0, 10, '=');
-  g.fill(0, 32, 5, 5, '=');
+  const roads: RoadSpec[] = [
+    { kind: 'paved', cells: route([0, 6], [5, 5], [9, 4], [12, 4], [17, 4], [21, 5], [25, 6], [32, 6]), offStart: true, offEnd: true },
+    { kind: 'paved', cells: route([11, 0], [11, 2], [12, 4]), offStart: true },
+    { kind: 'paved', cells: route([12, 4], [13, 6], [12, 8], [12, 9]), offEnd: true },
+    { kind: 'paved', cells: route([17, 4], [20, 2], [22, 1], [22, 0]), offEnd: true },
+    { kind: 'dirt', cells: route([25, 6], [26, 8], [27, 10]), offEnd: true },
+    { kind: 'dirt', cells: route([5, 5], [4, 3], [3, 1], [3, 0]), offEnd: true },
+    { kind: 'dirt', cells: route([12, 8], [8, 8], [6, 9]) },
+  ];
+  const isRoad = new Set(roads.flatMap((r) => r.cells.map((x) => `${x.c},${x.k}`)));
+  const reserved = new Set<string>(isRoad);
+  const reserve = (cells: [number, number][]) => cells.forEach(([c, k]) => reserved.add(`${c},${k}`));
+  const put = (cells: [number, number][], ch: string) => {
+    for (const [c, k] of cells) {
+      if (isRoad.has(`${c},${k}`)) throw new Error(`City A: ${ch} on road at ${c},${k}`);
+      g.set(c, k, ch);
+    }
+    reserve(cells);
+  };
 
-  // North-west block.
-  g.fill(1, 2, 0, 1, 'a');
-  g.fill(4, 5, 1, 2, 'B');
-  g.fill(0, 1, 3, 4, 'c');
-  g.fill(3, 3, 3, 4, 'T');
-  g.set(2, 3, 'o');
-  // North block 2: large stone tenement, houses.
-  g.fill(8, 10, 1, 2, 'D');
-  g.fill(12, 12, 0, 1, 'e');
-  g.set(7, 4, 'f');
-  g.set(11, 3, 'o');
-  g.set(9, 4, 'g');
-  // North block 3: park with a chapel.
-  g.fill(15, 18, 0, 3, 'T');
-  g.set(16, 1, '.');
-  g.fill(19, 19, 2, 3, 'H');
-  g.set(14, 1, 'i');
-  // North block 4: factory and walled yard.
-  g.fill(21, 25, 0, 2, 'F');
-  g.set(26, 3, 'j');
-  g.set(23, 4, 'o');
-  // North block 5: houses.
-  g.fill(28, 29, 0, 1, 'k');
-  g.fill(31, 32, 1, 2, 'L');
-  g.fill(29, 30, 3, 4, 'm');
-  g.set(32, 4, 'T');
+  // Market square (open), church with walled churchyard, town hall.
+  reserve([[13, 2], [13, 3], [14, 2], [14, 3], [15, 2], [15, 3], [16, 3]]);
+  put([[16, 1], [16, 2], [17, 2]], 'C');
+  put([[17, 1], [18, 1], [18, 2]], 'T');
+  put([[14, 5], [15, 5], [14, 6], [15, 6]], 'H');
+  // Factory, its warehouse and the walled yard.
+  put([[23, 0], [24, 0], [25, 0], [26, 0], [23, 1], [24, 1], [25, 1], [26, 1], [24, 2], [25, 2]], 'F');
+  put([[28, 1], [28, 2]], 'W');
+  reserve([[23, 2], [26, 2], [23, 3], [24, 3], [25, 3], [26, 3], [27, 1], [27, 2]]);
+  // Woods: town edge north-west, park south-east, copse south-west.
+  put([[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2], [2, 1]], 'T');
+  put([[28, 8], [29, 8], [29, 9], [30, 8], [30, 9], [31, 9], [29, 10], [31, 8]], 'T');
+  put([[0, 8], [1, 9], [0, 9], [1, 10]], 'T');
+  // Farm at the end of the lane: farmhouse, barn and orchard.
+  put([[5, 9]], 'p');
+  put([[6, 8], [7, 8]], 'b');
+  put([[7, 10], [8, 9]], 'T');
+  // Allotment sheds and the bombed lot.
+  reserve([[18, 7], [19, 8], [20, 7], [21, 8], [18, 8], [20, 8], [19, 9], [21, 9]]);
+  put([[19, 7]], 's');
+  put([[21, 7]], 'q');
+  for (const [c, k] of [[9, 6], [17, 6], [22, 3], [4, 7], [10, 2], [20, 5]] as [number, number][]) {
+    if (!reserved.has(`${c},${k}`)) {
+      g.set(c, k, 'o');
+      reserve([[c, k]]);
+    }
+  }
 
-  // South-west block.
-  g.fill(1, 2, 7, 8, 'n');
-  g.fill(4, 5, 6, 7, 'P');
-  g.fill(0, 3, 9, 10, 'T');
-  g.set(3, 7, 'o');
-  // South block 2: the town square.
-  g.fill(7, 7, 6, 7, 'Q');
-  g.fill(11, 12, 6, 7, 'r');
-  g.set(8, 7, 'o');
-  g.set(10, 8, 'o');
-  g.set(9, 9, 'o');
-  g.set(12, 9, 's');
-  // South block 3: town hall and houses.
-  g.fill(15, 17, 7, 8, 'R');
-  g.set(14, 6, 'u');
-  g.fill(19, 19, 6, 7, 'v');
-  g.fill(18, 19, 9, 10, 'T');
-  // South block 4: houses and a bombed lot.
-  g.fill(21, 22, 6, 7, 'w');
-  g.set(24, 6, 'x');
-  g.fill(25, 26, 8, 9, 'S');
-  g.set(23, 8, 'o');
-  g.set(22, 9, 'o');
-  // South block 5: garden woods and houses.
-  g.fill(29, 31, 7, 9, 'T');
-  g.fill(28, 28, 6, 7, 'z');
-  g.fill(32, 32, 6, 7, 'U');
+  // Street-front houses: denser and more often stone near the square.
+  const centre = { c: 14, k: 4 };
+  // Letters free of legend meanings (T woods, o shellholes, y wheat).
+  const letters = 'adeghjklmnruvwxz';
+  let li = 0;
+  const pickLetter = (cellAt: { c: number; k: number }): string => {
+    const near = new Set(
+      (['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const).map((d) => {
+        const n = neighborCell(cellAt, d);
+        return (g.rows[n.k]?.[n.c] ?? '.').toLowerCase();
+      }),
+    );
+    for (let i = 0; i < letters.length; i++) {
+      const l = letters[(li + i) % letters.length]!;
+      if (!near.has(l)) {
+        li += i + 1;
+        return l;
+      }
+    }
+    return letters[li++ % letters.length]!;
+  };
+  const free = (c: number, k: number) =>
+    c >= 0 && c < 33 && k >= 0 && k <= (c % 2 === 0 ? 9 : 10) && !reserved.has(`${c},${k}`) && g.rows[k]![c] === '.';
+  const roadCells = [...isRoad].map((s) => s.split(',').map(Number) as [number, number]);
+  roadCells.sort(() => rnd() - 0.5);
+  for (const [rc, rk] of roadCells) {
+    for (const d of ['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const) {
+      const n = neighborCell({ c: rc, k: rk }, d);
+      if (!free(n.c, n.k)) continue;
+      const dist = Math.hypot(n.c - centre.c, (n.k - centre.k) * 1.15);
+      const density = Math.max(0.2, 0.98 - dist * 0.05);
+      if (rnd() > density) continue;
+      const stone = rnd() < Math.max(0.12, 0.7 - dist * 0.06);
+      const letter = pickLetter(n);
+      const ch = stone ? letter.toUpperCase() : letter;
+      g.set(n.c, n.k, ch);
+      reserve([[n.c, n.k]]);
+      // Sometimes a terrace: a second hex along the same street.
+      if (rnd() < 0.5) {
+        for (const d2 of ['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const) {
+          const m = neighborCell(n, d2);
+          const touchesRoad = (['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const).some((d3) => {
+            const r = neighborCell(m, d3);
+            return isRoad.has(`${r.c},${r.k}`);
+          });
+          if (free(m.c, m.k) && touchesRoad) {
+            g.set(m.c, m.k, ch);
+            reserve([[m.c, m.k]]);
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Infill in the old town: a free hex wedged between buildings becomes part of a block.
+  for (let pass = 0; pass < 2; pass++) {
+    for (let k = 0; k <= 10; k++) {
+      for (let c = 0; c < 33; c++) {
+        if (!free(c, k)) continue;
+        const dist = Math.hypot(c - centre.c, (k - centre.k) * 1.15);
+        if (dist > 9) continue;
+        const near = (['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const)
+          .map((d) => neighborCell({ c, k }, d))
+          .map((n) => g.rows[n.k]?.[n.c] ?? '.')
+          .filter((x) => /[a-zA-Z]/.test(x) && !['T', 'o', 'y', 'H', 'C', 'F', 'W', 'b', 'p', 's', 'q'].includes(x));
+        if (near.length >= 2 && rnd() < 0.55) {
+          g.set(c, k, near[0]!);
+          reserve([[c, k]]);
+        }
+      }
+    }
+  }
+  // Gardens behind some houses: orchards with hedges.
+  const hedges: string[] = [];
+  for (let k = 0; k <= 10; k++) {
+    for (let c = 0; c < 33; c++) {
+      if (!free(c, k)) continue;
+      const nearHouse = (['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const).some((d) => {
+        const n = neighborCell({ c, k }, d);
+        return /[a-z]/i.test(g.rows[n.k]?.[n.c] ?? '') && !['T', 'o'].includes(g.rows[n.k]?.[n.c] ?? '');
+      });
+      if (nearHouse && rnd() < 0.16) {
+        g.set(c, k, 'T');
+        reserve([[c, k]]);
+      } else if (nearHouse && rnd() < 0.22) {
+        const d = (['N', 'NE', 'SE', 'S', 'SW', 'NW'] as const)[Math.floor(rnd() * 6)]!;
+        const n = neighborCell({ c, k }, d);
+        if (!isRoad.has(`${n.c},${n.k}`)) hedges.push(side(c, k, d));
+      }
+    }
+  }
+  // Allotment hedges.
+  hedges.push(side(18, 7, 'S'), side(19, 8, 'SE'), side(20, 7, 'S'), side(21, 8, 'N'), side(19, 9, 'N'));
 
   return {
     id: 'A',
@@ -96,17 +187,26 @@ function cityA(): AsciiBoardSpec {
     kind: 'city',
     seed: 7,
     rows: g.done(),
-    roadKind: 'paved',
-    // Factory yard wall along the avenue and the yard's west side.
+    roads,
     walls: [
-      ...[21, 22, 23, 24, 25, 26].map((c) => side(c, 4, 'S')),
-      side(21, 3, 'NW'),
-      side(21, 3, 'SW'),
-      side(21, 4, 'SW'),
+      // Churchyard.
+      side(17, 1, 'N'),
+      side(18, 1, 'N'),
+      side(18, 1, 'NE'),
+      side(18, 2, 'SE'),
+      side(18, 2, 'S'),
+      // Factory yard.
+      side(23, 3, 'S'),
+      side(24, 3, 'S'),
+      side(25, 3, 'S'),
+      side(26, 3, 'S'),
+      side(26, 3, 'SE'),
+      side(26, 2, 'NE'),
+      side(23, 3, 'SW'),
     ],
-    // Garden hedge north of the south-east woods.
-    hedges: [side(29, 7, 'N'), side(30, 7, 'N'), side(31, 7, 'N'), side(28, 7, 'SE')],
-    sewers: [cell(6, 2), cell(13, 7), cell(20, 1), cell(27, 8)],
+    hedges,
+    sewers: [cell(11, 1), cell(13, 3), cell(17, 4), cell(25, 6)],
+    styles: { '16,1': 'church', '23,0': 'factory', '28,1': 'hall', '14,5': 'block', '6,8': 'barn' },
   };
 }
 

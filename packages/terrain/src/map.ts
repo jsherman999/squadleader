@@ -13,7 +13,7 @@ import {
   type HexsideKey,
 } from '@squadwar/hex';
 import { BOARD_COLS, BOARD_ROWS, boardCells, cellToGlobal, isHalfCell, localId, parseLocalId, rotateCell } from './board';
-import type { BoardDef, BoardHexside, HexTerrain, MapLayout } from './schema';
+import type { BoardDef, BoardHexside, BuildingStyle, HexTerrain, MapLayout } from './schema';
 
 export interface MapHex {
   readonly key: HexKey;
@@ -47,6 +47,8 @@ export interface Building {
   readonly hexes: readonly HexKey[];
   /** Buildings of 3+ hexes are multi-story (§7.4). */
   readonly multiStory: boolean;
+  /** Cosmetic style for drawing. */
+  readonly style: BuildingStyle;
 }
 
 export interface BoardRect {
@@ -84,7 +86,7 @@ function rotDir(d: Direction, rot: 0 | 180): Direction {
 export function composeMap(layout: MapLayout, boards: Readonly<Record<string, BoardDef>>): GameMap {
   const hexes: Record<HexKey, MapHex> = {};
   const hexsides: Record<HexsideKey, MapHexside> = {};
-  const buildingHexes: Record<string, { material: 'wood' | 'stone'; hexes: HexKey[] }> = {};
+  const buildingHexes: Record<string, { material: 'wood' | 'stone'; hexes: HexKey[]; style?: BuildingStyle }> = {};
   const byId: Record<string, HexKey> = {};
   const rects: BoardRect[] = [];
   let seed = 0;
@@ -125,7 +127,8 @@ export function composeMap(layout: MapLayout, boards: Readonly<Record<string, Bo
       byId[id] = k;
       if (building) {
         const material = terrain === 'stoneBuilding' ? 'stone' : 'wood';
-        (buildingHexes[building] ??= { material, hexes: [] }).hexes.push(k);
+        const style = def.styles?.[src.b!];
+        (buildingHexes[building] ??= { material, hexes: [], ...(style ? { style } : {}) }).hexes.push(k);
       }
     }
 
@@ -149,7 +152,8 @@ export function composeMap(layout: MapLayout, boards: Readonly<Record<string, Bo
 
   const buildings: Record<string, Building> = {};
   for (const [id, b] of Object.entries(buildingHexes)) {
-    buildings[id] = { id, material: b.material, hexes: b.hexes, multiStory: b.hexes.length >= 3 };
+    const style: BuildingStyle = b.style ?? (b.hexes.length <= 2 ? 'house' : b.material === 'wood' ? 'barn' : 'block');
+    buildings[id] = { id, material: b.material, hexes: b.hexes, multiStory: b.hexes.length >= 3, style };
   }
 
   const bounds = {

@@ -105,6 +105,9 @@ importers:
 
   packages/content:
     devDependencies:
+      '@squadwar/hex':
+        specifier: workspace:*
+        version: link:../hex
       '@squadwar/terrain':
         specifier: workspace:*
         version: link:../terrain
