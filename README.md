@@ -2,7 +2,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M10 are built. You can play scenarios 1–7 (city and countryside: infantry, special weapons, concealment, sewers, tanks, SP guns, halftracks, AT guns, offboard artillery, hidden units, night) hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M11 are built. You can play scenarios 1–12 (city and countryside, Eastern and Western Front: infantry, special weapons, concealment, sewers, tanks, SP guns, halftracks, AT guns, artillery, hidden units, night, Americans, trucks and jeeps, wire, entrenchments, minefields, bunkers, rubble and fire, river landings, snow, roadblocks, mortars) hot-seat, against the computer, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 

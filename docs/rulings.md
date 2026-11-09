@@ -52,5 +52,16 @@ Interpretation calls the engine makes where the rulebook is silent, ambiguous, o
 | §48.2 crews when the gun is hit | A hit destroys an AT gun; the crew is not attacked by that shot. | `engine/rules/armor.ts` |
 | §49 night simplifications | The visibility range applies to every target, moving or not. Night routs still avoid open ground in enemy sight (§49.8 not applied). | `engine/rules/night.ts` |
 | Not yet implemented (M10) | Counter-battery fire (§45.4), towing guns (§48.6), captured guns (§48.81), night routs (§49.8). | — |
+| §51.4 soft vehicles under fire | Rifle and MG fire on a hex with trucks or jeeps rolls the IFT for each: KIA wrecks it; any morale result is a driver check at 8 (plus the result), and a failed check a second one: pass is immobilized, fail is wrecked. | `engine/rules/western.ts` |
+| §53.3 wire | Infantry may enter a wire hex only in the Advance Phase. Leaving costs a die roll of MF, but a unit can always move one hex. | `engine/rules/western.ts`, `engine/rules/movement.ts` |
+| §54.2, §53.5, §55.5 field work | Digging in, cutting wire and clearing mines each take a squad's whole Prep Fire: it may not have moved or fired, and may not move afterwards. One attempt per squad per turn. | `engine/rules/western.ts` |
+| §55.1 who sees minefields | The owner always sees his minefields; the enemy sees one once it has attacked. Human players against the computer and the LLM see only those; the scripted bot sees all of them but does not yet steer around them. | `web/game/fog.ts`, `agent/serialize.ts` |
+| §56 bunker capacity | The capacity printed in the scenario is not enforced. Only the bunker's owner benefits from it. | `engine/rules/western.ts` |
+| §57 upper levels | Not modelled. Multi-hex buildings keep their height for line of sight, but units are always on the ground floor. | — |
+| §58.1 collapse | Each KIA from HE, artillery, mines or a charge rubbles the target building hex, and the units in that hex are eliminated. Other hexes of the building stand. | `engine/rules/western.ts` |
+| §59.4 spreading fire | Each burning hex tries once per neighbour at the end of each Advancing Fire Phase. Woods and grain burn only from June to October. | `engine/rules/western.ts` |
+| §60 boats | The boats themselves are not on the map and cannot be fired at; the 2d6 roll limits squads landing that turn (leaders are extra). Reinforcements may not enter into an overstacked hex. | `engine/rules/western.ts` |
+| §63.4 on-board indirect fire | Uses the offboard artillery sequence (radio contact, request, spotting round, fire for effect) with a one-hex blast and no mission limit. A site holds one mortar or howitzer. | `engine/rules/artillery.ts` |
+| Not yet implemented (M11) | Upper building levels (§57), capturing trucks (§51.5), roadblock removal parties (§62.3), indirect fire from M4A4 and M10 (§63.45), counter-battery fire, bunker capacity. | — |
 | Victory: "control" | A building is controlled by the side that has an unbroken unit in it and no enemy unit in any of its hexes. | `engine/rules/victory.ts` |
 | Sudden death | A side with no units left loses at once. | `engine/rules/victory.ts` |

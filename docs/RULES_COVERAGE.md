@@ -89,20 +89,20 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | § | Topic | Notes | MS |
 |---|---|---|---|
-| 50 | The Americans | US squad capabilities and exceptions referenced elsewhere (for example §13.5, §5.7 note H). | M11 |
-| 51 | Trucks | Transport; vulnerability (§51.4). | M11 |
-| 52 | Jeeps | Transport; stacking per §6.1. | M11 |
-| 53 | Wire | Movement restrictions; removal (KIA in Advancing Fire, artillery); TI markers. | M11 |
-| 54 | Entrenchments | Entering and leaving costs; DRMs; stacking exception. | M11 |
-| 55 | Minefields | Hidden; attacks on entry; effects on vehicles (§55.6x). | M11 |
-| 56 | Bunkers | Covered arcs and fire restrictions; entry exceptions; close combat. | M11 |
-| 57 | Upper building levels | Second-level positions; stairways; LOS from upper levels; rubbling of levels. | M11 |
-| 58 | Rubble | Creation; movement and TEM. | M11 |
-| 59 | Fire | Ignition; spread; effects on movement and combat. Optional §59.1 adds woods and grain fires. Fire and smoke particles. | M11 |
-| 60 | River crossings | Amphibious entry from the south edge (§60.1–60.2); boats. | M11 |
-| 61 | Snow | Movement and visibility effects; snow terrain shader. | M11 |
-| 62 | Roadblocks | Placement; removal in the Rally Phase (§62.3). | M11 |
-| 63 | On-board artillery | Mortars and howitzers on the map (§63.6 mortars). | M11 |
+| 50 | The Americans | **Done.** 6-6-6 squads, 8-4-7 engineers, crews and leaders; American squads never get desperation morale; American support weapons are repaired on a 1 or 2; bazookas. | M11 |
+| 51 | Trucks | **Done.** Riders (2 units, 1 squad), road ½ MP, open ground 6, no woods, buildings, walls, wire or enemy hexes. Infantry and MG fire: a KIA wrecks the truck; an MC result is a driver check at 8, and a failed one a second check (immobilized or wrecked). Gun fire uses the truck kill row. Capture (§51.5) not yet. | M11 |
+| 52 | Jeeps | **Done.** As trucks, carrying leaders or one crew; no wreck is left. | M11 |
+| 53 | Wire | **Done.** Infantry enter wire only in the Advance Phase; leaving costs a die roll of MF (one hex always possible). A squad clears it in Prep Fire on its firepower or less; 80mm+ fire for effect and charge KIAs blow it away; tanks and SP guns flatten it, halftracks stop on it, trucks and jeeps can't enter. | M11 |
+| 54 | Entrenchments | **Done.** +2 against fire, HE and charges, +4 against artillery and overruns, +0 against flamethrowers; +1 MF to enter; squads dig in during Prep Fire on 5 or less (+2 in snow, leader modifier applies), not in buildings or bunkers. | M11 |
+| 55 | Minefields | **Done.** Secret from the enemy until they attack; units entering or leaving are attacked on the IFT with no modifiers (+1 in snow) and become DM; vehicles need a KIA (with type modifiers): trucks and jeeps are destroyed, AFVs immobilized with a second roll to blow up. Squads clear them from the same or an adjacent hex in Prep Fire; artillery and charge KIAs set them off. | M11 |
+| 56 | Bunkers | **Done.** Owner's units get the covered-arc modifier when every firer is in the arc, the other value otherwise and against artillery and overruns; flamethrowers through the arc +0; +1 MF to enter. Stacking capacity is set by the scenario but not yet enforced. | M11 |
+| 57 | Upper building levels | Not modelled: buildings have heights for line of sight only. | — |
+| 58 | Rubble | **Done.** A KIA from HE, artillery, mines or a charge brings a building hex down (units inside are lost); tanks entering wooden buildings rubble them; rubble defends as stone (+3) and is entered as a building. Scenarios may start with ruins. | M11 |
+| 59 | Fire | **Done.** Flamethrower KIAs set buildings alight; HE and artillery KIAs on a second KIA roll. Fires spread at the end of Advancing Fire (same building 8/9+, other building 10+, woods 7+ and grain 6+ from June to October), block sight and entry, and drive units out in the Rout Phase. Flame and smoke effects; a fire mark in 2D and 3D. | M11 |
+| 60 | River crossings | **Done.** Reinforcements wait off the map and enter along a board edge from their turn; the landing side rolls 2d6 for the squads its boats carry each turn, and landing ends the move; mist hexes act as smoke until a 1 is rolled at the start of a turn. Boats are not shown on the river. | M11 |
+| 61 | Snow | **Done.** Infantry and soft-vehicle movement costs double except along roads; entrenching +2; mines +1. A snow wash in 2D and a snowy 3D ground. | M11 |
+| 62 | Roadblocks | **Done.** Hexside roadblocks stop vehicles, cost infantry +1 MF, count as a wall for fire, and are removed by a charge KIA. Removal by working parties (§62.3) not yet. | M11 |
+| 63 | On-board artillery | **Done.** Mortars (10–60 hexes, any direction) and the American 105mm howitzer fire directly where the crew sees, or indirectly through a leader with a radio: the artillery sequence with a one-hex blast, unlimited missions, minimum range 10 (mortars) or 20 (howitzers). HEAT for American 105s, used up on a To Hit roll of 6+. Mortars and howitzers are pushed by their crews. Indirect fire from tanks (§63.45) not yet. | M11 |
 
 ## Game Set IV and campaign (unlocks Design-Your-Own and Campaign)
 

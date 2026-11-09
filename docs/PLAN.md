@@ -2,7 +2,7 @@
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** M0–M10 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
+**Status:** M0–M11 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -25,7 +25,8 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 | M8 Infantry extensions | Done | §22–27: flamethrowers, demolition charges, smoke, concealment with fog of war, fanaticism and sewer movement, with rules traces and tests. City B (industrial district with a walled ironworks and a workers' settlement) and manhole networks on both city boards. Scenario 2 *The Ironworks* and scenario 3 *Under the Streets* (City B north of City A). Battle-screen controls for smoke, flamethrowers, charges and sewers; "?" counters for concealed enemies in 2D and 3D; flame, blast and smoke effects with sound. The bot lays smoke, places and blows charges, fires flamethrowers and uses the sewers; the LLM gets the matching orders and a §22–27 primer. Bot-vs-bot games favour the defender in all three scenarios: the scripted attacker is cautious. |
 | M9 Armor | Done | §28–41 in `rules/armor`: tanks and SP guns with covered arcs, movement points and breakdowns, To Hit and AFV Kill by aspect and armour, HE and MG fire on infantry, crew exposure, overruns, infantry anti-tank attacks (grenade bundles in Defensive Fire, close assault, flamethrowers, panzerfausts, bazookas, demolition charges), malfunctions and repairs, immobilization and bail-outs, wrecks and crews, hull down, smoke dischargers. 2D vehicle counters with facing and status badges, the covered arc and an MP path preview; 3D tank models and wrecks; the commander's view along the gun; gun, anti-tank and knock-out effects with sound. The bot fights with tanks and anti-tank infantry; the LLM gets vehicle orders and an armour primer. Scenario 4 *Armor in the Streets*. Riders, canister and tank-fired smoke are still to come (see rulings). |
 | M10 Countryside and support | Done | Country boards C *Kolkhoz Ridge*, D *Station Hill* and E *Forest Edge*, generated with hills, crest lines, cliffs, woods, wheat and villages. §42–49: hidden initial placement, cliffs and seasonal wheat, offboard artillery (modules, radio contact, request, drifting spotting round, corrections, fire for effect and smoke on the 7-hex blast area), halftracks and riders, AT guns, night (visibility range, gun flashes, starshells). Fog of war hides hidden units; night darkens the map; artillery marks and a Rally Phase artillery panel with map picking; halftrack and AT gun art in 2D and 3D; barrage, spotting round and starshell effects. The bot calls artillery, fires starshells and unloads riders; the LLM gets the orders and a primer. Scenarios 5 *Station Hill*, 6 *The Kalach Road* and 7 *Night at Lyutezh*. |
-| M11–M12 | Not started | |
+| M11 Western Front | Done | §50–63: American squads (no desperation morale, repairs on 1–2), trucks and jeeps (soft vehicles: road-bound movement, driver morale under fire, riders), wire, entrenchments with digging, secret minefields with clearing, bunkers with covered arcs, rubble and fire (collapse, ignition, spreading, escape), river landings with assault-boat limits and mist, reinforcements entering along a board edge, snow, roadblocks, on-board mortars and howitzers with direct and indirect fire, HEAT. 2D and draped-3D marks for all of it, a snowy 3D ground, enemy minefields kept secret by the fog of war, reserves and field-work controls, HEAT and soft-vehicle panels, truck/jeep/mortar art in 2D and 3D, and mine, collapse and fire effects. The bot brings on reinforcements, routes around fortifications and fires its mortars through radio spotters; the LLM gets enter and dig orders and a §50–63 primer. Scenarios 8 *Causeway*, 9 *The Fort*, 10 *Rubble*, 11 *Boats on the Waal* and 12 *Twin Villages in the Snow*, each on a single board. Upper building levels (§57) are not modelled (see rulings). |
+| M12 | Not started | |
 
 Deviations from this plan so far:
 
@@ -687,11 +688,11 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | 5 | *Station Hill*: Ponyri, Jul 1943 (built in M10) | §42–46 hidden placement, advanced LOS and hills, rural terrain, offboard artillery | Country D |
 | 6 | *The Kalach Road*: Kalach-on-Don, Nov 1942 (built in M10; the bridge waits for §60) | §47–48 halftracks, AT guns | Country D north of E |
 | 7 | *Night at Lyutezh*: Lyutezh bridgehead, Nov 1943 (built in M10) | §49 night | Country C |
-| 8 | *Causeway*: Carentan, Jun 1944 | §50–52 Americans, trucks, jeeps | Country 1+2 |
-| 9 | *The Fort*: Fort Driant, Oct 1944 | §53–56 wire, entrenchments, minefields, bunkers | Country 3 + City B |
-| 10 | *Rubble*: Brest, Sep 1944 | §57–59 upper levels, rubble, fire | City A+B |
-| 11 | *Boats on the Waal*: Nijmegen, Sep 1944 | §60 river crossing | Country 2 + City A |
-| 12 | *Twin Villages in the Snow*: Krinkelt-Rocherath, Dec 1944 | §61–63 snow, roadblocks, on-board artillery | Country 1+3 + City B |
+| 8 | *Causeway*: Carentan, Jun 1944 (built in M11) | §50–52 Americans, trucks, jeeps | Country E |
+| 9 | *The Fort*: Metz forts, Oct 1944 (built in M11) | §53–56 wire, entrenchments, minefields, bunkers | City B |
+| 10 | *Rubble*: Brest, Sep 1944 (built in M11) | §58–59 rubble, fire (§57 upper levels not modelled) | City A |
+| 11 | *Boats on the Waal*: Nijmegen, Sep 1944 (built in M11) | §60 river crossing | Country D |
+| 12 | *Twin Villages in the Snow*: Krinkelt, Dec 1944 (built in M11) | §61–63 snow, roadblocks, on-board artillery | Country C |
 
 Each scenario includes:
 

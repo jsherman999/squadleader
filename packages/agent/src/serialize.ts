@@ -174,7 +174,7 @@ function westernLines(ctx: Ctx, s: GameState, side: string): string[] {
   const ids = (hs: readonly HexKey[]) => hs.map((h) => hexId(ctx, h)).join(', ');
   const f = s.forts;
   if (f) {
-    if (f.wire.length) out.push(`WIRE: ${ids(f.wire)} (entering ends the move; leaving costs a die roll of MF; a squad that does nothing else in Prep Fire may cut it, dig work=wire).`);
+    if (f.wire.length) out.push(`WIRE: ${ids(f.wire)} (infantry may enter only in the Advance Phase; leaving costs a die roll of MF, one hex is always possible; a squad in it that does nothing else in Prep Fire may cut it, dig work=wire; tanks flatten it).`);
     if (f.trenches.length) out.push(`ENTRENCHMENTS: ${ids(f.trenches)} (+2 vs fire and charges, +4 vs artillery and overruns, +0 vs flamethrowers; +1 MF to enter).`);
     for (const b of f.bunkers) out.push(`BUNKER at ${hexId(ctx, b.hex)} (${b.side === side ? 'yours' : 'enemy'}): holds ${b.capacity} squad${b.capacity === 1 ? '' : 's'}, +${b.ca} against fire from its covered arc (${FACING_NAMES[b.facing]}), +${b.nca} from elsewhere.`);
     const mines = f.mines.filter((m) => m.side === side || m.known);

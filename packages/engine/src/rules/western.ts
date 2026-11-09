@@ -13,7 +13,7 @@ import type { Emit } from './common';
 import { eliminate } from './common';
 import { iftLookup, resultText } from './fire';
 import { applyHexResults } from './morale';
-import { crewCheck, destroyVehicle, iftColumn, immobilize, inArc, vehicleLabel, vehicleType, facingIndex } from './armor';
+import { crewCheck, destroyVehicle, iftColumn, inArc, vehicleLabel, vehicleType, facingIndex } from './armor';
 
 // ---- Setup ---------------------------------------------------------------------------------
 
@@ -367,7 +367,6 @@ export function vehicleWire(ctx: Ctx, s: GameState, v: Vehicle, hex: HexKey, emi
   s.forts!.wire = s.forts!.wire.filter((h) => h !== hex);
   if (t.kind === 'halftrack') v.moveDone = true;
   emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} crushes the wire in ${hexLabel(ctx, hex)}${t.kind === 'halftrack' ? ' and must stop (§53.9)' : ' (§53.8)'}`, side: v.side, hexes: [hex] });
-  void immobilize;
 }
 
 /** Soft vehicles under infantry fire: a KIA wrecks them; a morale check result means an MC at 8, then a second one: immobilized or wrecked (§51.4). */

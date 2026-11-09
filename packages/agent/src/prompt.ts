@@ -70,7 +70,7 @@ const COUNTRY_PRIMER = `COUNTRYSIDE, SUPPORT AND NIGHT (§42–49):
 const WESTERN_PRIMER = `WESTERN FRONT (§50–63):
 - Americans: squads (6-6-6, 8-4-7 engineers) never suffer desperation morale; their support weapons are repaired on a 1 or 2. Bazookas are their anti-tank weapon.
 - Trucks and jeeps carry riders (board/unload) and move fast on roads, slowly across country, never through woods or buildings. Any fire can hit them: MG and rifle fire make the driver check morale.
-- Wire: entering ends a unit's move; leaving costs a die roll of MF. Tanks flatten it. A squad that does nothing else in Prep Fire may cut wire in its own hex (dig work=wire): roll its firepower or less.
+- Wire: infantry may enter a wire hex only in the Advance Phase; leaving costs a die roll of MF (one hex is always possible). Tanks flatten it. A squad that does nothing else in Prep Fire may cut wire in its own hex (dig work=wire): roll its firepower or less.
 - Entrenchments: +2 against fire and charges, +4 against artillery and overruns, nothing against flamethrowers. A squad may dig in during Prep Fire instead of firing (dig work=entrench): 5 or less on two dice (+2 in snow).
 - Minefields are secret until found: units entering or leaving are attacked by the mines; vehicles may be immobilized or destroyed. A squad next to a suspected field may try to clear it in Prep Fire (dig work=mines target=hex).
 - Bunkers protect their owners: big modifiers, smaller through the covered arc. Flamethrowers through the arc and demolition charges are the way in.
