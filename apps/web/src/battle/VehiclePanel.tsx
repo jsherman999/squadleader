@@ -1,9 +1,11 @@
-import type { HexKey } from '@squadwar/hex';
+import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
   analyzeVehicleFire,
   enemiesIn,
   FACING_NAMES,
   mpLeft,
+  tryAction,
+  unitLabel,
   vehicleFireOdds,
   vehicleLabel,
   vehicleType,
@@ -37,14 +39,18 @@ export function VehiclePanel({
   const t = vehicleType(ctx, v);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   const turn = (d: number) => dispatch({ type: 'face', vehicle: v.id, facing: (v.facing + d + 6) % 6 });
+  const isGun = t.kind === 'gun';
+  const aboard = Object.values(s.units).filter((u) => u.riding === v.id);
   const status = [v.immobilized ? 'immobilized' : '', v.gun !== 'ok' ? `gun ${v.gun}` : '', v.mg !== 'ok' ? `MGs ${v.mg}` : '', v.ce ? 'crew exposed' : ''].filter(Boolean);
   const head = (
     <div className="vehicle-head">
       <strong>{vehicleLabel(ctx, v)}</strong>
       <span className="dim small">
         {' '}
-        {t.kind === 'tank' ? 'tank' : 'SP gun'} · {t.gun ? `${t.gun}mm${t.heOnly ? ' HE only' : ''}${t.lowVelocity ? ' *' : ''}` : 'no gun'} · MG {t.mgCA}/{t.mg360} · {t.mp} MP · arc {FACING_NAMES[v.facing]}
+        {t.kind === 'tank' ? 'tank' : t.kind === 'spg' ? 'SP gun' : t.kind === 'halftrack' ? 'halftrack' : 'AT gun'} · {t.gun ? `${t.gun}mm${t.heOnly ? ' HE only' : ''}${t.lowVelocity ? ' *' : ''}` : 'no gun'} · MG {t.mgCA}/{t.mg360}
+        {isGun ? ` · ROF ${t.rof ?? 1}` : ` · ${t.mp} MP`} · arc {FACING_NAMES[v.facing]}
       </span>
+      {aboard.length > 0 && <div className="small">Riding: {aboard.map((u) => unitLabel(ctx, u)).join(', ')}</div>}
       {status.length > 0 && <div className="small warn">{status.join(' · ')}</div>}
     </div>
   );
@@ -79,7 +85,30 @@ export function VehiclePanel({
         )}
       </div>
     );
-  if (s.phase === 'movement')
+  if (s.phase === 'movement') {
+    const ok = (a: Action) => tryAction(ctx, s, a).ok;
+    const walkers = Object.values(s.units).filter((u) => u.hex === v.hex && u.side === v.side && !u.riding && !u.broken && u.mfSpent === 0 && !u.moveDone);
+    const loadable = walkers.filter((u) => ok({ type: 'board', units: [u.id], vehicle: v.id }));
+    if (isGun) {
+      const pusher = Object.values(s.units).find((u) => u.hex === v.hex && u.side === v.side && !u.broken && u.mfSpent === 0 && ctx.data.units[u.type]?.kind !== 'leader');
+      const spots = pusher ? DIRECTIONS.map((d) => hexKey(neighbor(parseHexKey(v.hex), d))).filter((h) => ok({ type: 'push', unit: pusher.id, gun: v.id, to: h })) : [];
+      return (
+        <div className="actions">
+          {head}
+          <p className="small dim">An AT gun is turned or pushed one hex by its crew or a squad that has not moved (§48.4–48.5). Turning it means +3 to hit in Advancing Fire.</p>
+          {facingButtons('')}
+          {pusher && spots.length > 0 && (
+            <div className="action-btns">
+              {spots.map((h) => (
+                <button key={h} className="btn tiny" onClick={() => dispatch({ type: 'push', unit: pusher.id, gun: v.id, to: h })}>
+                  Push → {ctx.map.hexes[h]?.id}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
     return (
       <div className="actions">
         {head}
@@ -94,8 +123,29 @@ export function VehiclePanel({
             </button>
           </>
         )}
+        {loadable.length > 0 && (
+          <div className="action-row">
+            <div>
+              Load infantry
+              <div className="faint small">Up to 2 units, 1 squad; the vehicle can’t move this turn (§31.1–31.3)</div>
+            </div>
+            <div className="action-btns">
+              {loadable.map((u) => (
+                <button key={u.id} className="btn tiny" onClick={() => dispatch({ type: 'board', units: [u.id], vehicle: v.id })}>
+                  {unitLabel(ctx, u)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {aboard.length > 0 && ok({ type: 'unload', units: aboard.map((u) => u.id), vehicle: v.id }) && (
+          <button className="btn tiny" onClick={() => dispatch({ type: 'unload', units: aboard.map((u) => u.id), vehicle: v.id })} title="2 MP; the riders may move one hex more (§31.4)">
+            Unload riders
+          </button>
+        )}
       </div>
     );
+  }
   if (!FIRE.has(s.phase)) return <div className="actions">{head}</div>;
   // Fire phases.
   const opts: { req: VehicleFireRequest; label: string; odds: string; why: string[] }[] = [];

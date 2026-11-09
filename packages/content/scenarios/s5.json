@@ -1,0 +1,249 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s5",
+  "title": "Station Hill",
+  "date": "July 1943",
+  "location": "Ponyri",
+  "briefing": "The northern pincer of the summer offensive has ground to a halt in front of a rail halt and the low hill behind it. The Soviet defenders have dug in among the station buildings and the farm on the crest, with an anti-tank gun hidden in the copse. The Germans attack across ripe wheat with two assault guns and a forward observer for the divisional artillery.",
+  "rulesLevel": 46,
+  "layout": [
+    {
+      "board": "D",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "smoke": {
+    "ger": 2
+  },
+  "concealment": {
+    "rus": 2
+  },
+  "artillery": [
+    {
+      "side": "ger"
+    }
+  ],
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first, anywhere in columns H–GG. Units marked hidden are off the map for the Germans until they give themselves away (§42).",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "H",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "hex": "D-J6",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "D-J6",
+          "names": [
+            "Lt. Kozlov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "D-K7",
+          "weapons": [
+            "rus-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "rus-447",
+          "hex": "D-I4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "D-N2",
+          "hidden": true
+        },
+        {
+          "type": "rus-L80",
+          "hex": "D-N2",
+          "names": [
+            "Sgt. Rybin"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "rus-447",
+          "hex": "D-K6"
+        },
+        {
+          "type": "rus-447",
+          "hex": "D-Y4",
+          "weapons": [
+            "rus-hmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "D-Y4",
+          "names": [
+            "Sgt. Belyaev"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "D-Z3",
+          "hidden": true
+        },
+        {
+          "type": "rus-zis3",
+          "hex": "D-P5",
+          "facing": "SW-NW",
+          "hidden": true
+        },
+        {
+          "type": "rus-237",
+          "hex": "D-P5",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns A–F. Moves first. Hauptmann Weber has a radio to the divisional artillery (§45–46).",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "F"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "D-B2",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-B2"
+        },
+        {
+          "type": "ger-L102",
+          "hex": "D-B2",
+          "weapons": [
+            "ger-radio"
+          ],
+          "names": [
+            "Hptm. Weber"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-C3",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "D-C3",
+          "names": [
+            "Lt. Franke"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "D-E5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "D-E5",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "D-E5",
+          "names": [
+            "Fw. Lang"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-D7"
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "D-C6",
+          "names": [
+            "Greif"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "D-D8",
+          "names": [
+            "Falke"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 7, they control at least three of the four strongpoints (the station, the grain store, the water tower and the farm on the hill). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "D-J6",
+          "name": "Station"
+        },
+        {
+          "hex": "D-I4",
+          "name": "Grain store"
+        },
+        {
+          "hex": "D-N2",
+          "name": "Water tower"
+        },
+        {
+          "hex": "D-Y4",
+          "name": "Hill farm"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–46: hidden initial placement, hills and rural terrain, offboard artillery.",
+    "Wheatfields are in season (July): they block sight, not fire (§44.2).",
+    "The German artillery module is rolled at the start: calibre and fire missions are shown in the log (§45.2)."
+  ]
+}

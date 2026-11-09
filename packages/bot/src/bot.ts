@@ -45,6 +45,7 @@ import {
 import { chanceAtMost, hexId, leaderNote, objectiveNear, pct, stackName, terrainNote, unitList, type Decision, type Rationale } from './explain';
 import { canOperateSpecial, isSewerEntrance } from '@squadwar/engine';
 import { afvAssaultTarget, antiTankDecision, vehicleFireDecision, vehicleMoveDecision, vehicleRepairDecision } from './armor';
+import { artilleryDecision, starshellDecision } from './support';
 
 export interface BotOptions {
   /** Minimum expected casualties (broken-or-worse) before firing. */
@@ -74,7 +75,7 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
         weight: 'routine',
       });
     case 'rally':
-      return vehicleRepairDecision(ctx, s, side) ?? rallyDecision(ctx, s, side) ?? end({ goal: 'Finish the Rally Phase', reasons: ['No broken unit has a leader to rally it, and no weapon needs repair.'], weight: 'routine' });
+      return vehicleRepairDecision(ctx, s, side) ?? artilleryDecision(ctx, s, side) ?? rallyDecision(ctx, s, side) ?? starshellDecision(ctx, s, side) ?? end({ goal: 'Finish the Rally Phase', reasons: ['No broken unit has a leader to rally it, and no weapon needs repair.'], weight: 'routine' });
     case 'prepFire':
       return smokeDecision(ctx, s, side) ?? antiTankDecision(ctx, s, side) ?? vehicleFireDecision(ctx, s, side, 0.3) ?? fireDecision(ctx, s, side, opts.fireThreshold ?? 0.35, true);
     case 'defensiveFire':
@@ -549,7 +550,7 @@ function moveDecision(ctx: Ctx, s: GameState, side: string): Decision | undefine
   const attacker = ctx.scenario.victory.side === side;
   // Continue the group that is moving.
   const movers = (hex: HexKey) =>
-    sideUnitsIn(s, hex, side).filter((u) => !u.broken && !u.berserk && !u.moveDone && u.firedPhase !== 'prepFire' && !inMelee(s, u.hex));
+    sideUnitsIn(s, hex, side).filter((u) => !u.broken && !u.berserk && !u.moveDone && u.firedPhase !== 'prepFire' && !inMelee(s, u.hex) && !u.riding && !(u.debarked && u.moved));
   const hexes = s.moving.length ? [s.units[s.moving[0]!]?.hex].filter((h): h is HexKey => !!h) : [];
   for (const u of Object.values(s.units)) if (u.side === side && !hexes.includes(u.hex)) hexes.push(u.hex);
   for (const h of hexes) {
@@ -683,8 +684,11 @@ function goalIsAssault(ctx: Ctx, s: GameState, side: string, hex: HexKey): boole
 
 function exposed(ctx: Ctx, s: GameState, side: string, h: HexKey): boolean {
   if (isCover(ctx, h)) return false;
+  // At night only enemies within the visibility range, or a lit hex, can be seen (§49.1).
+  const lit = (s.starshells ?? []).some((x) => range(x.hex, h) <= 3);
   for (const e of Object.values(s.units)) {
     if (e.side === side || e.broken) continue;
+    if (ctx.scenario.night && !lit && range(e.hex, h) > (s.nightVis ?? 2)) continue;
     const st = squadType(ctx, e);
     const reach = Math.max(st ? st.range * 2 : 0, ...carried(s, e).map((w) => weaponType(ctx, w).range * 2));
     if (reach && range(e.hex, h) <= reach && ctx.los(e.hex, h).clear) return true;

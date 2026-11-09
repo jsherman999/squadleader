@@ -208,6 +208,8 @@ const UnitEntry = z
     weapons: z.array(z.string()).optional(),
     /** Hidden initial placement (§42). */
     hidden: z.boolean().optional(),
+    /** Starts riding the side's vehicle with this name (§31.9). */
+    rides: z.string().optional(),
     /** Vehicles: the covered arc, as its two hexsides, e.g. "N-NE" (§29.4). */
     facing: z.enum(['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N']).optional(),
   })

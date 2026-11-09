@@ -2,7 +2,7 @@
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** M0–M9 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
+**Status:** M0–M10 are built; see [Progress](#progress). Owner decisions are in [§13](#13-decisions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -24,7 +24,8 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 | M7 Opponents | Done | LLM opponent (ADR 0008): Anthropic (official SDK in the browser), OpenAI, Gemini, OpenRouter and local OpenAI-compatible servers; settings with Test connection, model list, persona, effort, budget, economy; keys in memory unless remembered; cost meter; radio chatter and optional "AI thinking"; every LLM order carries its goal for the tutor; scripted-AI fallback on errors, refusals, budget or Cancel. Standing Orders for Defensive Fire (LLM economy mode, and human Streamlined automation). Tested with a mock provider (full game vs. the bot, illegal-order recovery), adapter request/response tests, and a browser run against a local OpenAI-compatible server. |
 | M8 Infantry extensions | Done | §22–27: flamethrowers, demolition charges, smoke, concealment with fog of war, fanaticism and sewer movement, with rules traces and tests. City B (industrial district with a walled ironworks and a workers' settlement) and manhole networks on both city boards. Scenario 2 *The Ironworks* and scenario 3 *Under the Streets* (City B north of City A). Battle-screen controls for smoke, flamethrowers, charges and sewers; "?" counters for concealed enemies in 2D and 3D; flame, blast and smoke effects with sound. The bot lays smoke, places and blows charges, fires flamethrowers and uses the sewers; the LLM gets the matching orders and a §22–27 primer. Bot-vs-bot games favour the defender in all three scenarios: the scripted attacker is cautious. |
 | M9 Armor | Done | §28–41 in `rules/armor`: tanks and SP guns with covered arcs, movement points and breakdowns, To Hit and AFV Kill by aspect and armour, HE and MG fire on infantry, crew exposure, overruns, infantry anti-tank attacks (grenade bundles in Defensive Fire, close assault, flamethrowers, panzerfausts, bazookas, demolition charges), malfunctions and repairs, immobilization and bail-outs, wrecks and crews, hull down, smoke dischargers. 2D vehicle counters with facing and status badges, the covered arc and an MP path preview; 3D tank models and wrecks; the commander's view along the gun; gun, anti-tank and knock-out effects with sound. The bot fights with tanks and anti-tank infantry; the LLM gets vehicle orders and an armour primer. Scenario 4 *Armor in the Streets*. Riders, canister and tank-fired smoke are still to come (see rulings). |
-| M10–M12 | Not started | |
+| M10 Countryside and support | Done | Country boards C *Kolkhoz Ridge*, D *Station Hill* and E *Forest Edge*, generated with hills, crest lines, cliffs, woods, wheat and villages. §42–49: hidden initial placement, cliffs and seasonal wheat, offboard artillery (modules, radio contact, request, drifting spotting round, corrections, fire for effect and smoke on the 7-hex blast area), halftracks and riders, AT guns, night (visibility range, gun flashes, starshells). Fog of war hides hidden units; night darkens the map; artillery marks and a Rally Phase artillery panel with map picking; halftrack and AT gun art in 2D and 3D; barrage, spotting round and starshell effects. The bot calls artillery, fires starshells and unloads riders; the LLM gets the orders and a primer. Scenarios 5 *Station Hill*, 6 *The Kalach Road* and 7 *Night at Lyutezh*. |
+| M11–M12 | Not started | |
 
 Deviations from this plan so far:
 
@@ -683,9 +684,9 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | 2 | *The Ironworks*: Stalingrad factory district, Oct 1942 (built in M8) | §22–26 flamethrowers, demolition charges, smoke, concealment, fanaticism | City B |
 | 3 | *Under the Streets*: Kharkov, Feb 1943 (built in M8) | §27 sewer movement | City B north of City A |
 | 4 | *Armor in the Streets*: Zhitomir, Nov 1943 (built in M9) | §28–41 AFVs | City B north of City A |
-| 5 | *Station Hill*: Ponyri, Jul 1943 | §42–46 hidden placement, advanced LOS and hills, rural terrain, offboard artillery | Country 1+2 |
-| 6 | *The Don Bridge*: Kalach, Nov 1942 | §47–48 halftracks, AT guns | Country 2+3 |
-| 7 | *Night Crossing*: Lyutezh bridgehead, Nov 1943 | §49 night | Country 1+3 |
+| 5 | *Station Hill*: Ponyri, Jul 1943 (built in M10) | §42–46 hidden placement, advanced LOS and hills, rural terrain, offboard artillery | Country D |
+| 6 | *The Kalach Road*: Kalach-on-Don, Nov 1942 (built in M10; the bridge waits for §60) | §47–48 halftracks, AT guns | Country D north of E |
+| 7 | *Night at Lyutezh*: Lyutezh bridgehead, Nov 1943 (built in M10) | §49 night | Country C |
 | 8 | *Causeway*: Carentan, Jun 1944 | §50–52 Americans, trucks, jeeps | Country 1+2 |
 | 9 | *The Fort*: Fort Driant, Oct 1944 | §53–56 wire, entrenchments, minefields, bunkers | Country 3 + City B |
 | 10 | *Rubble*: Brest, Sep 1944 | §57–59 upper levels, rubble, fire | City A+B |

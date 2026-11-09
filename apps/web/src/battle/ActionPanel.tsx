@@ -27,7 +27,12 @@ import {
 } from '@squadwar/engine';
 import { FireCalc } from './FireCalc';
 
+/** Waiting for a hex click: where to put an artillery mark or a starshell. */
+export type MapPick = { kind: 'arty'; battery: string; op: 'request' | 'correct' | 'ffe' | 'move'; smoke?: boolean } | { kind: 'starshell'; unit: string };
+
 export interface ActionPanelProps {
+  pick?: MapPick | undefined;
+  setPick?: (p: MapPick | undefined) => void;
   ctx: Ctx;
   s: GameState;
   firers: FireUnit[];
@@ -79,12 +84,86 @@ export function ActionPanel(props: ActionPanelProps) {
 }
 
 /** Smoke, flamethrowers, demolition charges and sewers (§22–27), when the selection allows them. */
-function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch }: ActionPanelProps) {
+function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, setPick }: ActionPanelProps) {
   const side = s.awaiting;
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   const ok = (a: Action) => tryAction(ctx, s, a).ok;
   const units = selected.map((id) => s.units[id]!).filter((u) => u && u.side === side);
   const rows: React.ReactNode[] = [];
+  if (pick && setPick) {
+    rows.push(
+      <Row key="pick" text={pick.kind === 'starshell' ? 'Click the hex for the starshell (within 5 hexes)' : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`}>
+        <button className="btn tiny" onClick={() => setPick(undefined)}>
+          Cancel
+        </button>
+      </Row>,
+    );
+  }
+  // Offboard artillery (§45–46) and starshells (§49.6) in the Rally Phase.
+  if (s.phase === 'rally') {
+    for (const b of (s.batteries ?? []).filter((x) => x.side === side)) {
+      const left = b.missions - b.used;
+      const leaders = Object.values(s.units).filter(
+        (u) => u.side === side && ctx.data.units[u.type]?.kind === 'leader' && !u.broken && Object.values(s.units).some((x) => x.hex === u.hex && x.side === side && carried(s, x).some((w) => weaponType(ctx, w).kind === 'RADIO' && !w.malfunctioned)),
+      );
+      const mark = b.mode === 'idle' ? 'nothing on the map' : `${b.mode === 'request' ? 'request' : b.mode === 'sr' ? 'spotting round' : 'fire for effect'} at ${b.hex ? hexId(b.hex) : '?'}`;
+      rows.push(
+        <Row key={`bat-${b.id}`} text={`${b.mm}mm artillery · ${left} mission${left === 1 ? '' : 's'} left`} why={`Contact: ${b.contact && b.tried ? 'yes' : b.tried ? 'failed' : 'not tried'} · ${mark}`}>
+          {!b.tried &&
+            leaders.map((L) => (
+              <button key={L.id} className="btn tiny primary" onClick={() => dispatch({ type: 'radio', battery: b.id, unit: L.id })} title="Roll for radio contact (§46.11)">
+                Radio ({unitLabel(ctx, L)})
+              </button>
+            ))}
+          {b.tried && b.contact && !b.acted && setPick && (
+            <>
+              {(b.mode === 'idle' || b.mode === 'request') && (
+                <button className="btn tiny" onClick={() => setPick({ kind: 'arty', battery: b.id, op: 'request' })}>
+                  Request…
+                </button>
+              )}
+              {b.mode === 'sr' && (
+                <>
+                  <button className="btn tiny" onClick={() => setPick({ kind: 'arty', battery: b.id, op: 'correct' })}>
+                    Correct…
+                  </button>
+                  <button className="btn tiny primary" onClick={() => setPick({ kind: 'arty', battery: b.id, op: 'ffe' })}>
+                    Fire for effect…
+                  </button>
+                  <button className="btn tiny" onClick={() => setPick({ kind: 'arty', battery: b.id, op: 'ffe', smoke: true })}>
+                    Smoke…
+                  </button>
+                </>
+              )}
+              {b.mode === 'ffe' && (
+                <button className="btn tiny" onClick={() => setPick({ kind: 'arty', battery: b.id, op: 'move' })}>
+                  Move FFE…
+                </button>
+              )}
+              {b.mode !== 'idle' && (
+                <button className="btn tiny" onClick={() => dispatch({ type: 'arty', battery: b.id, op: 'cancel' })}>
+                  Call off
+                </button>
+              )}
+            </>
+          )}
+        </Row>,
+      );
+    }
+    const shells = s.starshellsLeft?.[side] ?? 0;
+    if (ctx.scenario.night && shells > 0 && setPick) {
+      for (const L of units.filter((u) => ctx.data.units[u.type]?.kind === 'leader' && !u.broken)) {
+        rows.push(
+          <Row key={`ss-${L.id}`} text={`Starshell · ${shells} left`} why="Lights everything within 3 hexes until after Close Combat (§49.6–49.7).">
+            <button className="btn tiny" onClick={() => setPick({ kind: 'starshell', unit: L.id })}>
+              Fire starshell…
+            </button>
+          </Row>,
+        );
+        break;
+      }
+    }
+  }
   if (s.phase === 'prepFire' && (s.smokeLeft[side] ?? 0) > 0) {
     for (const u of units) {
       if (!squadType(ctx, u)?.assaultEngineer || u.smokeMade) continue;

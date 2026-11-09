@@ -37,12 +37,12 @@ export function hexKeyOf(ctx: Ctx, id: string): HexKey | undefined {
 /** Enemy units this side knows about. In §1–21 everything on the board is known. */
 export function visibleUnits(ctx: Ctx, s: GameState, side: string): Unit[] {
   void ctx;
-  return Object.values(s.units).filter((u) => u.side !== side && !u.concealed);
+  return Object.values(s.units).filter((u) => u.side !== side && !u.concealed && !u.hidden);
 }
 
 /** Hexes holding enemy units the side cannot identify (§25). */
 export function concealedHexes(s: GameState, side: string): HexKey[] {
-  return [...new Set(Object.values(s.units).filter((u) => u.side !== side && u.concealed).map((u) => u.hex))].sort();
+  return [...new Set(Object.values(s.units).filter((u) => u.side !== side && u.concealed && !u.hidden).map((u) => u.hex))].sort();
 }
 
 function unitLine(ctx: Ctx, s: GameState, u: Unit, own: boolean): string {
@@ -63,6 +63,8 @@ function unitLine(ctx: Ctx, s: GameState, u: Unit, own: boolean): string {
     if (u.directed) notes.push('has directed fire');
     if (u.advanced) notes.push('advanced');
     if (u.concealed) notes.push('concealed');
+    if (u.hidden) notes.push('hidden: the enemy has not seen it yet');
+    if (u.riding) notes.push(`riding ${u.riding}`);
     if (u.smokeMade) notes.push('laid smoke this turn');
     if (notes.length) parts.push(`(${notes.join('; ')})`);
   }
@@ -139,7 +141,7 @@ function vehicleLines(ctx: Ctx, s: GameState, side: string): string[] {
     return '  ' + bits.join(' · ');
   };
   const mine = vs.filter((v) => v.side === side);
-  const theirs = vs.filter((v) => v.side !== side);
+  const theirs = vs.filter((v) => v.side !== side && !v.hidden);
   const out = ['', `YOUR VEHICLES (${mine.length}):`, ...mine.map((v) => line(v, true)), `ENEMY VEHICLES (${theirs.length}):`, ...theirs.map((v) => line(v, false))];
   if (s.wrecks.length) out.push(`WRECKS: ${s.wrecks.map((w) => hexId(ctx, w.hex)).join(', ')}`);
   return out;
@@ -151,6 +153,11 @@ function specialLines(ctx: Ctx, s: GameState, side: string): string[] {
   const left = s.smokeLeft[side] ?? 0;
   if (left || s.smoke.length) out.push('', `SMOKE: ${s.smoke.length ? s.smoke.map((x) => hexId(ctx, x.hex)).join(', ') : 'none on the map'}; you have ${left} smoke counter${left === 1 ? '' : 's'} left.`);
   if (s.charges.length) out.push(`DEMOLITION CHARGES: ${s.charges.map((c) => `${c.side === side ? 'yours' : 'enemy'} ${c.weapon} on ${hexId(ctx, c.target)}${c.armed ? ' (armed)' : ''}`).join('; ')}`);
+  for (const b of (s.batteries ?? []).filter((x) => x.side === side)) {
+    out.push(`ARTILLERY ${b.id}: ${b.mm}mm, ${b.missions - b.used} of ${b.missions} fire missions left; radio contact ${b.contact ? `held by ${b.leader}` : 'none'}${b.tried ? ' (tried this Rally Phase)' : ''}; ${b.mode === 'idle' ? 'nothing on the map' : `${b.mode === 'request' ? 'request' : b.mode === 'sr' ? 'spotting round' : 'fire for effect'} at ${b.hex ? hexId(ctx, b.hex) : '?'}`}.`);
+  }
+  for (const b of (s.batteries ?? []).filter((x) => x.side !== side && (x.mode === 'sr' || x.mode === 'ffe') && x.hex)) out.push(`ENEMY ARTILLERY: ${b.mode === 'sr' ? 'spotting round' : 'fire for effect'} at ${hexId(ctx, b.hex!)}.`);
+  if (ctx.scenario.night) out.push(`NIGHT: visibility ${s.nightVis ?? '?'} hexes this turn (+3 for moving vehicles); starshells lit at ${(s.starshells ?? []).map((x) => hexId(ctx, x.hex)).join(', ') || 'none'}; you have ${s.starshellsLeft?.[side] ?? 0} starshells.`);
   if (ctx.scenario.sewers) {
     const open = Object.values(ctx.map.hexes).filter((h) => h.sewer && !s.closedSewers.includes(h.key));
     out.push(`SEWER ENTRANCES: ${open.map((h) => h.id).join(' ')}${s.closedSewers.length ? `; blown shut: ${s.closedSewers.map((h) => hexId(ctx, h)).join(' ')}` : ''}`);

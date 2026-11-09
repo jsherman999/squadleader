@@ -25,7 +25,13 @@ export type OrderType =
   | 'vehicle_fire'
   | 'anti_tank'
   | 'smoke_dischargers'
-  | 'vehicle_repair';
+  | 'vehicle_repair'
+  | 'radio'
+  | 'artillery'
+  | 'starshell'
+  | 'board'
+  | 'unload'
+  | 'push_gun';
 
 export interface Order {
   readonly type: OrderType;
@@ -41,6 +47,9 @@ export interface Order {
   readonly gun?: 'main' | 'mg';
   readonly vs?: string;
   readonly ammo?: 'AP' | 'HE';
+  readonly battery?: string;
+  readonly op?: 'request' | 'correct' | 'ffe' | 'move' | 'cancel';
+  readonly smoke?: boolean;
   readonly goal?: string;
   readonly reason?: string;
 }
@@ -75,6 +84,12 @@ const ORDER_TYPES: readonly OrderType[] = [
   'anti_tank',
   'smoke_dischargers',
   'vehicle_repair',
+  'radio',
+  'artillery',
+  'starshell',
+  'board',
+  'unload',
+  'push_gun',
 ];
 const MG = new Set(['LMG', 'MMG', 'HMG']);
 
@@ -95,6 +110,9 @@ export function orderSchema(): Record<string, unknown> {
       gun: { type: 'string', enum: ['main', 'mg'], description: 'vehicle_fire: main gun or MGs.' },
       vs: { type: 'string', description: 'vehicle_fire with the main gun: the enemy vehicle id to shoot at (omit to fire HE at infantry).' },
       ammo: { type: 'string', enum: ['AP', 'HE'], description: 'vehicle_fire at a vehicle: ammunition (default AP).' },
+      battery: { type: 'string', description: 'radio/artillery: the battery id.' },
+      op: { type: 'string', enum: ['request', 'correct', 'ffe', 'move', 'cancel'], description: 'artillery: request fire, correct the spotting round, fire for effect, move the fire for effect, or call it off.' },
+      smoke: { type: 'boolean', description: 'artillery ffe: smoke instead of HE.' },
       goal: { type: 'string', description: 'One short line: what this order is trying to achieve.' },
       reason: { type: 'string', description: 'Why this order, with the numbers or rules that decided it.' },
     },
@@ -279,6 +297,40 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       const r = env.apply({ type: 'discharge', vehicle: o.vehicle }, n);
       return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
     }
+    case 'radio': {
+      if (!o.battery || !o.unit) return fail('radio needs battery and unit (the leader with the radio)');
+      const r = env.apply({ type: 'radio', battery: o.battery, unit: o.unit }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'artillery': {
+      if (!o.battery || !o.op) return fail('artillery needs battery and op');
+      const t = o.op === 'cancel' ? undefined : hex(o.target, 'target');
+      if (t !== undefined && !isKey(t)) return fail(t);
+      const r = env.apply({ type: 'arty', battery: o.battery, op: o.op, ...(t ? { hex: t } : {}), ...(o.smoke ? { smoke: true } : {}) }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'starshell': {
+      if (!o.unit) return fail('starshell needs unit (a leader)');
+      const t = hex(o.target, 'target');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'starshell', unit: o.unit, hex: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'board':
+    case 'unload': {
+      const bad = unknownUnits(s, o.units, side);
+      if (bad) return fail(bad);
+      if (!o.vehicle) return fail(`${o.type} needs vehicle`);
+      const r = env.apply({ type: o.type, units: o.units!, vehicle: o.vehicle }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'push_gun': {
+      if (!o.unit || !o.vehicle) return fail('push_gun needs unit and vehicle (the gun)');
+      const t = hex(o.to, 'to');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'push', unit: o.unit, gun: o.vehicle, to: t }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
     case 'vehicle_repair': {
       if (!o.vehicle) return fail('vehicle_repair needs vehicle');
       const r = env.apply({ type: 'vrepair', vehicle: o.vehicle }, n);
@@ -318,6 +370,17 @@ export function actionToOrder(ctx: Ctx, a: Action): Order | undefined {
       return { type: 'smoke_dischargers', vehicle: a.vehicle };
     case 'vrepair':
       return { type: 'vehicle_repair', vehicle: a.vehicle };
+    case 'radio':
+      return { type: 'radio', battery: a.battery, unit: a.unit };
+    case 'arty':
+      return { type: 'artillery', battery: a.battery, op: a.op, ...(a.hex ? { target: hexId(ctx, a.hex) } : {}), ...(a.smoke ? { smoke: true } : {}) };
+    case 'starshell':
+      return { type: 'starshell', unit: a.unit, target: hexId(ctx, a.hex) };
+    case 'board':
+    case 'unload':
+      return { type: a.type, units: a.units, vehicle: a.vehicle };
+    case 'push':
+      return { type: 'push_gun', unit: a.unit, vehicle: a.gun, to: hexId(ctx, a.to) };
     case 'move':
       return { type: 'move', units: a.units, path: [hexId(ctx, a.to)] };
     case 'endMove':

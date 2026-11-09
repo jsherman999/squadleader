@@ -43,5 +43,14 @@ Interpretation calls the engine makes where the rulebook is silent, ambiguous, o
 | Infantry MGs against AFVs | Not offered: the MMG/HMG kill numbers against tanks and SP guns are below 2. | — |
 | Vehicles and victory | Vehicles do not control buildings. A side with only vehicles left is not eliminated. | `engine/rules/victory.ts` |
 | Not yet implemented | Riders (§31), canister (§34.9), bazooka HE against infantry (§37.47), pushing wrecks (§40.4), tank-fired smoke (§41.3), captured vehicles. | — |
+| §42.1 hidden placement | Hidden units are marked in the scenario. The bot and the scripted AI see them (as with concealment); human opponents and the LLM do not. Hidden AT guns and their crews count as hidden units. | `web/game/fog.ts`, `agent/serialize.ts` |
+| §45.2 artillery modules | A module per scenario `artillery` entry, not per radio counter: its calibre comes from the module table and its fire missions from a 1–4 roll unless the scenario sets them. Any friendly radio may call it. | `engine/rules/artillery.ts` |
+| §46.11 radio contact timing | Each side may try once per Rally Phase per battery. A battery that did not keep contact by the end of the Rally Phase loses its spotting round or fire for effect (a pending request stays). | `engine/rules/artillery.ts` |
+| §46.22 direction of error | Die 1–6 = N, NE, SE, S, SW, NW. | `engine/rules/artillery.ts` |
+| §46.5 walls and hedges in the blast area | A wall or hedge counts for a unit when it lies on its hexside facing the centre of the blast. | `engine/rules/artillery.ts` |
+| §31.1, §47 rider capacity | Every AFV, halftracks included, carries at most 2 units, only 1 of them a squad. Riders cannot be concealed. Broken riders on a tank jump off into the same hex. | `engine/rules/transport.ts` |
+| §48.2 crews when the gun is hit | A hit destroys an AT gun; the crew is not attacked by that shot. | `engine/rules/armor.ts` |
+| §49 night simplifications | The visibility range applies to every target, moving or not. Night routs still avoid open ground in enemy sight (§49.8 not applied). | `engine/rules/night.ts` |
+| Not yet implemented (M10) | Counter-battery fire (§45.4), towing guns (§48.6), captured guns (§48.81), night routs (§49.8). | — |
 | Victory: "control" | A building is controlled by the side that has an unbroken unit in it and no enemy unit in any of its hexes. | `engine/rules/victory.ts` |
 | Sudden death | A side with no units left loses at once. | `engine/rules/victory.ts` |

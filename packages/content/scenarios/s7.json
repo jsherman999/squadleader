@@ -1,0 +1,219 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s7",
+  "title": "Night at Lyutezh",
+  "date": "November 1943",
+  "location": "Lyutezh bridgehead",
+  "briefing": "Soviet troops have crossed the Dnieper north of Kiev and now push out of the bridgehead in the dark. A rifle battalion with one T-34 goes for the collective farm on the ridge road before dawn. The German defenders have flares and a single assault gun; in the dark, every muzzle flash gives a position away.",
+  "rulesLevel": 49,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 6,
+  "setupFirst": "ger",
+  "moveFirst": "rus",
+  "night": true,
+  "starshells": {
+    "ger": 4,
+    "rus": 2
+  },
+  "concealment": {
+    "ger": 3,
+    "rus": 5
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns K–Y. Four starshells (§49.6).",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "K",
+            "Y"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "C-O7",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-O7",
+          "names": [
+            "Lt. Vogel"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-S7",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-S7",
+          "names": [
+            "Fw. Lorenz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-O5"
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-Q3",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-P7"
+        },
+        {
+          "type": "ger-838",
+          "hex": "C-R7",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "C-T6",
+          "names": [
+            "Wotan"
+          ],
+          "facing": "SW-NW"
+        }
+      ]
+    },
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up second, anywhere in columns A–H. Moves first. Two starshells.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "A",
+            "H"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "C-D9",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "C-D9",
+          "names": [
+            "Lt. Grishin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "C-B9",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "C-B9"
+        },
+        {
+          "type": "rus-628",
+          "count": 2,
+          "hex": "C-G7"
+        },
+        {
+          "type": "rus-L81",
+          "hex": "C-G7",
+          "names": [
+            "Sgt. Zhukov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "C-E5",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "C-E5"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "C-E5",
+          "names": [
+            "Sgt. Titov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "C-A4"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "C-C7",
+          "names": [
+            "Dnepr"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "rus",
+    "text": "The Soviets win if, at the end of turn 6, they control at least three of the four farm buildings (barn, school, mill, farmhouse). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "C-O7",
+          "name": "Barn"
+        },
+        {
+          "hex": "C-S7",
+          "name": "School"
+        },
+        {
+          "hex": "C-O5",
+          "name": "Mill"
+        },
+        {
+          "hex": "C-Q3",
+          "name": "Farmhouse"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–49: night (§49). Each game turn a visibility range is rolled; fire beyond it needs a starshell or gun flashes, and flashes alone give area fire.",
+    "Concealment is not lost to adjacent enemies at night and can be regained anywhere (§49.3, §49.5)."
+  ]
+}

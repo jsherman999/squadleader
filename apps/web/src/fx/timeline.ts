@@ -168,6 +168,19 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         const farTarget = targets[targets.length - 1];
         let end = start;
         let land = start;
+        // An artillery barrage: the whistle, then shells bursting across the blast area (§46.5).
+        if ((fx as { artillery?: boolean }).artillery && targets.length) {
+          const centre = (fx as { center?: HexKey }).center ?? targets[0]!;
+          cues.push({ kind: 'sound', t0: start, sound: 'whizz', at: hexPoint(ctx, centre) });
+          targets.forEach((h, i) => {
+            const t0 = start + (0.5 + i * 0.13) * k;
+            if (opts.reducedMotion) cues.push({ kind: 'line', t0, dur: 0.6 * k, from: hexPoint(ctx, h, 3), to: hexPoint(ctx, h), color: 0xffb04a });
+            else cues.push({ kind: 'blast', t0, dur: 1.8 * k, at: hexPoint(ctx, h, 0.1), seed: hashSeed(`${h}${e.text}`) });
+            if (i % 2 === 0) cues.push({ kind: 'sound', t0, sound: 'blast', at: hexPoint(ctx, h) });
+          });
+          land = start + (0.6 + targets.length * 0.13) * k;
+          end = land + 1.2 * k;
+        }
         const special = shooters.find((sh) => sh.kind === 'FT' || sh.kind === 'DC' || sh.kind === 'OVR');
         if (special && farTarget) {
           const tgt = hexPoint(ctx, farTarget, 0.25);
@@ -319,6 +332,20 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         break;
       }
       case 'info': {
+        const sp = (fx as { spotting?: HexKey; starshell?: HexKey });
+        if (sp.spotting && ctx.map.hexes[sp.spotting]) {
+          label(sp.spotting, t, 'Spotting round', 'info', 1.2);
+          if (!opts.reducedMotion) cues.push({ kind: 'puff', t0: t, dur: 1.2 * k, at: hexPoint(ctx, sp.spotting, 0.2), size: 0.6, color: 0x8a8070 });
+          cues.push({ kind: 'sound', t0: t, sound: 'impact', at: hexPoint(ctx, sp.spotting) });
+          t += 0.6 * k;
+          break;
+        }
+        if (sp.starshell && ctx.map.hexes[sp.starshell]) {
+          label(sp.starshell, t, 'Starshell', 'info', 1.6);
+          if (!opts.reducedMotion) cues.push({ kind: 'puff', t0: t, dur: 2 * k, at: hexPoint(ctx, sp.starshell, 3), size: 0.5, color: 0xfff6c0 });
+          t += 0.6 * k;
+          break;
+        }
         const hex = (fx as { smoke?: HexKey }).smoke;
         if (!hex || !ctx.map.hexes[hex] || opts.reducedMotion) break;
         const t0 = t;

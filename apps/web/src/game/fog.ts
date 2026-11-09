@@ -24,6 +24,17 @@ export function viewerOf(controllers: Readonly<Record<string, string>>): string 
 
 export function fogOfWar(s: GameState, viewer: string | undefined): FogView {
   if (!viewer) return { s, hidden: NONE };
+  // Hidden initial placement (§42): the enemy is simply not on the map yet.
+  const offBoard = new Set(Object.values(s.units).filter((u) => u.side !== viewer && u.hidden).map((u) => u.id));
+  const offBoardVehicles = Object.values(s.vehicles).filter((v) => v.side !== viewer && v.hidden).map((v) => v.id);
+  if (offBoard.size || offBoardVehicles.length) {
+    s = {
+      ...s,
+      units: Object.fromEntries(Object.entries(s.units).filter(([id]) => !offBoard.has(id))),
+      weapons: Object.fromEntries(Object.entries(s.weapons).filter(([, w]) => !w.owner || !offBoard.has(w.owner))),
+      vehicles: Object.fromEntries(Object.entries(s.vehicles).filter(([id]) => !offBoardVehicles.includes(id))),
+    };
+  }
   const hidden = new Set<string>();
   const shown = new Map<HexKey, string>();
   for (const u of Object.values(s.units).sort((a, b) => a.id.localeCompare(b.id))) {

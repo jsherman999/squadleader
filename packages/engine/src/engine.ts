@@ -85,6 +85,23 @@ export function createGame(ctx: Ctx, seed: number): Step {
       }
     }
   }
+  // Riders who start aboard a named vehicle (§31.9).
+  let uid = 0;
+  for (const side of sc.sides) {
+    for (const entry of side.units) {
+      if (ctx.data.vehicles[entry.type]) continue;
+      const count = entry.count ?? 1;
+      for (let i = 0; i < count; i++) {
+        const u = units[`u${++uid}`];
+        if (!u || !entry.rides) continue;
+        const v = Object.values(vehicles).find((x) => x.side === side.id && x.name === entry.rides);
+        if (!v) throw new Error(`${sc.id}: no vehicle named ${entry.rides}`);
+        u.riding = v.id;
+        u.hex = v.hex;
+        for (const w of Object.values(weapons)) if (w.owner === u.id) w.hex = v.hex;
+      }
+    }
+  }
   const sides = sc.sides.map((x) => ({ id: x.id, nation: x.nation, name: x.name })) as unknown as GameState['sides'];
   const state: GameState = {
     v: 1,

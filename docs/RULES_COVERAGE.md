@@ -76,14 +76,14 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | § | Topic | Notes | MS |
 |---|---|---|---|
-| 42 | Hidden initial placement | Native fog of war; reveal triggers; AFVs may start concealed in woods or wooden buildings (§42.7). The LLM only knows what its side would know. | M10 |
-| 43 | Advanced LOS | Hill levels 1–3; crest lines; height equivalents (woods and small buildings = 1, large buildings = 2); seeing over obstacles; crest-line rule from hills (§43.5); same-level rule (§43.7); blind hexes and exceptions (§43.6x); reciprocity (§43.8). **Profile view.** | M2 (geometry), M10 (content) |
-| 44 | Rural terrain | Cliffs (impassable; Point Blank ×3 from above); wheatfields (sight-only obstacle, seasonal June–October, no −2 when moving through); shellholes (+1; reduces the moving-in-open DRM to −1 total). | M2, M10 |
-| 45 | Offboard artillery | Artillery modules per radio counter (§45.1–45.2); battery access; balance options "upon agreement". | M10 |
-| 46 | Artillery fire mechanics | Radio contact (§46.11–46.12); artillery request counter (§46.13); spotting round and correction (§46.3); FFE and blast area (§46.5); vehicles affected only by KIA, with DRMs (§46.54). Assisted: the whole sequence runs automatically. Arcing-shell FX. | M10 |
-| 47 | Halftracks | Passengers; MG armament; immunity rules (§47.7–47.8). | M10 |
-| 48 | Anti-tank guns | Destroyed by hits of 37 mm or more (§48.1); pushing (§48.4); towing, hook-up and unhook (§48.6x); counts as a SW for stacking (§48.9). | M10 |
-| 49 | Night | Visibility range rolled in the first Rally Phase each turn (§49.11); starshells (§49.6). Night lighting and starshell illumination in 3D. | M10 |
+| 42 | Hidden initial placement | **Done.** Scenario units marked hidden are off the map for the enemy (2D, 3D, stack panel, LLM) until they move, fire, are hit or end next to the enemy after Defensive Fire or Advance; walking into them stops the move; fire at them is area fire. Only in woods or buildings. | M10 |
+| 43 | Advanced LOS | **Done.** Hill levels 1–3, crest lines, height equivalents, blind hexes and the profile view from M2; the country boards C–E now use them. | M2 (geometry), M10 (content) |
+| 44 | Rural terrain | **Done.** Cliffs (impassable; point blank ×3 downhill); wheatfields block sight not fire, no −2 moving through, and are open ground outside June–October; shellholes +1 (−1 net moving). | M2, M10 |
+| 45 | Offboard artillery | **Done.** One module per scenario entry: calibre and fire missions rolled at the start from the module table and a 1–4 chit, or set by the scenario. Counter-battery fire (§45.4) not yet. | M10 |
+| 46 | Artillery fire mechanics | **Done.** Radio contact (−2 to keep it), request in the leader's sight, spotting round rolled in the Close Combat Phase with direction and distance of error, corrections and fire for effect (HE or smoke) in later Rally Phases, the 7-hex blast area rolled hex by hex in Prep or Defensive Fire, moving units brought back, vehicles on KIA only with their DRMs, radios break on 12. The bot runs it for computer sides; humans use the Rally Phase panel and click the map. | M10 |
+| 47 | Halftracks | **Done.** Halftracks (no woods or buildings, 8-FP overrun with an MG), riders (board, unload for 2 MP, one more hex on foot), riders immune to rifle fire unless they fired or the firer is adjacent and higher, firing ports (inherent and LMG, halved if it moved), MMG/HMG kill rolls against halftracks, passengers lost with the vehicle. | M10 |
+| 48 | Anti-tank guns | **Done.** AT guns as crewed fixed-arc guns with rate of fire 2, the AT gun To Hit row, destroyed by any hit of 37mm or more, shields (+2) for crews through the arc, pushing and turning by the crew, wrecked by overruns. Towing (§48.6x) not yet. | M10 |
+| 49 | Night | **Done.** Visibility range rolled each game turn (+3 for moving vehicles), gun flashes allow area fire beyond it, starshells light 3 hexes until after Close Combat, concealment survives adjacency and is regained anywhere. A dark overlay with lit circles in 2D and 3D. Night routs (§49.8) not yet. | M10 |
 
 ## Game Set III: Western Front (§50–63) (unlocks scenarios 8–12)
 

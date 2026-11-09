@@ -27,6 +27,45 @@ export function drawArc(pen: Pen, ctx: Ctx, v: Vehicle, reach = 10): void {
   }
 }
 
+/** Night (§49): darkness everywhere except within 3 hexes of a starshell. */
+export function drawNight(pen: Pen, ctx: Ctx, s: GameState): void {
+  if (!ctx.scenario.night) return;
+  const lit = (s.starshells ?? []).map((x) => parseHexKey(x.hex));
+  for (const h of Object.values(ctx.map.hexes)) {
+    const near = lit.some((l) => Math.max(Math.abs(l.q - h.hex.q), Math.abs(l.r - h.hex.r), Math.abs(l.q + l.r - h.hex.q - h.hex.r)) <= 3);
+    hexFill(pen, h.hex, 0x0b1430, near ? 0.08 : 0.42);
+  }
+  for (const x of s.starshells ?? []) {
+    const c = at(x.hex);
+    pen.circle(c, 10, { color: 0xfff6c0, alpha: 0.95 }, { width: 3, color: 0xffd060, alpha: 0.6 });
+    pen.text({ x: c.x, y: c.y - 0.45 }, 'STARSHELL', { size: 9, color: 0xfff6c0 });
+  }
+}
+
+/** Artillery marks (§46): the request, the spotting round and the fire-for-effect blast area. */
+export function drawArtillery(pen: Pen, ctx: Ctx, s: GameState, viewer?: string): void {
+  for (const b of s.batteries ?? []) {
+    if (!b.hex || b.mode === 'idle') continue;
+    // The enemy sees spotting rounds and barrages, not requests.
+    if (viewer && b.side !== viewer && b.mode === 'request') continue;
+    const c = at(b.hex);
+    if (b.mode === 'request') {
+      pen.circle(c, 12, { color: 0x3a6fd8, alpha: 0.35 }, { width: 2.5, color: 0x3a6fd8 });
+      pen.text(c, 'ART REQ', { size: 9, color: 0xdfe8ff, lift: 0.5 });
+    } else if (b.mode === 'sr') {
+      pen.circle(c, 9, { color: 0xd04030, alpha: 0.85 }, { width: 2, color: 0x101410 });
+      pen.text({ x: c.x, y: c.y - 0.4 }, `SR ${b.mm}`, { size: 9, color: 0xffe0d8 });
+    } else {
+      for (const h of [b.hex, ...[0, 1, 2, 3, 4, 5].map((d) => hexKey(neighbor(parseHexKey(b.hex!), d as Direction)))]) {
+        if (!ctx.map.hexes[h]) continue;
+        hexFill(pen, parseHexKey(h), b.smoke ? 0xd8d8d0 : 0xd04030, 0.16, 0.05);
+        hexOutline(pen, parseHexKey(h), b.smoke ? 0x9a9a92 : 0xd04030, 0.8, 2, 0.05);
+      }
+      pen.text({ x: c.x, y: c.y - 0.45 }, `FFE ${b.mm}${b.smoke ? ' smoke' : ''}`, { size: 10, color: 0xffe0d8 });
+    }
+  }
+}
+
 /** Smoke screens, placed demolition charges and blown sewer entrances (§23–27). */
 export function drawSpecial(pen: Pen, s: GameState): void {
   for (const sm of s.smoke) {

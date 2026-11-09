@@ -340,3 +340,38 @@ describe('armour for the LLM (§28–41)', () => {
     expect(kinds.has('vehicle_fire')).toBe(true);
   }, 60_000);
 });
+
+describe('countryside rules for the LLM (§42–49)', () => {
+  it('artillery, riders and starshell orders round-trip; hidden enemies stay hidden', async () => {
+    const { executeOrder } = await import('./orders');
+    const { situation } = await import('./serialize');
+    const kinds = new Set<string>();
+    for (const index of [4, 5, 6]) {
+      const c = scenarioCtx(index);
+      let s = createGame(c, 7).state;
+      for (let i = 0; i < 5000 && s.phase !== 'gameOver'; i++) {
+        const d = botDecide(c, s);
+        const o = actionToOrder(c, d.action);
+        if (o && ['radio', 'artillery', 'starshell', 'board', 'unload', 'push_gun'].includes(o.type)) {
+          const env: GameEnv = { ctx: c, state: () => s, apply: (a) => { const r = tryAction(c, s, a); return r.ok ? { ok: true, events: r.events } : { ok: false, error: r.error }; } };
+          const res = executeOrder(env, s.awaiting, o);
+          expect(res.ok, `${o.type}: ${res.text}`).toBe(true);
+          kinds.add(o.type);
+        }
+        if (i % 40 === 0) {
+          for (const side of s.sides.map((x) => x.id)) {
+            const text = situation(c, s, side);
+            for (const u of Object.values(s.units)) if (u.side !== side && u.hidden) expect(text.includes(`${u.id} `)).toBe(false);
+          }
+        }
+        const r = tryAction(c, s, d.action);
+        if (!r.ok) break;
+        s = r.state;
+      }
+    }
+    expect(kinds.has('radio')).toBe(true);
+    expect(kinds.has('artillery')).toBe(true);
+    expect(kinds.has('unload')).toBe(true);
+    expect(kinds.has('starshell')).toBe(true);
+  }, 120_000);
+});

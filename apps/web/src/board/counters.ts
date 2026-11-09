@@ -99,16 +99,32 @@ function drawVehicle(ctx: Ctx, v: Vehicle, nation: Nation, selected: boolean): C
   // The vehicle seen from above, turned to its facing.
   const body = new Graphics();
   const ink = pal.ink;
-  body.roundRect(-11, -7.5, 22, 15, 2).fill({ color: ink, alpha: 0.85 });
-  body.rect(-12, -9, 24, 3).fill({ color: ink, alpha: 0.95 });
-  body.rect(-12, 6, 24, 3).fill({ color: ink, alpha: 0.95 });
-  if (t.turret) body.circle(-1, 0, 5.2).fill(mix(pal.bg, 0x000000, 0.35)).stroke({ width: 1, color: ink });
-  else body.rect(-6, -5, 9, 10).fill(mix(pal.bg, 0x000000, 0.35));
-  body.moveTo(t.turret ? 3 : 3, 0).lineTo(t.turret ? 17 : 14, 0).stroke({ width: t.gun && t.gun >= 100 ? 3 : 2.2, color: ink });
+  if (t.kind === 'gun') {
+    // Split trail, wheels, shield and barrel.
+    body.moveTo(-12, -6).lineTo(0, 0).lineTo(-12, 6).stroke({ width: 2, color: ink });
+    body.roundRect(-3, -9, 5, 4, 1).fill(ink);
+    body.roundRect(-3, 5, 5, 4, 1).fill(ink);
+    body.rect(1, -7, 2.5, 14).fill(mix(pal.bg, 0x000000, 0.35));
+    body.moveTo(3, 0).lineTo(16, 0).stroke({ width: 2.2, color: ink });
+  } else if (t.kind === 'halftrack') {
+    body.roundRect(-12, -7, 24, 14, 2).fill({ color: ink, alpha: 0.85 });
+    body.rect(-12, -8.5, 13, 3).fill({ color: ink, alpha: 0.95 });
+    body.rect(-12, 5.5, 13, 3).fill({ color: ink, alpha: 0.95 });
+    body.roundRect(-9, -4.5, 13, 9, 1).fill(mix(pal.bg, 0xffffff, 0.2));
+    body.circle(9, -7, 2.4).fill(ink);
+    body.circle(9, 7, 2.4).fill(ink);
+  } else {
+    body.roundRect(-11, -7.5, 22, 15, 2).fill({ color: ink, alpha: 0.85 });
+    body.rect(-12, -9, 24, 3).fill({ color: ink, alpha: 0.95 });
+    body.rect(-12, 6, 24, 3).fill({ color: ink, alpha: 0.95 });
+    if (t.turret) body.circle(-1, 0, 5.2).fill(mix(pal.bg, 0x000000, 0.35)).stroke({ width: 1, color: ink });
+    else body.rect(-6, -5, 9, 10).fill(mix(pal.bg, 0x000000, 0.35));
+    body.moveTo(3, 0).lineTo(t.turret ? 17 : 14, 0).stroke({ width: t.gun && t.gun >= 100 ? 3 : 2.2, color: ink });
+  }
   body.rotation = facingAngle(v.facing);
   body.position.set(CS / 2, CS / 2 - 3);
   box.addChild(body);
-  const label = `${t.gun ?? '—'}${t.heOnly ? 'ᴴᴱ' : ''}${t.lowVelocity ? '*' : ''} · ${t.mp}`;
+  const label = t.kind === 'gun' ? `${t.gun} · ROF ${t.rof ?? 1}` : t.kind === 'halftrack' ? `HT · ${t.mp}` : `${t.gun ?? '—'}${t.heOnly ? 'ᴴᴱ' : ''}${t.lowVelocity ? '*' : ''} · ${t.mp}`;
   const txt = new Text({ text: label, style: { ...tiny, fontSize: 8, fill: ink }, resolution: 4 });
   txt.anchor.set(0.5, 1);
   txt.position.set(CS / 2, CS - 2);
@@ -278,6 +294,8 @@ function drawCounter(ctx: Ctx, s: GameState, u: Unit, nation: Nation, selected: 
   if (u.moved) badges.push(['M', 0x4f86b3]);
   if (u.dm && u.broken) badges.push(['DM', 0xb02a1e]);
   if (u.concealed) badges.push(['?', 0x6a5a9e]);
+  if (u.riding) badges.push(['R', 0x2f6b4f]);
+  if (u.hidden) badges.push(['H', 0x444444]);
   badges.forEach(([b, color], i) => {
     const bg2 = new Graphics();
     bg2.roundRect(CS - 6, 4 + i * 11, b.length > 1 ? 15 : 10, 10, 2).fill(color);

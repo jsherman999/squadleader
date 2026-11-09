@@ -58,6 +58,14 @@ const ARMOR_PRIMER = `ARMOUR (§28–41):
 - Infantry beat tanks up close: panzerfausts/bazookas/flamethrowers (anti_tank with the weapon id), grenade bundles in Defensive Fire from cover next to the tank's path (anti_tank without a weapon), or advance onto a lone tank and assault it in Close Combat. Keep your own infantry near your tanks.
 - Vehicles cannot hold buildings: only infantry controls objectives.`;
 
+/** §42–49, for countryside scenarios. */
+const COUNTRY_PRIMER = `COUNTRYSIDE, SUPPORT AND NIGHT (§42–49):
+- Hidden units are not shown until they move, fire or end next to you; walking into one stops your move. Fire at a suspected position is area fire.
+- Hills: higher units see over lower obstacles; cliffs are impassable, and point blank fire down a cliff is tripled. Wheat (June–October) blocks sight, not fire.
+- Artillery (Rally Phase): radio (a leader with a radio rolls for contact), then artillery op=request at a hex he sees; the spotting round lands in the Close Combat Phase, maybe off target; next Rally Phase op=correct (≤3 hexes) or op=ffe (fire for effect, or smoke) — it lands on the 7-hex blast area in your Prep Fire (your turn) or Defensive Fire (theirs). Keep contact every Rally Phase or the fire is lifted. Don't shell your own men.
+- Halftracks carry infantry (board/unload in Movement; unloaded units move one more hex). Riders in halftracks are safe from rifle fire; on tanks they are not. AT guns are crewed SP guns that can't drive: push_gun one hex with the crew.
+- Night: fire only within the visibility range, at lit hexes (starshells light 3 hexes), or at muzzle flashes (area fire). Concealment survives next to the enemy.`;
+
 export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
   return [
     `You command one side in Squad War, a WWII squad-level hex wargame, against a human or computer opponent.`,
@@ -65,6 +73,7 @@ export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
     PRIMER,
     ...(ctx.scenario.rulesLevel >= 22 ? [SPECIAL_PRIMER] : []),
     ...(ctx.scenario.rulesLevel >= 28 ? [ARMOR_PRIMER] : []),
+    ...(ctx.scenario.rulesLevel >= 42 ? [COUNTRY_PRIMER] : []),
     METHOD,
     briefing(ctx, side),
   ].join('\n\n');

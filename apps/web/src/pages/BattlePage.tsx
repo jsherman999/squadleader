@@ -18,12 +18,12 @@ import { bestLos, canBeUpper, viewshed, type LosResult } from '@squadwar/los';
 import type { BoardRenderer, PointerInfo } from '../board/renderer';
 import { drawLos, drawLosMarks } from '../board/losOverlay';
 import { hexFill, hexOutline } from '../draw/pen';
-import { ActionPanel } from '../battle/ActionPanel';
+import { ActionPanel, type MapPick } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
 import { LogPanel } from '../battle/LogPanel';
-import { drawArc, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
+import { drawArc, drawArtillery, drawNight, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
 import { groupPath, vehiclePath } from '../battle/pathing';
 import { VehiclePanel } from '../battle/VehiclePanel';
 import { facingAngle } from '../board/counters';
@@ -136,6 +136,9 @@ function Battle() {
   const flaming = flameMode && flame.length > 0;
   const firers = useMemo(() => (FIRE.has(s.phase) ? (flaming ? flame : defaultFirers(ctx, s, selUnits)) : []), [ctx, s, selUnits, flaming, flame]);
   const leader = useMemo(() => (firers.length && !flaming ? defaultLeader(ctx, s, firers) : undefined), [ctx, s, firers, flaming]);
+  // A pending map pick for artillery marks or starshells (§46, §49).
+  const [pick, setPick] = useState<MapPick>();
+  useEffect(() => setPick(undefined), [s.phase, s.awaiting]);
   // The selected tank or SP gun acts on its own (§28–41).
   const [vsel, setVsel] = useState<string>();
   const [vtarget, setVtarget] = useState<HexKey>();
@@ -309,8 +312,10 @@ function Battle() {
   const layers: OverlayLayers = useMemo(
     () => ({
       under: (pen) => {
+        drawNight(pen, ctx, s);
         drawObjectives(pen, ctx);
         drawSpecial(pen, s);
+        drawArtillery(pen, ctx, s, viewer);
         if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
         if (s.phase === 'defensiveFire') drawTracks(pen, s);
         if (dangers) {
@@ -355,7 +360,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -417,6 +422,12 @@ function Battle() {
       }
       if (!human) {
         session.select(h, []);
+        return;
+      }
+      if (pick) {
+        if (pick.kind === 'arty') session.dispatch({ type: 'arty', battery: pick.battery, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) });
+        else session.dispatch({ type: 'starshell', unit: pick.unit, hex: h });
+        setPick(undefined);
         return;
       }
       const mine = ownIn(h);
@@ -502,7 +513,7 @@ function Battle() {
       }
       session.select(h, mine);
     },
-    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting, selVehicle],
+    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting, selVehicle, pick],
   );
 
   const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);
@@ -860,6 +871,8 @@ function Battle() {
               {...(sel.hex ? { selectedHex: sel.hex } : {})}
               dispatch={session.dispatch}
               setTarget={session.setTarget}
+              pick={pick}
+              setPick={setPick}
             />
           )}
           {sel.hex && (

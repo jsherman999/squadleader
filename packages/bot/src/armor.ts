@@ -204,6 +204,17 @@ export function vehicleMoveDecision(ctx: Ctx, s: GameState, side: string): Decis
       return { action: { type: 'vstop', vehicle: v.id }, why: { goal, reasons, weight: 'routine', focus: { from: v.hex } } };
     };
     const goals = vehicleGoals(ctx, s, v);
+    // Riders get off short of the enemy, or once the vehicle reaches its firing position (§31.4).
+    const aboard = Object.values(s.units).filter((u) => u.riding === v.id);
+    if (aboard.length) {
+      const objDist = Math.min(...ctx.objectives.flatMap((o) => o.hexes).map((h) => range(h, v.hex)));
+      const near = DIRECTIONS.some((d) => enemiesIn(s, hexKey(neighbor(parseHexKey(v.hex), d)), side).length > 0) || objDist <= 4 || goals.has(v.hex) || (v.moved && mpLeft(ctx, v) < 3);
+      if (near && !enemiesIn(s, v.hex, side).length) {
+        const a: Action = { type: 'unload', units: aboard.map((u) => u.id), vehicle: v.id };
+        if (legal(ctx, s, a))
+          return { action: a, why: { goal: `${unitList(ctx, aboard)} get off ${vehicleLabel(ctx, v)} in ${hexId(ctx, v.hex)}`, reasons: ['Close enough to go in on foot; riders are vulnerable once the shooting starts (§31.4–31.7).'], weight: 'key', focus: { from: v.hex } } };
+      }
+    }
     if (!attacker || goals.has(v.hex) || !goals.size) {
       // Hold, facing the nearest enemy.
       const foe = nearestEnemy(s, v);

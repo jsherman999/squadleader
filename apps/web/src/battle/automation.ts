@@ -18,7 +18,11 @@ export function autoSkipReason(ctx: Ctx, s: GameState): string | undefined {
     case 'rally': {
       const any =
         Object.values(s.units).some((u) => u.side === side && !canRally(ctx, s, u.id)) ||
-        Object.values(s.weapons).some((w) => w.side === side && !canRepair(ctx, s, w.id));
+        Object.values(s.weapons).some((w) => w.side === side && !canRepair(ctx, s, w.id)) ||
+        Object.values(s.vehicles).some((v) => v.side === side && !v.repairTried && (v.gun === 'malfunctioned' || v.mg === 'malfunctioned')) ||
+        // Artillery and starshells are Rally Phase decisions (§46, §49.6).
+        (s.batteries ?? []).some((b) => b.side === side && b.used < b.missions && (!b.tried || (b.contact && !b.acted))) ||
+        (!!ctx.scenario.night && (s.starshellsLeft?.[side] ?? 0) > 0);
       return any ? undefined : 'nothing to rally or repair';
     }
     case 'prepFire':
@@ -26,8 +30,15 @@ export function autoSkipReason(ctx: Ctx, s: GameState): string | undefined {
     case 'advancingFire': {
       const targets = new Set(Object.values(s.units).filter((u) => u.side !== side).map((u) => u.hex));
       if (s.phase === 'defensiveFire') for (const steps of Object.values(s.tracks)) for (const st of steps) targets.add(st.hex);
+      // Tanks, SP guns and AT guns with something in sight (§33).
+      for (const v of Object.values(s.vehicles)) {
+        if (v.side !== side || v.overran || (v.firedPhase && v.firedPhase !== s.phase)) continue;
+        const foes = [...targets, ...Object.values(s.vehicles).filter((x) => x.side !== side).map((x) => x.hex)];
+        if (foes.some((t) => range(v.hex, t) <= 24 && ctx.los(v.hex, t).clear)) return undefined;
+      }
       for (const u of Object.values(s.units)) {
         if (u.side !== side || u.broken || (u.firedPhase && u.firedPhase !== s.phase)) continue;
+        if (carried(s, u).some((w) => ['PF', 'BAZ', 'FT'].includes(weaponType(ctx, w).kind)) && Object.values(s.vehicles).some((x) => x.side !== side && range(u.hex, x.hex) <= 4)) return undefined;
         if (s.phase === 'prepFire' && u.berserk) continue;
         const st = squadType(ctx, u);
         const reach = Math.max(st && !u.usedInherent ? st.range * 2 : 0, ...carried(s, u).filter((w) => !w.malfunctioned && !w.usedThisTurn).map((w) => weaponType(ctx, w).range * 2));
