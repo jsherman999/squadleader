@@ -18,6 +18,7 @@ import { applyHexResults, moraleOf } from './morale';
 import { canOperateSpecial, reveal, smokeAt, smokeOnLine } from './special';
 import { nightSight, noteFlash } from './night';
 import { carryRiders, dismountAll, gunCrew } from './transport';
+import { buildingHit, fireOnLine, fireOnSoftVehicles, fortTem, hasWire, inTrench, mineVsVehicle, onFire, roadblockBetween, rubbled, vehicleWire } from './western';
 
 export const FACING_NAMES = ['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N'] as const;
 
@@ -132,8 +133,12 @@ export function vehicleStepCost(ctx: Ctx, s: GameState, v: Vehicle, to: HexKey):
   if (b.terrain === 'water') return { mp: Infinity, parts: ['water'], risk: false };
   if (b.terrain === 'stoneBuilding') return { mp: Infinity, parts: ['stone building (§30.1)'], risk: false };
   const kind = vehicleType(ctx, v).kind;
-  if (kind === 'gun') return { mp: Infinity, parts: ['AT guns are pushed by their crew (§48.4)'], risk: false };
+  if (kind === 'gun' || kind === 'mortar') return { mp: Infinity, parts: ['guns and mortars are pushed by their crew (§48.4, §63.6)'], risk: false };
   if (kind === 'halftrack' && (b.terrain === 'woods' || b.terrain === 'woodBuilding')) return { mp: Infinity, parts: ['halftracks may not enter woods or buildings (§30 chart)'], risk: false };
+  if (onFire(s, to)) return { mp: Infinity, parts: ['on fire (§59.6)'], risk: false };
+  if (rubbled(s, to)) return { mp: Infinity, parts: ['rubble (§58.2)'], risk: false };
+  if (roadblockBetween(s, v.hex, to)) return { mp: Infinity, parts: ['roadblock (§62.2)'], risk: false };
+  if (kind === 'truck' || kind === 'jeep') return softStepCost(ctx, s, v, to, side);
   const parts: string[] = [];
   const blockers = vehiclesIn(s, to).filter((x) => x.id !== v.id);
   const wrecks = wrecksIn(s, to);
@@ -178,6 +183,43 @@ export function vehicleStepCost(ctx: Ctx, s: GameState, v: Vehicle, to: HexKey):
   return { mp, parts, risk };
 }
 
+/** Trucks and jeeps: the soft-vehicle column of the movement chart, no woods, buildings, walls, hedges, wire or enemy hexes (§30 chart, §51–53, §61). */
+function softStepCost(ctx: Ctx, s: GameState, v: Vehicle, to: HexKey, side: { road?: string; wall?: boolean; hedge?: boolean } | undefined): MpCost {
+  const a = ctx.map.hexes[v.hex]!;
+  const b = ctx.map.hexes[to]!;
+  const m = ctx.data.armor.movement;
+  if (b.terrain === 'woods' || b.building) return { mp: Infinity, parts: ['trucks and jeeps stay out of woods and buildings'], risk: false };
+  if (side?.wall || side?.hedge) return { mp: Infinity, parts: ['not over a wall or hedge'], risk: false };
+  if (hasWire(s, to)) return { mp: Infinity, parts: ['wire (§53.7)'], risk: false };
+  if (enemiesIn(s, to, v.side).length || enemyVehiclesIn(s, to, v.side).length) return { mp: Infinity, parts: ['never into an enemy-held hex (§51.2)'], risk: false };
+  const parts: string[] = [];
+  const road = !!side?.road && !Object.values(s.vehicles).some((x) => x.hex === to && x.id !== v.id) && !wrecksIn(s, to);
+  let mp = road ? m.road! : m.softOpen!;
+  parts.push(road ? 'road ½' : `open ground ${mp}`);
+  if (ctx.scenario.snow && !road) {
+    mp *= 2;
+    parts.push('×2 snow (§61.1)');
+  }
+  if (b.level > a.level) {
+    mp += m.softUphill!;
+    parts.push(`+${m.softUphill} higher ground`);
+  }
+  if (!v.moved && !inArc(v.hex, v.facing, to)) {
+    mp += m.softOutsideArc!;
+    parts.push(`+${m.softOutsideArc} turning`);
+  }
+  if (b.shellhole || inTrench(s, to)) {
+    mp += m.softShellhole!;
+    parts.push(`+${m.softShellhole} shellholes or entrenchment`);
+  }
+  const others = Object.values(s.vehicles).filter((x) => x.hex === to && x.id !== v.id).length + wrecksIn(s, to);
+  if (others) {
+    mp += others * m.perVehicle!;
+    parts.push(`+${others * m.perVehicle!} vehicles or wrecks`);
+  }
+  return { mp, parts, risk: false };
+}
+
 function checkVehicleTurn(ctx: Ctx, s: GameState, v: Vehicle | undefined): asserts v is Vehicle {
   if (!v) throw new RuleError('No such vehicle');
   if (s.phase !== 'movement' || s.awaiting !== s.phasing || v.side !== s.phasing) throw new RuleError('Vehicles move in their own Movement Phase', '§30.4');
@@ -200,6 +242,11 @@ export function vehicleMove(ctx: Ctx, s: GameState, id: string, to: HexKey, emit
   if (!Number.isFinite(cost.mp)) throw new RuleError(`${hexLabel(ctx, to)}: ${cost.parts.join(', ')}`, '§30');
   if (cost.mp > mpLeft(ctx, v) + 1e-9 && v.moved) throw new RuleError(`Needs ${cost.mp} MP, ${mpLeft(ctx, v)} left`, '§30.2');
   finishOthers(s, v.id);
+  // Leaving a minefield (§55.22, §55.6).
+  if (s.forts?.mines.some((m) => m.hex === v.hex)) {
+    mineVsVehicle(ctx, s, v, v.hex, emit);
+    if (!s.vehicles[v.id] || s.vehicles[v.id]!.immobilized) return;
+  }
   const from = v.hex;
   const d = directionTo(parseHexKey(from), parseHexKey(to))!;
   const firstHex = !v.moved;
@@ -221,6 +268,16 @@ export function vehicleMove(ctx: Ctx, s: GameState, id: string, to: HexKey, emit
   });
   if (cost.risk) breakdownRoll(ctx, s, v, emit);
   if (!s.vehicles[v.id]) return;
+  // Tanks and SP guns knock down wooden buildings they drive into (§58.4).
+  if ((vehicleType(ctx, v).kind === 'tank' || vehicleType(ctx, v).kind === 'spg') && ctx.map.hexes[to]!.terrain === 'woodBuilding' && ctx.scenario.rulesLevel >= 58 && !rubbled(s, to)) {
+    (s.rubble ??= []).push(to);
+    emit({ kind: 'info', text: `${vehicleLabel(ctx, v)} crashes through the wooden building in ${hexLabel(ctx, to)}: rubble (§58.4)`, hexes: [to], fx: { rubble: to } });
+  }
+  vehicleWire(ctx, s, v, to, emit);
+  if (s.forts?.mines.some((m) => m.hex === to)) {
+    mineVsVehicle(ctx, s, v, to, emit);
+    if (!s.vehicles[v.id]) return;
+  }
   const foes = enemiesIn(s, to, v.side);
   // An overrun wrecks any AT gun in the hex (§48.64).
   const guns = enemyVehiclesIn(s, to, v.side).filter((x) => vehicleType(ctx, x).kind === 'gun');
@@ -322,14 +379,14 @@ export function destroyVehicle(ctx: Ctx, s: GameState, v: Vehicle, reason: strin
   const t = vehicleType(ctx, v);
   delete s.vehicles[v.id];
   delete s.vtracks[v.id];
-  if (t.kind !== 'gun') s.wrecks.push({ hex: v.hex, type: v.type, side: v.side });
+  if (t.kind !== 'gun' && t.kind !== 'mortar' && t.kind !== 'jeep') s.wrecks.push({ hex: v.hex, type: v.type, side: v.side });
   // Riders go down with it (§31.8, §47.3).
   for (const u of Object.values(s.units)) if (u.riding === v.id) eliminate(ctx, s, u, `aboard ${vehicleLabel(ctx, v)} when it was destroyed (§31.8)`, emit);
   s.afvAssaults = s.afvAssaults.filter((x) => x.vehicle !== v.id);
   const loss = (s.losses[v.side] ??= { squads: 0, leaders: 0 });
   loss.vehicles = (loss.vehicles ?? 0) + 1;
   emit({ kind: 'eliminated', text: `${vehicleLabel(ctx, v)} in ${hexLabel(ctx, v.hex)} ${crew === 'abandon' ? 'is abandoned' : 'is destroyed'}: ${reason}`, side: v.side, hexes: [v.hex], fx: { vehicle: v.id, wreck: t.kind !== 'gun' } });
-  if (t.kind === 'gun') return;
+  if (t.kind === 'gun' || t.kind === 'mortar' || t.kind === 'truck' || t.kind === 'jeep') return;
   let survive = crew === 'abandon';
   if (crew === 'roll') {
     const [a, b] = roll2d6(s);
@@ -381,7 +438,7 @@ function overrun(ctx: Ctx, s: GameState, v: Vehicle, emit: Emit): void {
   const tem = hexTem(ctx, v.hex);
   const victims = enemiesIn(s, v.hex, v.side);
   const results = victims.map((u) => {
-    const fin = dr + tem.drm;
+    const fin = dr + (fortTem(ctx, s, u, v.hex, [], 'overrun') ?? tem).drm;
     return { unit: u.id, result: iftLookup(ctx, iftColumn(ctx, u.concealed ? fp / 2 : fp), fin), finalDr: fin };
   });
   const trace = [`Overrun: ${fp} FP${lost ? ' (halved: a weapon is out, §35.3)' : ''}; ${tem.drm ? `${tem.drm > 0 ? '+' : ''}${tem.drm} ${tem.label}` : 'no terrain modifier'} (§35.4)`, `Dice ${d1}+${d2} = ${dr}`];
@@ -456,6 +513,13 @@ export function killColumn(mm: number, ammo: 'AP' | 'HE'): string {
   return mm <= 40 ? 'HE37' : mm <= 60 ? 'HE50' : mm <= 90 ? 'HE75' : mm <= 110 ? 'HE105' : mm <= 130 ? 'HE120' : 'HE150';
 }
 
+/** The "truck, jeep" row of the AFV Kill Table (§33.42: no armour modifier). */
+export function softKill(ctx: Ctx, column: string): number {
+  const k = ctx.data.armor.kill;
+  const i = k.columns.indexOf(column);
+  return i < 0 ? -99 : k.truck[i]!;
+}
+
 export function killNumber(ctx: Ctx, column: string, aspect: Aspect): number {
   const k = ctx.data.armor.kill;
   const i = k.columns.indexOf(column);
@@ -499,7 +563,7 @@ export interface VehicleFireAnalysis {
   readonly targetType?: string;
   /** Main gun against a vehicle. */
   readonly vs?: string;
-  readonly ammo?: 'AP' | 'HE';
+  readonly ammo?: 'AP' | 'HE' | 'HEAT';
   readonly aspect?: Aspect;
   readonly kill?: number;
   readonly killDrm?: number;
@@ -540,7 +604,7 @@ export interface VehicleFireRequest {
   readonly target: HexKey;
   readonly weapon: 'main' | 'mg';
   readonly vs?: string | undefined;
-  readonly ammo?: 'AP' | 'HE' | undefined;
+  readonly ammo?: 'AP' | 'HE' | 'HEAT' | undefined;
   readonly mgs?: readonly ('ca' | 'aa')[] | undefined;
 }
 
@@ -554,6 +618,11 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   if (!ctx.map.hexes[req.target]) throw new RuleError('Not on the map');
   const r = range(v.hex, req.target);
   if (r > 0 && !ctx.los(v.hex, req.target).clear) throw new RuleError(`No line of sight: ${ctx.los(v.hex, req.target).reason}`, '§7');
+  if (r > 1 && fireOnLine(ctx, s, v.hex, req.target)) throw new RuleError('A burning hex blocks the line of sight', '§59.7');
+  if (t.kind === 'mortar') {
+    if (r < (t.minRange ?? 10) || r > (t.maxRange ?? 60)) throw new RuleError(`Mortars fire at ${t.minRange ?? 10}–${t.maxRange ?? 60} hexes`, '§63.21');
+    if (req.vs) throw new RuleError('Mortars fire on infantry targets here', '§63.2');
+  }
   const smoke = r > 0 && smokeOnLine(ctx, s, v.hex, req.target);
   const sight = nightSight(ctx, s, v.hex, req.target, !!req.vs && !!s.vehicles[req.vs]?.moved);
   if (sight === 'none') throw new RuleError(`Too dark: beyond this turn's night visibility (${s.nightVis ?? '?'} hexes)`, '§49.1');
@@ -572,7 +641,7 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
     const drms: { n: number; why: string }[] = [];
     const D = ctx.data.armor.toHit.drm;
     let turnTo: number | undefined;
-    if (!inArc(v.hex, v.facing, req.target)) {
+    if (t.kind !== 'mortar' && !inArc(v.hex, v.facing, req.target)) {
       if (t.turret) {
         drms.push({ n: D.outsideArc!, why: 'turret turned outside the covered arc (case D)' });
         if (!v.immobilized) turnTo = facingToward(v.hex, v.facing, req.target);
@@ -609,20 +678,23 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
         return { vehicle: v.id, side: v.side, target: req.target, weapon: 'main', range: r, trace, smoke, hitNumber, hitDrm, targetType: 'atGun', vs: tv.id, ammo: t.heOnly ? 'HE' : (req.ammo ?? 'HE'), aspect: 'front', kill: t.gun >= 37 ? 99 : -99, killDrm: 0, killColumn: 'auto', ...(turnTo !== undefined ? { turnTo } : {}) };
       }
       if (s.phase === 'defensiveFire' && tv.moved) drms.push({ n: D.moving!, why: 'moving target (case A)' });
-      const ammo = t.heOnly ? 'HE' : (req.ammo ?? 'AP');
+      if (req.ammo === 'HEAT' && (!t.heat || v.heatOut)) throw new RuleError(v.heatOut ? 'Out of HEAT rounds' : 'No HEAT ammunition', '§63.3');
+      const ammo = req.ammo === 'HEAT' ? 'HEAT' : t.heOnly ? 'HE' : (req.ammo ?? 'AP');
       if (t.heOnly && req.ammo === 'AP') throw new RuleError(`${t.name} fires HE only`, '§33.6');
       const row = hitRow(ctx, s, v.hex, req.target, true);
       const hitNumber = ctx.data.armor.toHit.rows[row.row]![band]![russian]!;
       const hitDrm = drms.reduce((a, x) => a + x.n, 0);
       const aspect = hitAspect(tv, v.hex);
-      const col = killColumn(t.gun, ammo);
-      const kill = killNumber(ctx, col, aspect);
+      const col = ammo === 'HEAT' ? 'HEAT' : killColumn(t.gun, ammo);
+      const soft = tt.kind === 'truck' || tt.kind === 'jeep';
+      const kill = soft ? softKill(ctx, col) : killNumber(ctx, col, aspect);
       trace.push(`${t.name} ${t.gun}mm ${ammo} at ${vehicleLabel(ctx, tv)}, range ${r}: ${row.label}, To Hit ${hitNumber}${russian ? ' (red, Russian)' : ''} (§33.3)`);
       for (const x of drms) trace.push(`${x.n > 0 ? '+' : ''}${x.n} ${x.why}`);
       if (smoke) trace.push('+1d6 smoke on the line of fire (§24.6)');
       trace.push(`If hit: ${aspect} armour, ${col} kills on ${kill}, ${tt.armor ? `${tt.armor > 0 ? '+' : ''}${tt.armor} to the roll for its armour (§33.41)` : 'no armour modifier'}`);
       return { vehicle: v.id, side: v.side, target: req.target, weapon: 'main', range: r, trace, smoke, hitNumber, hitDrm, targetType: row.row, vs: tv.id, ammo, aspect, kill, killDrm: tt.armor, killColumn: col, ...(turnTo !== undefined ? { turnTo } : {}) };
     }
+    if (req.ammo === 'HEAT') throw new RuleError('HEAT has no effect on infantry', '§63.3');
     const units = infantryHere();
     const enemies = units.filter((x) => s.units[x.unit]?.side !== v.side);
     if (dfMoving(req.target)) drms.push({ n: D.moving!, why: 'moving target (case A)' });
@@ -736,6 +808,10 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
     let hit = fin <= a.hitNumber!;
     const dice = [d1, d2];
     trace.push(`To Hit: ${d1}+${d2}${a.hitDrm ? ` ${a.hitDrm > 0 ? '+' : ''}${a.hitDrm}` : ''}${smokeDie ? ` +${smokeDie} smoke` : ''} = ${fin} vs ${a.hitNumber}: ${hit ? 'hit' : 'miss'}`);
+    if (a.ammo === 'HEAT' && raw >= ctx.data.armor.heat.outOf) {
+      v.heatOut = true;
+      trace.push(`Rolled ${raw}: that was the last HEAT round (§63.32)`);
+    }
     if (!hit && raw === 2) {
       const add = Math.max(0, 2 - (a.hitNumber! - a.hitDrm! - smokeDie));
       const c = d6(s);
@@ -771,6 +847,13 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
       outcomes.push({ hex: req.target, penetration: false, results: res.map((r) => ({ unit: r.unit, result: r.result })) });
       emit({ kind: 'fire', text, trace, side: v.side, dice, from: v.hex, to: req.target, hexes: [req.target], units: [], fx: { firerHexes: [v.hex], targets: [req.target], kinds: ['GUN'], shooters: [shooter], outcomes, hit } });
       applyInfantry(ctx, s, req.target, res, emit);
+      if (res.some((r) => r.result === 'KIA')) {
+        const col = iftColumn(ctx, a.fp!);
+        buildingHit(ctx, s, req.target, 'he', emit, () => {
+          const [x, y] = roll2d6(s);
+          return iftLookup(ctx, col, x + y + hexTem(ctx, req.target).drm) === 'KIA';
+        });
+      }
       afterMain(ctx, s, v, raw, emit);
       return;
     }
@@ -800,6 +883,7 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
     fx: { firerHexes: [v.hex], targets: [req.target], kinds: ['MMG'], shooters: [{ ...shooter, kind: 'MMG' }], outcomes: [{ hex: req.target, penetration: false, results: res.map((r) => ({ unit: r.unit, result: r.result })) }] },
   });
   applyInfantry(ctx, s, req.target, res, emit);
+  fireOnSoftVehicles(ctx, s, req.target, v.side, iftColumn(ctx, a.fp!), d1 + d2 + smokeDie, emit);
   if (d1 + d2 === 12) {
     v.mg = 'malfunctioned';
     emit({ kind: 'breakdown', text: `${vehicleLabel(ctx, v)}: MGs malfunction (rolled 12, §38.2)`, side: v.side, hexes: [v.hex] });

@@ -159,6 +159,11 @@ export function moveCost(ctx: Ctx, from: HexKey, to: HexKey): MfCost {
     cot *= 2;
     parts.push('×2 uphill (§5.53)');
   }
+  // Snow doubles terrain costs, except along roads (§61.1–61.2).
+  if (ctx.scenario.snow && !(roadSide && cot === m.road)) {
+    cot *= 2;
+    parts.push('×2 snow (§61.1)');
+  }
   let mf = cot;
   if (side?.wall || side?.hedge) {
     mf += m.hexsideWallHedge;

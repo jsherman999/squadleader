@@ -17,6 +17,7 @@ import {
 import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
 import { enemyVehiclesIn, preAfvCheck, vehicleLabel } from './armor';
+import { mineAttack, onFire } from './western';
 
 export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexKey, emit: Emit): void {
   if (s.phase !== 'advance') throw new RuleError('Units advance only in the Advance Phase', '§4.7');
@@ -35,6 +36,7 @@ export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexK
   }
   if (range(from!, to) !== 1) throw new RuleError('Advance is one hex', '§4.7');
   if (!Number.isFinite(moveCost(ctx, from!, to).mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}`);
+  if (onFire(s, to)) throw new RuleError('No unit may move into a burning hex', '§59.6');
   // Onto an enemy AFV with no enemy infantry: each unit must pass a pre-AFV attack check (§36.21).
   const afv = enemyVehiclesIn(s, to, s.phasing)[0];
   const going = afv && !enemiesIn(s, to, s.phasing).length ? (units as Unit[]).filter((u) => preAfvCheck(ctx, s, u, emit)) : (units as Unit[]);
@@ -45,6 +47,9 @@ export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexK
     for (const w of carried(s, u)) w.hex = to;
     if (afv && !enemiesIn(s, to, s.phasing).length) s.afvAssaults.push({ unit: u.id, vehicle: afv.id, from: from! });
   }
+  // Mines attack units leaving and entering (§55.2, §55.22).
+  if (s.forts?.mines.some((m) => m.hex === from)) mineAttack(ctx, s, going.filter((u) => s.units[u.id]), from!, 'leave', emit);
+  if (s.forts?.mines.some((m) => m.hex === to)) mineAttack(ctx, s, going.filter((u) => s.units[u.id]), to, 'enter', emit);
   const bad = stackingProblem(ctx, s, to, s.phasing);
   if (bad) throw new RuleError(`Stacking limit in ${hexLabel(ctx, to)}: ${bad}`, '§6.1');
   const intoEnemy = enemiesIn(s, to, s.phasing).length > 0;

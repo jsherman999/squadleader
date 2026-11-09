@@ -9,6 +9,7 @@ import { placeCharge, placeSmoke, sewerMove } from './rules/special';
 import { fireStarshell } from './rules/night';
 import { artilleryOrder, radioContact, setupBatteries } from './rules/artillery';
 import { board, pushGun, unload } from './rules/transport';
+import { dig, edgeHexes, enterMap, setupFortifications, setupLanding } from './rules/western';
 import { antiTank, discharge, faceVehicle, facingIndex, newVehicle, resolveVehicleFire, vehicleLabel, vehicleMove, vehicleRepair, vehicleStop } from './rules/armor';
 import { endMove, moveStep, transferWeapon } from './rules/movement';
 import { rallyAttempt, repairAttempt } from './rules/rally';
@@ -85,14 +86,24 @@ export function createGame(ctx: Ctx, seed: number): Step {
       }
     }
   }
-  // Riders who start aboard a named vehicle (§31.9).
+  // Riders who start aboard a named vehicle (§31.9); reinforcements set aside.
   let uid = 0;
+  const reserves: GameState['reserves'] & object = [];
   for (const side of sc.sides) {
     for (const entry of side.units) {
       if (ctx.data.vehicles[entry.type]) continue;
       const count = entry.count ?? 1;
       for (let i = 0; i < count; i++) {
         const u = units[`u${++uid}`];
+        if (u && entry.enters) {
+          // Reinforcements wait off the map (§60).
+          const ws = Object.values(weapons).filter((w) => w.owner === u.id);
+          delete units[u.id];
+          for (const w of ws) delete weapons[w.id];
+          const hexes = edgeHexes(ctx, entry.enters.board, entry.enters.edge);
+          reserves.push({ units: [u], weapons: ws, side: side.id, turn: entry.enters.turn, hexes, endsMove: ctx.scenario.landing?.side === side.id });
+          continue;
+        }
         if (!u || !entry.rides) continue;
         const v = Object.values(vehicles).find((x) => x.side === side.id && x.name === entry.rides);
         if (!v) throw new Error(`${sc.id}: no vehicle named ${entry.rides}`);
@@ -131,14 +142,28 @@ export function createGame(ctx: Ctx, seed: number): Step {
     wrecks: [],
     vtracks: {},
     afvAssaults: [],
+    ...(reserves.length ? { reserves: mergeReserves(reserves) } : {}),
     ...(sc.night ? { nightVis: 2, starshells: [], starshellsLeft: Object.fromEntries(sc.sides.map((x) => [x.id, sc.starshells?.[x.id] ?? 0])), flashes: { now: [], prev: [] } } : {}),
   };
   setupBatteries(ctx, state);
+  setupFortifications(ctx, state);
+  setupLanding(ctx, state);
   const arty = (state.batteries ?? []).map((b) => `${sideName(state, b.side)} artillery: ${b.mm}mm, ${b.missions} fire mission${b.missions > 1 ? 's' : ''} (§45.2)`);
   return {
     state,
     events: [{ kind: 'phase', text: `${sc.title} — ${sc.location}, ${sc.date}. ${sideName(state, sc.setupFirst)} sets up first.` }, ...arty.map((text) => ({ kind: 'info' as const, text }))],
   };
+}
+
+/** One reserve group per side and turn. */
+function mergeReserves(list: NonNullable<GameState['reserves']>): NonNullable<GameState['reserves']> {
+  const out: NonNullable<GameState['reserves']> = [];
+  for (const r of list) {
+    const same = out.find((o) => o.side === r.side && o.turn === r.turn && o.hexes.join() === r.hexes.join());
+    if (same) out[out.indexOf(same)] = { ...same, units: [...same.units, ...r.units], weapons: [...same.weapons, ...r.weapons] };
+    else out.push(r);
+  }
+  return out;
 }
 
 /** Apply one action. Returns a new state; the input is not modified. Throws RuleError if illegal. */
@@ -225,6 +250,12 @@ export function applyAction(ctx: Ctx, state: GameState, action: Action): Step {
       break;
     case 'push':
       pushGun(ctx, s, action.unit, action.gun, action.to, emit);
+      break;
+    case 'enter':
+      enterMap(ctx, s, action.units, action.hex, emit);
+      break;
+    case 'dig':
+      dig(ctx, s, action.unit, action.work, action.hex, emit);
       break;
     case 'starshell':
       fireStarshell(ctx, s, action.unit, action.hex, emit);

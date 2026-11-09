@@ -23,7 +23,7 @@ export function board(ctx: Ctx, s: GameState, ids: readonly string[], vehicleId:
   const v = s.vehicles[vehicleId];
   if (!v || v.side !== s.phasing) throw new RuleError('Not your vehicle');
   const t = vehicleType(ctx, v);
-  if (t.kind === 'gun') throw new RuleError('Guns carry no riders');
+  if (t.kind === 'gun' || t.kind === 'mortar') throw new RuleError('Guns carry no riders');
   if (s.phase !== 'movement' || s.awaiting !== s.phasing) throw new RuleError('Infantry board in the Movement Phase', '§31.3');
   if (v.moved) throw new RuleError('The vehicle has already moved this turn', '§31.3');
   const us = ids.map((id) => s.units[id]);
@@ -34,8 +34,11 @@ export function board(ctx: Ctx, s: GameState, ids: readonly string[], vehicleId:
     if (u.mfSpent > 0 || u.moveDone || u.firedPhase === 'prepFire') throw new RuleError(`${unitLabel(ctx, u)} has moved or fired`);
   }
   const all = [...riders(s, v), ...(us as Unit[])];
-  const cap = ctx.data.armor.capacity;
-  if (all.length > cap.units || all.filter((u) => !isLeader(ctx, u)).length > cap.squads) throw new RuleError(`At most ${cap.units} units, only ${cap.squads} of them a squad`, '§31.1');
+  const cap = t.riders ?? ctx.data.armor.capacity;
+  const nonLeaders = all.filter((u) => !isLeader(ctx, u));
+  // A jeep takes two officers, or one crew squad (§52.1).
+  const jeepCrew = cap.squads === 0 && all.length === 1 && ctx.data.units[all[0]!.type]?.kind === 'crew';
+  if (!jeepCrew && (all.length > cap.units || nonLeaders.length > cap.squads)) throw new RuleError(`At most ${cap.units} units, ${cap.squads ? `only ${cap.squads} of them a squad` : 'leaders only (or one crew)'}`, '§31.1, §51.1, §52.1');
   for (const u of us as Unit[]) {
     u.riding = v.id;
     u.moveDone = true;

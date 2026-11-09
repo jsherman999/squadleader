@@ -30,6 +30,7 @@ import { applyHexResults } from './morale';
 import { canOperateSpecial, reveal, smokeOnLine } from './special';
 import { chargeVsVehicles, fireOnExposedCrews, inArc, mgVsHalftracks } from './armor';
 import { nightSight, noteFlash } from './night';
+import { blastClears, bunkerAt, buildingHit, fireOnLine, fireOnSoftVehicles, fortTem } from './western';
 import type { Emit } from './common';
 
 export interface FireContribution {
@@ -214,6 +215,9 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
     if (h === target) continue;
     const l = ctx.los(h, target);
     if (!l.clear) throw new RuleError(`No line of sight from ${hexLabel(ctx, h)}: ${l.reason}`, '§7');
+    if (fireOnLine(ctx, s, h, target)) throw new RuleError('A burning hex blocks the line of sight', '§59.7');
+    const bk = bunkerAt(s, h);
+    if (bk && bk.side === side && !inArc(bk.hex, bk.facing, target)) throw new RuleError('From a bunker, fire only through its covered arc', '§56.3');
     if (ctx.scenario.night && nightSight(ctx, s, h, target) === 'none') throw new RuleError(`Too dark: ${hexLabel(ctx, target)} is beyond this turn's night visibility (${s.nightVis ?? '?'} hexes) and not lit or flashing`, '§49.1');
   }
 
@@ -253,7 +257,8 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
   // Targets: main hex plus MG penetration hexes.
   const targets: TargetHex[] = [];
   const main = targetUnits(ctx, s, side, target, hexes, leaderDrm, false, flamethrower);
-  const exposedCrew = Object.values(s.vehicles).some((v) => v.hex === target && v.side !== side && v.ce);
+  // Crew-exposed AFVs and soft vehicles can be shot at with nobody else there (§34.8, §51.4).
+  const exposedCrew = Object.values(s.vehicles).some((v) => v.hex === target && v.side !== side && (v.ce || ['truck', 'jeep'].includes(ctx.data.vehicles[v.type]?.kind ?? '')));
   if (!main.units.some((t) => s.units[t.unit]!.side !== side) && !exposedCrew) throw new RuleError(`No enemy units to attack in ${hexLabel(ctx, target)}`);
   targets.push(main);
   for (const h of flamethrower ? [] : penetrationHexes(ctx, s, contributions, hexes, target)) {
@@ -353,6 +358,11 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
     if (s.wrecks.some((w) => w.hex === prev)) return true;
     return Object.values(s.vehicles).some((v) => v.hex === prev && !(s.phase === 'defensiveFire' && v.moved));
   });
+  // A roadblock on the target's hexside works like a stone wall (§62.2).
+  if (!sideDrm && s.forts?.roadblocks.length && firerHexes.every((f) => { const k = losFrom(ctx, f, hex).targetHexside?.key; return !!k && s.forts!.roadblocks.includes(k); })) {
+    sideDrm = t.wall;
+    sideNote = `+${t.wall} behind a roadblock (§62.2)`;
+  }
   if (screened && !sideDrm) {
     sideDrm = t.wall;
     sideNote = `+${t.wall} a vehicle or wreck in the way (§32.3)`;
@@ -382,13 +392,15 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
       units.push({ unit: u.id, drm: t.movingInOpen, notes: [`${t.movingInOpen} coming up from the sewer: no terrain modifiers (§27.7A)`], ...(area ? { area } : {}) });
       continue;
     }
-    let drm = tem.drm + sideDrm + leaderDrm;
+    const fort = tracked.has(u.id) ? undefined : fortTem(ctx, s, u, hex, firerHexes, flamethrower ? 'ft' : 'fire');
+    const baseTem = fort ?? tem;
+    let drm = baseTem.drm + sideDrm + leaderDrm;
     const notes: string[] = [];
     if (ftHere) {
       drm -= 1;
       notes.push('−1 flamethrower in the hex (§22.7)');
     }
-    if (tem.drm) notes.push(`${tem.drm > 0 ? '+' : ''}${tem.drm} ${tem.label} (§11.1)`);
+    if (baseTem.drm) notes.push(`${baseTem.drm > 0 ? '+' : ''}${baseTem.drm} ${baseTem.label}${fort ? '' : ' (§11.1)'}`);
     if (shelter(u)) {
       drm += 1;
       notes.push('+1 beside an AFV or wreck (§32.5)');
@@ -553,6 +565,10 @@ export function resolveFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
 
   // Crews riding exposed get shot at too (§34.8).
   if (!a.flamethrower) fireOnExposedCrews(ctx, s, target, a.side, a.column, dr + smokeDie, emit);
+  // Trucks and jeeps under fire (§51.4).
+  if (!a.flamethrower) fireOnSoftVehicles(ctx, s, target, a.side, a.column, dr + smokeDie, emit);
+  // A flamethrower KIA in a building sets it on fire (§59.2).
+  if (a.flamethrower && outcomes.some((o) => o.hex === target && o.results.some((r) => r.result === 'KIA'))) buildingHit(ctx, s, target, 'ft', emit);
   // MMGs and HMGs in normal range hit halftracks automatically and roll to kill (§47.6).
   const heavy = a.contributions.some((c) => c.weapon && ['MMG', 'HMG'].includes(weaponType(ctx, s.weapons[c.weapon]!).kind) && hexDistance(parseHexKey(c.hex), parseHexKey(target)) <= weaponType(ctx, s.weapons[c.weapon]!).range);
   if (heavy) mgVsHalftracks(ctx, s, target, a.side, a.firerHexes[0]!, dr, emit);
@@ -619,7 +635,7 @@ export function detonate(ctx: Ctx, s: GameState, weaponId: string, emit: Emit): 
   }
   if (hasAfv) chargeVsVehicles(ctx, s, c.target, c.side, c.from, dr, emit);
   const results = victims.map((u) => {
-    const fin = dr + tem.drm;
+    const fin = dr + (fortTem(ctx, s, u, c.target, [c.from], 'dc') ?? tem).drm;
     return { unit: u.id, result: iftLookup(ctx, colFor(u.concealed ? fp / 2 : fp), fin), finalDr: fin };
   });
   for (const r of results) trace.push(`${unitLabel(ctx, s.units[r.unit]!)}: ${dr} ${tem.drm >= 0 ? '+' : ''}${tem.drm} → ${r.finalDr}: ${resultText(r.result)}${s.units[r.unit]!.concealed ? ' (concealed: 15 FP)' : ''}`);
@@ -638,6 +654,18 @@ export function detonate(ctx: Ctx, s: GameState, weaponId: string, emit: Emit): 
   });
   if (results.some((r) => r.result !== '-')) reveal(ctx, s, c.target, emit, 'hit by a charge');
   if (results.some((r) => r.result === 'KIA')) destroyWeapons(ctx, s, c.target, emit, 'demolition charge KIA (§23.7)');
+  // A charge that would kill clears wire and mines, opens roadblocks and brings buildings down (§53.53, §58.1, §62.4).
+  if (iftLookup(ctx, colFor(fp), dr + tem.drm) === 'KIA') {
+    blastClears(ctx, s, c.target, 80, emit);
+    if (s.forts?.roadblocks.length) {
+      const near = s.forts.roadblocks.filter((k) => k.startsWith(`${c.target}|`) || k.includes(c.target));
+      if (near.length) {
+        s.forts.roadblocks = s.forts.roadblocks.filter((k) => !near.includes(k));
+        emit({ kind: 'info', text: `The roadblock at ${hexLabel(ctx, c.target)} is blown apart (§62.4)`, hexes: [c.target] });
+      }
+    }
+    buildingHit(ctx, s, c.target, 'dc', emit);
+  }
   if (ctx.map.hexes[c.target]?.sewer && !s.closedSewers.includes(c.target)) {
     s.closedSewers.push(c.target);
     emit({ kind: 'info', text: `The sewer entrance at ${hexLabel(ctx, c.target)} is blown shut (§27.6)`, hexes: [c.target] });

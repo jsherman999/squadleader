@@ -63,7 +63,7 @@ export const VehicleTypeSchema = z
   .object({
     id: z.string(),
     nation: Nation,
-    kind: z.enum(['tank', 'spg', 'halftrack', 'gun']),
+    kind: z.enum(['tank', 'spg', 'halftrack', 'gun', 'truck', 'jeep', 'mortar']),
     name: z.string(),
     /** Movement points (§28.1). */
     mp: z.number(),
@@ -90,6 +90,14 @@ export const VehicleTypeSchema = z
     smokeDischarger: z.boolean().optional(),
     /** AT gun crew protection, added to attacks on the crew through the covered arc (§48). */
     shield: z.number().int().optional(),
+    /** Riders it carries; default from the armour tables (§31.1, §51.1, §52.1). */
+    riders: z.object({ units: z.number().int(), squads: z.number().int() }).strict().optional(),
+    /** Fires HEAT (§63.3). */
+    heat: z.boolean().optional(),
+    howitzer: z.boolean().optional(),
+    /** Mortar ranges (§63.21). */
+    minRange: z.number().int().optional(),
+    maxRange: z.number().int().optional(),
   })
   .strict();
 export type VehicleType = z.infer<typeof VehicleTypeSchema>;
@@ -107,7 +115,7 @@ export const ArmorTablesSchema = z
         drm: z.record(z.string(), z.number()),
       })
       .strict(),
-    kill: z.object({ columns: z.array(z.string()), front: KillRow, side: KillRow, rear: KillRow }).strict(),
+    kill: z.object({ columns: z.array(z.string()), front: KillRow, side: KillRow, rear: KillRow, truck: KillRow }).strict(),
     /** Gun calibre (mm) → infantry firepower equivalent (§34.2). */
     heEquivalent: z.array(Pair),
     movement: z.record(z.string(), z.number()),
@@ -120,6 +128,11 @@ export const ArmorTablesSchema = z
     mgRange: z.number().int(),
     /** Riders per vehicle (§31.1). */
     capacity: z.object({ units: z.number().int(), squads: z.number().int() }).strict(),
+    /** Soft vehicles' morale (§51.4). */
+    soft: z.object({ morale: z.number().int() }).strict(),
+    /** Minefield attacks on vehicles (§55.6). */
+    mines: z.record(z.string(), z.number()),
+    heat: z.object({ outOf: z.number().int() }).strict(),
   })
   .strict();
 export type ArmorTables = z.infer<typeof ArmorTablesSchema>;
@@ -210,6 +223,8 @@ const UnitEntry = z
     hidden: z.boolean().optional(),
     /** Starts riding the side's vehicle with this name (§31.9). */
     rides: z.string().optional(),
+    /** Reinforcements: enter on this turn along a board edge (§60 for river landings). */
+    enters: z.object({ turn: z.number().int().min(1), board: z.string(), edge: z.enum(['N', 'S', 'E', 'W']) }).strict().optional(),
     /** Vehicles: the covered arc, as its two hexsides, e.g. "N-NE" (§29.4). */
     facing: z.enum(['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N']).optional(),
   })
@@ -285,6 +300,23 @@ export const ScenarioSchema = z
     starshells: z.record(z.string(), z.number().int().min(0)).optional(),
     /** Wheatfields in season (§44.24); defaults from the date (June–October). */
     wheat: z.boolean().optional(),
+    /** Fortifications placed before play (§53–56, §62). Hexsides as "B-K5/N". */
+    fortifications: z
+      .object({
+        wire: z.array(z.string()).optional(),
+        trenches: z.array(z.string()).optional(),
+        mines: z.array(z.object({ side: z.string(), hex: z.string(), factors: z.number().int().min(1) }).strict()).optional(),
+        bunkers: z
+          .array(z.object({ side: z.string(), hex: z.string(), capacity: z.number().int(), ca: z.number().int(), nca: z.number().int(), facing: z.enum(['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N']) }).strict())
+          .optional(),
+        roadblocks: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+    /** Snow (§61). */
+    snow: z.boolean().optional(),
+    /** River crossing (§60): the side lands at most 2d6 squads a turn; these hexes are misty until a 1 is rolled. */
+    landing: z.object({ side: z.string(), mist: z.array(z.string()).optional() }).strict().optional(),
     /** Offboard artillery modules (§45): calibre and fire missions, rolled at the start when not given. */
     artillery: z.array(z.object({ side: z.string(), mm: z.number().optional(), missions: z.number().int().optional() }).strict()).optional(),
   })

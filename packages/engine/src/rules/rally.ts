@@ -27,12 +27,15 @@ export function rallyAttempt(ctx: Ctx, s: GameState, unitId: string, emit: Emit)
   const fan = fanaticDrm(ctx, u);
   const drm = ldrm + fan;
   const base = moraleOf(ctx, u);
-  const need = u.dm ? base - ctx.data.tables.desperationMorale : base;
+  // American squads never rally at desperation morale (§50.1).
+  const american = s.sides.find((x) => x.id === u.side)?.nation === 'american' && ctx.data.units[u.type]?.kind !== 'leader';
+  const dm = u.dm && !american;
+  const need = dm ? base - ctx.data.tables.desperationMorale : base;
   const [a, b] = roll2d6(s);
   const raw = a + b;
   const total = raw + drm;
   const trace = [
-    `Needs ${need} or less${u.dm ? ` (desperation morale: ${base} − ${ctx.data.tables.desperationMorale}, fired on since the last Rally Phase, §14.6)` : ''}`,
+    `Needs ${need} or less${dm ? ` (desperation morale: ${base} − ${ctx.data.tables.desperationMorale}, fired on since the last Rally Phase, §14.6)` : ''}`,
     `Dice ${a}+${b} = ${raw}${ldrm ? `, ${ldrm > 0 ? '+' : ''}${ldrm} ${leader?.name ?? 'leader'} (§14.2)` : ''}${fan ? ', −1 fanatic (§26)' : ''} → ${total}`,
   ];
   if (raw === 12) {
@@ -75,9 +78,11 @@ export function repairAttempt(ctx: Ctx, s: GameState, weaponId: string, emit: Em
   w.repairTried = true;
   const r = d6(s);
   const name = weaponType(ctx, w).name;
-  if (r === 1) {
+  // American weapons are fixed on a 1 or 2 (§50.5).
+  const fix = weaponType(ctx, w).nation === 'american' && s.sides.find((x) => x.id === w.side)?.nation === 'american' ? 2 : 1;
+  if (r <= fix) {
     w.malfunctioned = false;
-    emit({ kind: 'repair', text: `${name} repaired (rolled 1, §18.2)`, side: w.side, dice: [r], hexes: [w.hex], fx: { result: 'repaired' } });
+    emit({ kind: 'repair', text: `${name} repaired (rolled ${r}${fix > 1 ? ', Americans fix on 1–2, §50.5' : ''}, §18.2)`, side: w.side, dice: [r], hexes: [w.hex], fx: { result: 'repaired' } });
   } else if (r === 6) {
     if (w.owner && s.units[w.owner]) s.units[w.owner]!.weapons = s.units[w.owner]!.weapons.filter((x) => x !== w.id);
     delete s.weapons[w.id];

@@ -15,17 +15,30 @@ import { iftLookup, resultText } from './fire';
 import { applyHexResults } from './morale';
 import { reveal } from './special';
 import { destroyVehicle, heEquivalent, iftColumn, vehicleLabel, vehicleType } from './armor';
+import { blastClears, buildingHit, fortTem } from './western';
 
 /** Calibre and fire missions for each scenario module, rolled at the start where not given (§45.2–45.21). */
 export function setupBatteries(ctx: Ctx, s: GameState): void {
   const list = ctx.scenario.artillery ?? [];
-  if (!list.length) return;
-  s.batteries = list.map((a, i) => {
+  // On-board mortars and howitzers can fire indirect through a spotter with a radio (§63.4).
+  const onboard: Battery[] = Object.values(s.vehicles)
+    .filter((v) => { const k = ctx.data.vehicles[v.type]?.kind; return k === 'mortar' || !!ctx.data.vehicles[v.type]?.howitzer; })
+    .map((v) => ({ id: `ob-${v.id}`, side: v.side, mm: ctx.data.vehicles[v.type]!.gun!, missions: 99, used: 0, contact: false, tried: false, leader: null, mode: 'idle', hex: null, smoke: false, acted: false, onboard: v.id }));
+  if (!list.length && !onboard.length) return;
+  s.batteries = [...list.map((a, i) => {
     const nation = s.sides.find((x) => x.id === a.side)!.nation;
     const mm = a.mm ?? ctx.data.artillery.module[nation]![d6(s) - 1]!;
     const missions = a.missions ?? d6(s) % 4 + 1;
-    return { id: `art${i + 1}`, side: a.side, mm, missions, used: 0, contact: false, tried: false, leader: null, mode: 'idle', hex: null, smoke: false, acted: false };
-  });
+    return { id: `art${i + 1}`, side: a.side, mm, missions, used: 0, contact: false, tried: false, leader: null, mode: 'idle', hex: null, smoke: false, acted: false } as Battery;
+  }), ...onboard];
+}
+
+/** Minimum indirect range of an on-board weapon (§63.21, §63.41). */
+function onboardMin(ctx: Ctx, s: GameState, b: Battery): number {
+  const v = b.onboard ? s.vehicles[b.onboard] : undefined;
+  if (!v) return 0;
+  const t = ctx.data.vehicles[v.type]!;
+  return t.kind === 'mortar' ? (t.minRange ?? 10) : 20;
 }
 
 function nationOf(s: GameState, side: SideId) {
@@ -118,6 +131,11 @@ export function artilleryOrder(ctx: Ctx, s: GameState, batteryId: string, op: 'r
     return;
   }
   if (!hex || !ctx.map.hexes[hex]) throw new RuleError('Choose a hex');
+  if (b.onboard) {
+    const gun = s.vehicles[b.onboard];
+    if (!gun) throw new RuleError('That weapon is gone');
+    if (range(gun.hex, hex) < onboardMin(ctx, s, b)) throw new RuleError(`Too close for indirect fire (at least ${onboardMin(ctx, s, b)} hexes)`, '§63.21, §63.41');
+  }
   if (!observes(ctx, s, leader, hex)) throw new RuleError(`${unitLabel(ctx, leader)} cannot observe ${hexLabel(ctx, hex)}`, '§46.7');
   if (op === 'request') {
     b.mode = 'request';
@@ -203,8 +221,14 @@ export function fireForEffect(ctx: Ctx, s: GameState, side: SideId, emit: Emit):
       b.hex = null;
       continue;
     }
+    if (b.onboard && !s.vehicles[b.onboard]) {
+      b.mode = 'idle';
+      b.hex = null;
+      continue;
+    }
     b.used++;
-    const area = blastArea(ctx, b.hex);
+    // An on-board weapon hits only the spotting-round hex (§63.4).
+    const area = b.onboard ? [b.hex] : blastArea(ctx, b.hex);
     if (b.smoke) {
       for (const h of area) if (!s.smoke.some((x) => x.hex === h)) s.smoke.push({ hex: h, side });
       emit({ kind: 'info', text: `${b.mm}mm smoke barrage on ${hexLabel(ctx, b.hex)} and around it (§46.9; mission ${b.used}/${b.missions})`, side, hexes: area, fx: { smoke: b.hex } });
@@ -245,7 +269,8 @@ function barrage(ctx: Ctx, s: GameState, b: Battery, area: HexKey[], emit: Emit)
     const tem = hexTem(ctx, h);
     const sideDrm = h !== center ? hexsideBetween(ctx, h, center) : 0;
     const results = victims.map(({ u, moving }) => {
-      const fin = dr + tem.drm + sideDrm + (moving && isOpenGround(ctx, h) ? ctx.data.tables.tem.movingInOpen : 0);
+      const fort = moving ? undefined : fortTem(ctx, s, u, h, [], 'arty');
+      const fin = dr + (fort ?? tem).drm + sideDrm + (moving && isOpenGround(ctx, h) ? ctx.data.tables.tem.movingInOpen : 0);
       return { unit: u.id, result: iftLookup(ctx, u.concealed ? iftColumn(ctx, fp / 2) : col, fin), finalDr: fin };
     });
     for (const r of results) trace.push(`${hexLabel(ctx, h)} ${unitLabel(ctx, s.units[r.unit]!)}: ${dr}${tem.drm ? ` +${tem.drm}` : ''}${sideDrm ? ` +${sideDrm} wall/hedge` : ''} → ${r.finalDr}: ${resultText(r.result)}`);
@@ -254,10 +279,19 @@ function barrage(ctx: Ctx, s: GameState, b: Battery, area: HexKey[], emit: Emit)
     for (const v of vehicles) {
       const t = vehicleType(ctx, v);
       const V = ctx.data.artillery.vehicles;
-      const mod = t.openTop ? V.openTop! : t.kind === 'tank' ? V.tank! : t.kind === 'spg' ? V.spg! : V.nonArmored!;
+      const soft = t.kind === 'truck' || t.kind === 'jeep' || t.kind === 'gun' || t.kind === 'mortar';
+      const mod = soft ? V.nonArmored! : t.openTop ? V.openTop! : t.kind === 'tank' ? V.tank! : t.kind === 'spg' ? V.spg! : V.nonArmored!;
       const res = iftLookup(ctx, col, dr + mod);
       trace.push(`${hexLabel(ctx, h)} ${vehicleLabel(ctx, v)}: ${dr} ${mod >= 0 ? '+' : ''}${mod} → ${resultText(res)}${res === 'KIA' ? ': destroyed' : ''}`);
       if (res === 'KIA') destroyVehicle(ctx, s, v, `${b.mm}mm barrage`, emit, 'roll');
+    }
+    // A KIA clears wire and mines, and brings down (or sets fire to) a building (§53.54, §55.7, §58.1, §59.3).
+    if (iftLookup(ctx, col, dr + tem.drm) === 'KIA') {
+      blastClears(ctx, s, h, b.mm, emit);
+      buildingHit(ctx, s, h, 'arty', emit, () => {
+        const [x, y] = roll2d6(s);
+        return iftLookup(ctx, col, x + y + tem.drm) === 'KIA';
+      });
     }
     if (results.some((r) => r.result === 'KIA')) for (const w of Object.values(s.weapons)) if (w.hex === h && (w.owner === null || results.some((r) => r.unit === w.owner && r.result === 'KIA'))) delete s.weapons[w.id];
     // Units brought back are attacked in that hex, then return to where they were.

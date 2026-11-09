@@ -124,6 +124,8 @@ export interface Vehicle {
   immobilized: boolean;
   /** Crew exposed after using the all-round MG (§34.8). */
   ce: boolean;
+  /** HEAT ammunition used up (§63.32). */
+  heatOut?: boolean;
   smokeUsed: boolean;
   /** Hidden initial placement (§42.7). */
   hidden?: boolean;
@@ -159,6 +161,45 @@ export interface Battery {
   smoke: boolean;
   /** One operation per Rally Phase (§46.3). */
   acted: boolean;
+  /** On-board mortar or howitzer firing indirect: one-hex blast, no mission limit (§63.4). */
+  onboard?: string;
+}
+
+export interface Minefield {
+  readonly hex: HexKey;
+  readonly side: SideId;
+  readonly factors: number;
+  /** The enemy has found it. */
+  known: boolean;
+}
+
+export interface Bunker {
+  readonly hex: HexKey;
+  readonly side: SideId;
+  readonly capacity: number;
+  readonly ca: number;
+  readonly nca: number;
+  readonly facing: number;
+}
+
+/** Fortifications (§53–56, §62). */
+export interface Fortifications {
+  wire: HexKey[];
+  trenches: HexKey[];
+  mines: Minefield[];
+  bunkers: Bunker[];
+  /** Hexside keys of roadblocks. */
+  roadblocks: string[];
+}
+
+/** Units waiting to enter the map (§60). */
+export interface Reserve {
+  readonly units: Unit[];
+  readonly weapons: Weapon[];
+  readonly side: SideId;
+  readonly turn: number;
+  readonly hexes: HexKey[];
+  readonly endsMove: boolean;
 }
 
 export interface Weapon {
@@ -271,6 +312,13 @@ export interface GameState {
   starshellsLeft?: Record<SideId, number>;
   flashes?: { now: HexKey[]; prev: HexKey[] };
   batteries?: Battery[];
+  forts?: Fortifications;
+  /** Burning hexes (§59) and rubbled building hexes (§58). */
+  fires?: HexKey[];
+  rubble?: HexKey[];
+  reserves?: Reserve[];
+  /** Squads each landing side may still put ashore this turn (§60.3). */
+  landing?: Record<SideId, number>;
   /** Test hook: dice values used before the PRNG. Never set in normal play. */
   diceQueue?: number[];
   winner?: SideId | 'draw';
@@ -323,7 +371,7 @@ export type Action =
       readonly target: HexKey;
       readonly weapon: 'main' | 'mg';
       readonly vs?: string;
-      readonly ammo?: 'AP' | 'HE';
+      readonly ammo?: 'AP' | 'HE' | 'HEAT';
       readonly mgs?: readonly ('ca' | 'aa')[];
     }
   /** Infantry attack on an AFV: flamethrower, panzerfaust or bazooka (§37), or a Defensive Fire immobilization attempt (§36.1). */
@@ -341,6 +389,10 @@ export type Action =
   | { readonly type: 'unload'; readonly units: readonly string[]; readonly vehicle: string }
   /** A squad or crew pushes an AT gun one hex (§48.4). */
   | { readonly type: 'push'; readonly unit: string; readonly gun: string; readonly to: HexKey }
+  /** Reinforcements come on at an entry hex (§60). */
+  | { readonly type: 'enter'; readonly units: readonly string[]; readonly hex: HexKey }
+  /** Prep Fire work: dig in, or clear wire or mines (§53.5, §54.2, §55.5). */
+  | { readonly type: 'dig'; readonly unit: string; readonly work: 'entrench' | 'wire' | 'mines'; readonly hex?: HexKey }
   /** A leader fires a starshell at the end of the Rally Phase (§49.6). */
   | { readonly type: 'starshell'; readonly unit: string; readonly hex: HexKey }
   | { readonly type: 'endPhase' };

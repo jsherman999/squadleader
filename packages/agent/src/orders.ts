@@ -46,7 +46,7 @@ export interface Order {
   readonly facing?: string;
   readonly gun?: 'main' | 'mg';
   readonly vs?: string;
-  readonly ammo?: 'AP' | 'HE';
+  readonly ammo?: 'AP' | 'HE' | 'HEAT';
   readonly battery?: string;
   readonly op?: 'request' | 'correct' | 'ffe' | 'move' | 'cancel';
   readonly smoke?: boolean;
@@ -109,7 +109,7 @@ export function orderSchema(): Record<string, unknown> {
       facing: { type: 'string', enum: [...FACING_NAMES], description: 'vehicle_face: the covered arc, as its two front hexsides.' },
       gun: { type: 'string', enum: ['main', 'mg'], description: 'vehicle_fire: main gun or MGs.' },
       vs: { type: 'string', description: 'vehicle_fire with the main gun: the enemy vehicle id to shoot at (omit to fire HE at infantry).' },
-      ammo: { type: 'string', enum: ['AP', 'HE'], description: 'vehicle_fire at a vehicle: ammunition (default AP).' },
+      ammo: { type: 'string', enum: ['AP', 'HE', 'HEAT'], description: 'vehicle_fire at a vehicle: ammunition (default AP; HEAT only for guns that carry it).' },
       battery: { type: 'string', description: 'radio/artillery: the battery id.' },
       op: { type: 'string', enum: ['request', 'correct', 'ffe', 'move', 'cancel'], description: 'artillery: request fire, correct the spotting round, fire for effect, move the fire for effect, or call it off.' },
       smoke: { type: 'boolean', description: 'artillery ffe: smoke instead of HE.' },

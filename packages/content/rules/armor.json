@@ -219,6 +219,24 @@
       6,
       6,
       11
+    ],
+    "truck": [
+      -99,
+      -99,
+      8,
+      10,
+      10,
+      10,
+      11,
+      12,
+      12,
+      12,
+      12,
+      11,
+      10,
+      10,
+      10,
+      12
     ]
   },
   "heEquivalent": [
@@ -269,7 +287,12 @@
     "perVehicle": 2,
     "enemyVehicle": 4,
     "smoke": 1,
-    "unload": 2
+    "unload": 2,
+    "softOpen": 6,
+    "softUphill": 4,
+    "softOutsideArc": 4,
+    "softShellhole": 4,
+    "softTrench": 4
   },
   "immobilize": {
     "german": 5,
@@ -329,5 +352,17 @@
   "capacity": {
     "units": 2,
     "squads": 1
+  },
+  "soft": {
+    "morale": 8
+  },
+  "mines": {
+    "truck": -3,
+    "jeep": -3,
+    "halftrack": -1,
+    "other": 0
+  },
+  "heat": {
+    "outOf": 6
   }
 }

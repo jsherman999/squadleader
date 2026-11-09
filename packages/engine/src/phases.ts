@@ -11,6 +11,7 @@ import { armCharges, clearSmoke, expireCharges, gainConcealment, returnLostUnits
 import { displaceOverrun, endFirePhase, resetVehicles, resolveAfvAssaults } from './rules/armor';
 import { clearStarshells, rollNightVisibility, rotateFlashes } from './rules/night';
 import { endRally, fireForEffect, spottingRounds } from './rules/artillery';
+import { burnMist, escapeFires, rollLanding, spreadFires } from './rules/western';
 
 export function sideName(s: GameState, id: SideId): string {
   return s.sides.find((x) => x.id === id)?.name ?? id;
@@ -49,6 +50,7 @@ export function startPlayerTurn(ctx: Ctx, s: GameState, emit: Emit): void {
   }
   resetVehicles(s);
   rotateFlashes(s);
+  burnMist(ctx, s, emit);
   s.tracks = {};
   s.moving = [];
   s.attacks = [];
@@ -146,6 +148,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
       s.attacks = [];
       announce(s, emit);
       returnLostUnits(ctx, s, emit);
+      rollLanding(ctx, s, emit);
       berserkMovement(ctx, s, emit);
       return;
     case 'movement':
@@ -170,10 +173,12 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
     case 'advancingFire':
       endFirePhase(s, 'advancingFire');
       expireCharges(ctx, s, emit);
+      spreadFires(ctx, s, emit);
       s.phase = 'rout';
       s.awaiting = s.phasing;
       for (const u of Object.values(s.units)) u.routed = false;
       announce(s, emit);
+      escapeFires(ctx, s, emit);
       return;
     case 'rout':
       // Mandatory routs not made by hand take the first cheapest route (§13.43).

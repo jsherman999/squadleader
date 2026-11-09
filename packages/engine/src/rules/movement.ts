@@ -19,6 +19,7 @@ import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
 import { reveal, smokeMf } from './special';
 import { illuminated } from './night';
+import { fortMoveCost, hasWire, mineAttack, wireExitCost } from './western';
 
 /** MF a unit may spend this Movement Phase (§5.41–5.44, §5.7). */
 export function mfAllowance(ctx: Ctx, s: GameState, u: Unit): { mf: number; parts: string[] } {
@@ -97,13 +98,30 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
 
   const base = moveCost(ctx, from, to);
   const smokeExtra = smokeMf(s, to);
-  const cost = smokeExtra ? { mf: base.mf + smokeExtra, parts: [...base.parts, '+1 smoke (§24.5)'] } : base;
+  const fort = fortMoveCost(s, from, to);
+  // Getting out of wire costs a die roll of MF; one hex is always possible (§53.4).
+  const wire = hasWire(s, from) && !movers.some((u) => u.moved) ? wireExitCost(s, from) : 0;
+  const cost = {
+    mf: base.mf + smokeExtra + fort.mf + wire,
+    parts: [...base.parts, ...(smokeExtra ? ['+1 smoke (§24.5)'] : []), ...fort.parts, ...(wire ? [`+${wire} out of the wire (§53.4)`] : [])],
+  };
+  if (!Number.isFinite(fort.mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}: ${fort.parts.join(', ')}`);
   if (!Number.isFinite(cost.mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}: ${cost.parts.join(', ')}`);
   for (const u of movers) {
     const left = mfLeft(ctx, s, u);
-    if (cost.mf > left + 1e-9) throw new RuleError(`${unitLabel(ctx, u)} has ${left} MF left; entering ${hexLabel(ctx, to)} costs ${cost.mf} (${cost.parts.join(', ')})`, '§5.5');
+    if (cost.mf > left + 1e-9 && !wire) throw new RuleError(`${unitLabel(ctx, u)} has ${left} MF left; entering ${hexLabel(ctx, to)} costs ${cost.mf} (${cost.parts.join(', ')})`, '§5.5');
   }
   const open = isOpenGround(ctx, to);
+  // Leaving a minefield: the mines attack first; anyone broken stays put (§55.22).
+  if (s.forts?.mines.some((m) => m.hex === from)) {
+    mineAttack(ctx, s, movers, from, 'leave', emit);
+    const still = movers.filter((u) => s.units[u.id] && !s.units[u.id]!.broken);
+    if (still.length < movers.length) {
+      for (const u of movers) if (s.units[u.id]) s.units[u.id]!.moveDone = true;
+      s.moving = [];
+      return;
+    }
+  }
   // Moving gives a concealed stack away (§25.4, §25.42); at night only hidden units, or into a lit hex the enemy sees (§49.4).
   if (!ctx.scenario.night) reveal(ctx, s, from, emit, 'moved');
   else {
@@ -127,6 +145,9 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
     from,
     to,
   });
+  if (wire) for (const u of movers) if (mfLeft(ctx, s, u) <= 0) u.moveDone = true;
+  // Entering a minefield (§55.2).
+  if (s.forts?.mines.some((m) => m.hex === to)) mineAttack(ctx, s, movers.filter((u) => s.units[u.id]), to, 'enter', emit);
 }
 
 export function endMove(s: GameState, ids: readonly string[]): void {

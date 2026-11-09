@@ -62,6 +62,10 @@ export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
       return `${units(a.units)} get off ${veh(a.vehicle)}`;
     case 'push':
       return `${units([a.unit])} push the gun → ${hexLabel(ctx, a.to)}`;
+    case 'enter':
+      return `Reinforcements enter at ${hexLabel(ctx, a.hex)}`;
+    case 'dig':
+      return a.work === 'entrench' ? `${units([a.unit])} dig in` : a.work === 'wire' ? `${units([a.unit])} cut the wire` : `${units([a.unit])} clear mines`;
   }
 }
 
@@ -89,7 +93,10 @@ export function actionUnits(a: Action | undefined): string[] {
     case 'starshell':
     case 'radio':
     case 'push':
+    case 'dig':
       return [a.unit];
+    case 'enter':
+      return [...a.units];
     case 'face':
     case 'vmove':
     case 'vstop':
