@@ -1,10 +1,8 @@
-# Fire & Maneuver: Project Plan
-
-*Working title. Rename it any time.*
+# Squad War: Project Plan
 
 A computer version of WWII squad-level tactical hex combat. It uses the game mechanics in the 4th Edition *Squad Leader* rulebook (Avalon Hill, 1977) that the project owner supplied. You get a zoomable printed-style hex board, a rotatable 3D landscape, an LOS inspector, a move planner you can revert, animated fire, a first-person POV camera and an LLM opponent.
 
-**Status:** planning only. No code has been written yet. Decisions and open questions are in [§13](#13-decisions-and-open-questions). Companion documents:
+**Status:** planning only. No code has been written yet. Owner decisions are in [§13](#13-decisions). Companion documents:
 
 - [RULES_COVERAGE.md](RULES_COVERAGE.md): every rule section, mapped to an engine module and a milestone.
 - [REFERENCE_TABLES.md](REFERENCE_TABLES.md): Quick Reference Data Card values, the engine's default rules data.
@@ -25,7 +23,7 @@ A computer version of WWII squad-level tactical hex combat. It uses the game mec
 10. [Milestones](#10-milestones)
 11. [Testing strategy](#11-testing-strategy)
 12. [Risks and mitigations](#12-risks-and-mitigations)
-13. [Decisions and open questions](#13-decisions-and-open-questions)
+13. [Decisions](#13-decisions)
 14. [Appendix: data schema sketches](#14-appendix-data-schema-sketches)
 
 ---
@@ -305,8 +303,7 @@ Every resolution emits a human-readable trace shown in the combat log. For examp
 
 ### 6.7 Dice
 
-- **Digital (default):** seeded PRNG with an optional animated 3D dice tray. The roll is decided first; the dice animation then lands on the decided faces.
-- **Physical dice entry (optional):** players roll real dice and type the values in. Useful for purists and for hot-seat trust.
+- **Digital only** (owner's decision): a seeded PRNG with an optional animated 3D dice tray. The roll is decided first; the dice animation then lands on the decided faces.
 - A dice-statistics panel shows distributions so far. It's mostly there to settle "these dice hate me" debates.
 
 ---
@@ -828,7 +825,7 @@ Sizes are relative: S, M, L, XL. Each milestone ends with a playable or demoable
 
 ---
 
-## 13. Decisions and open questions
+## 13. Decisions
 
 ### Decided by the owner
 
@@ -839,16 +836,14 @@ Sizes are relative: S, M, L, XL. Each milestone ends with a playable or demoable
 | 3 | Rules data | Owner supplied both sides of the Quick Reference Data Card. Data is now complete ([REFERENCE_TABLES.md](REFERENCE_TABLES.md)). |
 | 4 | LLM providers | **Anthropic, OpenAI, Gemini, OpenRouter, local.** |
 | 5 | API key storage | **Memory-only by default**, with an opt-in "remember on this device". |
+| 6 | Dice | **Digital only.** No physical-dice entry. |
+| 7 | 3D unit style | **Counter tokens first**; miniatures later (M12). |
+| 8 | First playable | **Infantry §1–21, scenario 1, at M4.** |
+| 9 | Hosting | **GitHub Pages**, deployed from this repo. |
+| 10 | Title | **Squad War.** |
 
-### Still open (defaults assumed)
+No questions are open. New ones will be added here as implementation raises them.
 
-| # | Question | Default assumed |
-|---|---|---|
-| 6 | Dice: digital only, or also physical-dice entry? | Both (digital default) |
-| 7 | 3D unit style: tokens (counter standees) first, miniatures later? | Yes |
-| 8 | First playable scope: infantry §1–21 (scenario 1) at M4? | Yes |
-| 9 | Hosting: deploy builds to GitHub Pages from this repo? | Yes |
-| 10 | Working title "Fire & Maneuver": keep or rename? | Keep for now |
 
 ---
 
