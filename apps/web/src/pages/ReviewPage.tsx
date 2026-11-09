@@ -133,7 +133,12 @@ function Review() {
   // Keep the active decision in view in the list.
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    listRef.current?.querySelector('.dl-item.active')?.scrollIntoView({ block: 'nearest' });
+    const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>('.dl-item.active');
+    if (!list || !el) return;
+    // Scroll the list only, not the page.
+    const top = el.offsetTop - list.offsetTop;
+    if (top < list.scrollTop || top + el.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top - list.clientHeight / 3;
   }, [index, keyOnly]);
 
   const takeOver = (side: SideId) => {

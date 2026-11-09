@@ -297,7 +297,10 @@ export class Scene3D {
     // Fit the board's width (and depth) in view from about 50° above the horizon.
     const vf = THREE.MathUtils.degToRad(this.camera.fov) / 2;
     const hf = Math.atan(Math.tan(vf) * this.camera.aspect);
-    const dist = Math.max(((x1 - x0) / 2 / Math.tan(hf)) * 1.14, ((y1 - y0) / 2 / Math.tan(vf)) * 1.5);
+    const fitWidth = ((x1 - x0) / 2 / Math.tan(hf)) * 1.14;
+    const fitDepth = ((y1 - y0) / 2 / Math.tan(vf)) * 1.5;
+    // Portrait screens: frame the middle of the board instead of shrinking it to a sliver.
+    const dist = this.camera.aspect < 1 ? Math.max(fitDepth * 1.3, fitWidth * 0.45) : Math.max(fitWidth, fitDepth);
     const elev = 0.88;
     this.controls.target.set(cx, 0, cz + (y1 - y0) * 0.04);
     this.camera.position.set(cx, dist * Math.sin(elev), cz + dist * Math.cos(elev));

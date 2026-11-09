@@ -21,14 +21,16 @@ export const ICON: Record<string, string> = {
 };
 
 export function LogPanel({ events }: { events: readonly LoggedEvent[] }) {
-  const end = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<number | undefined>();
+  // Scroll the log itself, never the page (on phones the page scrolls).
   useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end' });
+    const el = box.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [events.length]);
   const shown = events.slice(-160);
   return (
-    <div className="log" role="log" aria-live="polite">
+    <div className="log" role="log" aria-live="polite" ref={box}>
       {shown.map((e) => (
         <div key={e.n} className={`log-row kind-${e.kind}`}>
           <button className="log-line" onClick={() => setOpen(open === e.n ? undefined : e.n)} aria-expanded={open === e.n}>
@@ -46,7 +48,6 @@ export function LogPanel({ events }: { events: readonly LoggedEvent[] }) {
           )}
         </div>
       ))}
-      <div ref={end} />
     </div>
   );
 }

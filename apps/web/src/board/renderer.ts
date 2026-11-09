@@ -182,7 +182,10 @@ export class BoardRenderer {
     const h = (b.y1 - b.y0) * HEX_PX;
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
-    const s = Math.min((sw - 40) / w, (sh - 40) / h);
+    const contain = Math.min((sw - 40) / w, (sh - 40) / h);
+    // On a phone the wide board would be a thin strip: fill the height and let the player pan sideways.
+    const fillHeight = (sh - 12) / h;
+    const s = sw < 700 && fillHeight > contain * 1.6 ? Math.min(fillHeight, 1.1) : contain;
     this.world.scale.set(s);
     this.world.position.set((sw - w * s) / 2 - b.x0 * HEX_PX * s, (sh - h * s) / 2 - b.y0 * HEX_PX * s);
     this.applySemanticZoom();

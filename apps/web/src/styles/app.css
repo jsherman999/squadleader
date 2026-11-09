@@ -1367,3 +1367,253 @@ kbd {
 .library-actions .btn + .btn {
   margin-left: 4px;
 }
+
+/* ---- Phones and small tablets ------------------------------------------
+   Desktop is the main target. Below 900px the page scrolls as a whole:
+   the map gets a fixed share of the screen, panels follow at their
+   natural height, and the top bar's buttons scroll sideways. */
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+  }
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  .page {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 6px 8px 4px;
+  }
+  .topbar-title {
+    display: block;
+    flex: 1 1 0;
+    font-size: 12px;
+  }
+  .topbar-actions {
+    margin-left: 0;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    gap: 6px;
+  }
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .topbar-actions > * {
+    flex: none;
+  }
+  .topbar .btn,
+  .topbar .auto-select {
+    min-height: 34px;
+  }
+  .status {
+    display: inline;
+    font-size: 12px;
+  }
+  kbd {
+    display: none;
+  }
+
+  /* Map area: a fixed share of the screen. */
+  .board-wrap {
+    flex: none;
+    height: auto;
+    min-height: 58vh;
+    min-height: 58svh;
+    overflow: visible;
+    container-type: normal;
+  }
+  .map-views {
+    position: relative;
+    inset: auto;
+    height: 58vh;
+    height: 58svh;
+    min-height: 260px;
+  }
+  .map-views.mode-split {
+    height: 84vh;
+    height: 84svh;
+  }
+  .map-views .map-pane {
+    overflow: hidden;
+  }
+
+  /* Battle: map, then actions and log, then turn/phase/objectives. */
+  .battle,
+  .review {
+    display: flex;
+    flex-direction: column;
+  }
+  .battle > .board-wrap,
+  .review > .board-wrap {
+    order: 1;
+  }
+  .side-right {
+    order: 2;
+    overflow: visible;
+    border-left: none;
+    border-top: 1px solid var(--c-line);
+    padding: 8px 10px 16px;
+  }
+  .log {
+    max-height: 60vh;
+  }
+  .ribbon {
+    order: 3;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 14px;
+    overflow: visible;
+    border-right: none;
+    border-top: 1px solid var(--c-line);
+    padding: 6px 10px 12px;
+  }
+  .ribbon section {
+    border-bottom: none;
+    padding: 4px 0;
+    min-width: 0;
+  }
+  .ribbon .rb-turn,
+  .ribbon .rb-phases,
+  .ribbon .rb-obj {
+    grid-column: 1 / -1;
+  }
+  .ribbon .rb-turn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+  }
+  .ribbon .rb-turn .panel-h {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  .ribbon .rb-turn .phasing {
+    margin-top: 0;
+  }
+  .ribbon .phase-list {
+    columns: 2;
+    column-gap: 16px;
+  }
+  .ribbon .rb-obj .faint {
+    margin-top: 4px;
+  }
+
+  /* Review: map, the explanation, then the list of decisions. */
+  .dl {
+    order: 3;
+    max-height: 45vh;
+    border-right: none;
+    border-top: 1px solid var(--c-line);
+  }
+  .review-side {
+    order: 2;
+  }
+  .timeline {
+    bottom: 6px;
+  }
+  .review-hex {
+    display: none;
+  }
+
+  /* Overlays on the map. */
+  .hud-bottom-left {
+    left: 6px;
+    top: 6px;
+    bottom: auto;
+  }
+  .hex-card {
+    min-width: 0;
+    max-width: 72vw;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+  .hud-right {
+    position: static;
+    width: auto;
+    max-width: none;
+    padding: 8px 10px 16px;
+  }
+  .view3d-controls {
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 4px 8px;
+  }
+  .view3d-controls .field {
+    grid-template-columns: auto minmax(70px, 1fr);
+  }
+  .help {
+    position: fixed;
+    inset: 10px;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    transform: none;
+    overflow: auto;
+    z-index: 60;
+  }
+  .game-over {
+    width: calc(100% - 24px);
+    padding: 14px 16px;
+  }
+  .game-over h2 {
+    font-size: 22px;
+  }
+  .plan-banner {
+    top: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .pov-card {
+    bottom: 6px;
+    padding: 6px 10px;
+  }
+  .pov-card .small.dim:last-of-type {
+    display: none;
+  }
+
+  /* Scenario page, editor. */
+  .play {
+    display: block;
+  }
+  .scenario-list {
+    border-right: none;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .library-actions {
+    white-space: normal;
+  }
+  .library-actions .btn {
+    margin: 2px 0 2px 4px;
+  }
+  .editor {
+    flex-direction: column;
+  }
+  .editor .side-panel {
+    width: 100%;
+    max-height: none;
+    order: 2;
+    border-right: none;
+    border-top: 1px solid var(--c-line);
+  }
+  .editor .board-wrap {
+    order: 1;
+  }
+}

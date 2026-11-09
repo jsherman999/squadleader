@@ -5,7 +5,7 @@ export function PhaseRibbon({ ctx, s }: { ctx: Ctx; s: GameState }) {
   const objectives = objectiveStatus(ctx, s);
   return (
     <aside className="ribbon">
-      <section>
+      <section className="rb-turn">
         <h3 className="panel-h">Turn</h3>
         <div className="turn-track">
           {Array.from({ length: ctx.scenario.turns }, (_, i) => (
@@ -18,7 +18,7 @@ export function PhaseRibbon({ ctx, s }: { ctx: Ctx; s: GameState }) {
           <div className={`phasing nation-${side(s.phasing).nation}`}>{side(s.phasing).name} player turn</div>
         )}
       </section>
-      <section>
+      <section className="rb-phases">
         <h3 className="panel-h">Phases</h3>
         {s.phase === 'setup' && <div className="phasing">Setup — {side(s.awaiting).name}</div>}
         <ol className="phase-list">
@@ -30,7 +30,7 @@ export function PhaseRibbon({ ctx, s }: { ctx: Ctx; s: GameState }) {
           ))}
         </ol>
       </section>
-      <section>
+      <section className="rb-obj">
         <h3 className="panel-h">Objectives</h3>
         <ul className="obj-list">
           {objectives.map((o) => (
@@ -43,7 +43,7 @@ export function PhaseRibbon({ ctx, s }: { ctx: Ctx; s: GameState }) {
         </ul>
         <p className="faint small">{ctx.scenario.victory.text}</p>
       </section>
-      <section>
+      <section className="rb-loss">
         <h3 className="panel-h">Losses</h3>
         {s.sides.map((x) => (
           <div key={x.id} className="small">
