@@ -1968,3 +1968,128 @@ kbd {
   display: flex;
   margin: 3px 0;
 }
+
+/* ---- Scenario editor ---- */
+.sced {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: 0;
+}
+.sced-form {
+  background: var(--c-panel);
+  border-right: 1px solid var(--c-line);
+  padding: 10px 14px 40px;
+  overflow-y: auto;
+}
+.sced-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--c-text-dim);
+  margin: 4px 0;
+  flex: 1;
+  min-width: 0;
+}
+.sced-field .text-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.text-input.narrow {
+  width: 64px;
+}
+.sced-field .text-input.narrow {
+  width: 64px;
+}
+.sced-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.sced-range {
+  display: flex;
+  gap: 4px;
+}
+.sced-checks {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sced-side {
+  border-left: 3px solid var(--nation, var(--c-line));
+  padding-left: 8px;
+  margin: 10px 0;
+}
+.sced-units {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0;
+}
+.sced-units td {
+  padding: 3px 2px;
+  border-bottom: 1px solid var(--c-line);
+  vertical-align: top;
+}
+.sced-units tr.placing td {
+  background: color-mix(in srgb, var(--c-brass) 14%, transparent);
+}
+.chip {
+  display: inline-block;
+  margin: 2px 3px 0 0;
+  padding: 1px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--c-line);
+  background: var(--c-panel-2);
+  color: var(--c-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+.chip-add {
+  display: block;
+  margin-top: 3px;
+  background: var(--c-panel-2);
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  font-size: 11px;
+  max-width: 130px;
+}
+.sced-objectives {
+  list-style: none;
+  padding: 0;
+}
+.sced-objectives li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.sced-map {
+  position: relative;
+  min-height: 0;
+  display: flex;
+}
+.sced-map > :first-child {
+  flex: 1;
+}
+.sced-status {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  max-width: 420px;
+}
+.sced-status ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.good {
+  color: #8fe07a;
+}
+@media (max-width: 900px) {
+  .sced {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 60vh;
+  }
+}

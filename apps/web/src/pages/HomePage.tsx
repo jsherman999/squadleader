@@ -32,6 +32,9 @@ export function HomePage() {
           <button className="btn" onClick={() => go('lab')}>
             Map &amp; line-of-sight lab
           </button>
+          <button className="btn" onClick={() => go('scenario-editor')}>
+            Scenario editor
+          </button>
           <button className="btn" onClick={() => go('editor')}>
             Board editor
           </button>

@@ -8,6 +8,7 @@ import { BattlePage } from './pages/BattlePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { DyoPage } from './pages/DyoPage';
 import { CampaignPage } from './pages/CampaignPage';
+import { ScenarioEditorPage } from './pages/ScenarioEditorPage';
 
 export function App() {
   return (
@@ -27,5 +28,6 @@ function Page() {
   if (page === 'review') return <ReviewPage />;
   if (page === 'dyo') return <DyoPage />;
   if (page === 'campaign') return <CampaignPage />;
+  if (page === 'scenario-editor') return <ScenarioEditorPage />;
   return <HomePage />;
 }

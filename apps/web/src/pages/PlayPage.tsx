@@ -222,6 +222,9 @@ export function PlayPage() {
             <button className="btn big" onClick={() => file.current?.click()}>
               Load save file…
             </button>
+            <button className="btn big" onClick={() => go(`scenario-editor/${sc.id}`)} title="Open a copy of this scenario in the scenario editor">
+              Edit a copy…
+            </button>
             <input
               ref={file}
               type="file"
