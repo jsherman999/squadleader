@@ -19,13 +19,14 @@ export function eliminate(ctx: Ctx, s: GameState, u: Unit, reason: string, emit:
 
 /** Break a unit: it inverts and abandons its support weapons (§12.3, §13.5). */
 export function breakUnit(ctx: Ctx, s: GameState, u: Unit, emit: Emit): void {
+  const label = unitLabel(ctx, u);
   u.broken = true;
   const dropped = carried(s, u);
   for (const w of dropped) w.owner = null;
   u.weapons = [];
   emit({
     kind: 'morale',
-    text: `${unitLabel(ctx, u)} in ${hexLabel(ctx, u.hex)} breaks${dropped.length ? ' and abandons its weapons (§13.5)' : ''}`,
+    text: `${label} in ${hexLabel(ctx, u.hex)} breaks${dropped.length ? ' and abandons its weapons (§13.5)' : ''}`,
     side: u.side,
     units: [u.id],
     hexes: [u.hex],
