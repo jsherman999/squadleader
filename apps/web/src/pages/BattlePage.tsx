@@ -22,6 +22,7 @@ import { ActionPanel, type MapPick } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
+import { loadCampaign } from '../game/campaign';
 import { LogPanel } from '../battle/LogPanel';
 import { drawArc, drawArtillery, drawNight, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks, drawWestern } from '../battle/overlays';
 import { groupPath, vehiclePath } from '../battle/pathing';
@@ -95,6 +96,7 @@ function selectable(s: GameState, ids: string[]): string[] {
 function Battle() {
   const session = useSession();
   const ctx = ctxFor(session.scenarioId!);
+  const campaignGame = useMemo(() => loadCampaign()?.entries.some((e) => e.game === session.scenarioId) ?? false, [session.scenarioId]);
   const real = session.states[session.states.length - 1]!;
   const plan = session.plan;
   /** While fire plays out, the board keeps showing the state before the shots land. */
@@ -835,7 +837,12 @@ function Battle() {
               <h2 className="stencil">{s.winner ? `${sideName(s.winner)} victory` : 'Game over'}</h2>
               <p>{s.result}</p>
               <div className="play-actions">
-                <button className="btn primary" onClick={() => go('play')}>
+                {campaignGame && (
+                  <button className="btn primary" onClick={() => go('campaign')}>
+                    Back to the campaign
+                  </button>
+                )}
+                <button className={`btn ${campaignGame ? '' : 'primary'}`} onClick={() => go('play')}>
                   New game
                 </button>
                 <button className="btn primary" onClick={openReview}>

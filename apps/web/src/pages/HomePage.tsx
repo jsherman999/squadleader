@@ -23,6 +23,9 @@ export function HomePage() {
           >
             Watch AI vs AI (tutor)
           </button>
+          <button className="btn" onClick={() => go('campaign')} title="One leader through six scenarios, promoted or broken by how he fights">
+            Campaign
+          </button>
           <button className="btn" onClick={() => go('dyo')} title="Deal a random scenario from the Game Set IV charts">
             Design your own
           </button>

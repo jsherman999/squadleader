@@ -51,3 +51,4 @@ export { blastArea, contactValue } from './rules/artillery';
 export { illuminated, nightSight } from './rules/night';
 export { riders, gunCrew } from './rules/transport';
 export { designYourOwn, dyoPoints, type DyoCard, type DyoDraw, type DyoOptions, type DyoResult, type DyoRules, type DyoTerrain } from './dyo';
+export { CAMPAIGN_RANKS, addCampaignLeader, campaignLeaderName, campaignLeaderType, findCampaignLeader, nextRank, scoreCampaignGame, type CampaignAward, type CampaignOutcome, type CampaignRank, type PersonnelChange } from './campaign';

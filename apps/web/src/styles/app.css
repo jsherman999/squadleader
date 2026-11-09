@@ -1922,3 +1922,33 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Campaign ---- */
+.text-input {
+  background: var(--c-panel-2);
+  color: var(--c-text);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font: inherit;
+}
+.campaign-plan select {
+  background: var(--c-panel-2);
+  color: var(--c-text);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  max-width: 100%;
+}
+.personnel th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--c-dim);
+  font-size: 12px;
+}
+.personnel tr.current td {
+  background: color-mix(in srgb, var(--c-brass) 10%, transparent);
+}
+.campaign-next {
+  margin: 16px 0;
+}
