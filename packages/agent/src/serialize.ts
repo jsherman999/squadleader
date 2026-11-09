@@ -6,6 +6,9 @@
  */
 import { DIRECTIONS, DIRECTION_NAMES, hexsideKey, type HexKey } from '@squadwar/hex';
 import {
+  FACING_NAMES,
+  mpLeft as vehicleMpLeft,
+  vehicleType,
   carried,
   hexLabel,
   hexTem,
@@ -101,6 +104,7 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
     `ENEMY UNITS (${theirs.length}):`,
     ...sortByHex(theirs).map((u) => '  ' + unitLine(ctx, s, u, false)),
   ];
+  lines.push(...vehicleLines(ctx, s, side));
   const hidden = concealedHexes(s, side);
   if (hidden.length) lines.push(`CONCEALED ENEMY STACKS (contents unknown; fire at them is area fire at half FP, §25): ${hidden.map((h) => hexId(ctx, h)).join(', ')}`);
   lines.push(...specialLines(ctx, s, side));
@@ -114,6 +118,31 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
     }
   }
   return lines.join('\n');
+}
+
+/** Tanks, SP guns and wrecks (§28–41). */
+function vehicleLines(ctx: Ctx, s: GameState, side: string): string[] {
+  const vs = Object.values(s.vehicles);
+  if (!vs.length && !s.wrecks.length) return [];
+  const line = (v: (typeof vs)[number], own: boolean) => {
+    const t = vehicleType(ctx, v);
+    const bits = [
+      `${v.id} ${t.name}${v.name ? ` "${v.name}"` : ''} (${t.kind === 'tank' ? 'tank, turret' : 'SP gun, fixed gun'}; ${t.gun ? `${t.gun}mm${t.heOnly ? ' HE only' : ''}${t.lowVelocity ? ' low velocity' : ''}` : 'no gun'}; MG ${t.mgCA}/${t.mg360}; armour ${t.armor >= 0 ? '+' : ''}${t.armor})`,
+      `at ${hexId(ctx, v.hex)} arc ${FACING_NAMES[v.facing]}`,
+    ];
+    const st = [v.immobilized ? 'IMMOBILIZED' : '', v.gun !== 'ok' ? `gun ${v.gun}` : '', v.mg !== 'ok' ? `MGs ${v.mg}` : '', v.ce ? 'crew exposed' : ''].filter(Boolean);
+    if (st.length) bits.push(st.join(' '));
+    if (own) {
+      const notes = [s.phase === 'movement' && s.phasing === v.side ? (v.moveDone ? 'done moving' : `${vehicleMpLeft(ctx, v)} MP left`) : '', v.firedPhase ? `fired in ${PHASE_NAMES[v.firedPhase]}` : '', v.moved ? 'moved' : ''].filter(Boolean);
+      if (notes.length) bits.push(`(${notes.join('; ')})`);
+    }
+    return '  ' + bits.join(' · ');
+  };
+  const mine = vs.filter((v) => v.side === side);
+  const theirs = vs.filter((v) => v.side !== side);
+  const out = ['', `YOUR VEHICLES (${mine.length}):`, ...mine.map((v) => line(v, true)), `ENEMY VEHICLES (${theirs.length}):`, ...theirs.map((v) => line(v, false))];
+  if (s.wrecks.length) out.push(`WRECKS: ${s.wrecks.map((w) => hexId(ctx, w.hex)).join(', ')}`);
+  return out;
 }
 
 /** Smoke, charges and sewers in play (§23–27). */
@@ -159,6 +188,9 @@ export function describeHexes(ctx: Ctx, s: GameState, hexes: readonly HexKey[], 
         .filter((u) => u.hex === h && (u.side === viewer || seen.has(u.id)))
         .map((u) => `${u.id}(${u.side === viewer ? 'own' : 'enemy'} ${unitLabel(ctx, u)})`);
       if (Object.values(s.units).some((u) => u.hex === h && u.side !== viewer && u.concealed)) who.push('a concealed enemy stack');
+      for (const v of Object.values(s.vehicles)) if (v.hex === h) who.push(`${v.id}(${v.side === viewer ? 'own' : 'enemy'} ${vehicleType(ctx, v).name})`);
+      const wr = s.wrecks.filter((w) => w.hex === h).length;
+      if (wr) who.push(`${wr} wreck${wr > 1 ? 's' : ''}`);
       const hs = hexsideNotes(ctx, h);
       const sides = hs ? `, hexsides: ${hs}` : '';
       const extra = [hx.sewer ? (s.closedSewers.includes(h) ? 'sewer entrance (blown shut)' : 'sewer entrance') : '', s.smoke.some((x) => x.hex === h) ? 'SMOKE' : ''].filter(Boolean);

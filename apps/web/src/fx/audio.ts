@@ -97,6 +97,8 @@ const VOICE: Record<WeaponFx, { freq: number; decay: number; thump: number; gain
   LMG: { freq: 1700, decay: 0.07, thump: 0.35, gain: 0.45 },
   MMG: { freq: 1400, decay: 0.07, thump: 0.45, gain: 0.45 },
   HMG: { freq: 900, decay: 0.1, thump: 0.7, gain: 0.55 },
+  GUN: { freq: 600, decay: 0.5, thump: 1.6, gain: 0.9 },
+  AT: { freq: 900, decay: 0.3, thump: 1, gain: 0.7 },
 };
 
 /** Play the sound for a cue as it starts. */
@@ -143,6 +145,12 @@ export function playCue(cue: Cue): void {
       src.connect(lp).connect(g).connect(out(c, pan));
       src.start(now);
       src.stop(now + 1.45);
+      break;
+    }
+    case 'cannon': {
+      // A sharp crack with a heavy, rolling boom.
+      crack(c, now, pan, gain * 0.9, 600, 0.5, 1.6);
+      crack(c, now + 0.01, pan, gain * 0.6, 2400, 0.12, 0);
       break;
     }
     case 'blast': {

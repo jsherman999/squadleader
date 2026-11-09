@@ -50,12 +50,21 @@ const SPECIAL_PRIMER = `SPECIAL RULES IN THIS SCENARIO (§22–27):
 - Fanaticism: listed fanatic units get −1 on morale checks and rally rolls inside their building.
 - Sewers: a stack with a leader starting its Movement Phase on a sewer entrance may order sewer to another entrance within 3 hexes before moving: 1–4 succeeds, 5–6 lost for a turn. Units arriving in an enemy-held entrance fight it out at point blank.`;
 
+/** §28–41, for scenarios with armour. */
+const ARMOR_PRIMER = `ARMOUR (§28–41):
+- Tanks and SP guns move in Movement with vehicle_move (a path of adjacent hexes; road ½ MP, open 1, wooden building 4, woods 6, no stone buildings; woods and wooden buildings risk a breakdown). They may always move one hex. Turning in the starting hex costs 2 MP; after moving it is free (vehicle_face).
+- The covered arc is the 60° sector between the two front hexsides. SP guns fire their main gun only inside it; tanks may turn the turret at +2 to hit. A vehicle that fires in Prep Fire cannot move; a tank that moved fires its gun at +5 in Advancing Fire, an SP gun not at all.
+- Main gun fire is To Hit (by target type and range) then Kill (by the armour facing the shot: front, side, rear). HE against infantry hits as a firepower attack on the IFT. MGs fire on the IFT at infantry only; the all-round MG exposes the crew.
+- Infantry beat tanks up close: panzerfausts/bazookas/flamethrowers (anti_tank with the weapon id), grenade bundles in Defensive Fire from cover next to the tank's path (anti_tank without a weapon), or advance onto a lone tank and assault it in Close Combat. Keep your own infantry near your tanks.
+- Vehicles cannot hold buildings: only infantry controls objectives.`;
+
 export function systemPrompt(ctx: Ctx, side: string, persona: Persona): string {
   return [
     `You command one side in Squad War, a WWII squad-level hex wargame, against a human or computer opponent.`,
     PERSONA[persona],
     PRIMER,
     ...(ctx.scenario.rulesLevel >= 22 ? [SPECIAL_PRIMER] : []),
+    ...(ctx.scenario.rulesLevel >= 28 ? [ARMOR_PRIMER] : []),
     METHOD,
     briefing(ctx, side),
   ].join('\n\n');

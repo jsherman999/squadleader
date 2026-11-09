@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DIRECTIONS, hexDistance, hexKey, hexToPixel, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
+  FACING_NAMES,
   PHASE_NAMES,
+  vehicleLabel,
   exposureAt,
   exposureMap,
   enemiesIn,
@@ -21,8 +23,10 @@ import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
 import { LogPanel } from '../battle/LogPanel';
-import { drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
-import { groupPath } from '../battle/pathing';
+import { drawArc, drawFireLines, drawFocus, drawLastFire, drawObjectives, drawPath, drawSelection, drawSetupZone, drawSpecial, drawTracks } from '../battle/overlays';
+import { groupPath, vehiclePath } from '../battle/pathing';
+import { VehiclePanel } from '../battle/VehiclePanel';
+import { facingAngle } from '../board/counters';
 import { PhaseRibbon } from '../battle/PhaseRibbon';
 import { StackPanel } from '../battle/StackPanel';
 import { ctxFor } from '../game/scenarios';
@@ -132,6 +136,11 @@ function Battle() {
   const flaming = flameMode && flame.length > 0;
   const firers = useMemo(() => (FIRE.has(s.phase) ? (flaming ? flame : defaultFirers(ctx, s, selUnits)) : []), [ctx, s, selUnits, flaming, flame]);
   const leader = useMemo(() => (firers.length && !flaming ? defaultLeader(ctx, s, firers) : undefined), [ctx, s, firers, flaming]);
+  // The selected tank or SP gun acts on its own (§28–41).
+  const [vsel, setVsel] = useState<string>();
+  const [vtarget, setVtarget] = useState<HexKey>();
+  const selVehicle = vsel && s.vehicles[vsel]?.side === s.awaiting ? s.vehicles[vsel] : undefined;
+  useEffect(() => setVtarget(undefined), [vsel, s.phase]);
   // What the human player may see of concealed enemy units (§25).
   const viewer = viewerOf(session.controllers);
   const fog = useMemo(() => fogOfWar(s, viewer), [s, viewer]);
@@ -290,7 +299,11 @@ function Battle() {
     [session.events, session.actions.length],
   );
 
-  const units = useMemo(() => ({ ctx, s: fog.s, selected: new Set(selUnits), hidden: fog.hidden }), [ctx, fog, selUnits]);
+  const units = useMemo(() => ({ ctx, s: fog.s, selected: new Set(selUnits), hidden: fog.hidden, vehicle: selVehicle?.id }), [ctx, fog, selUnits, selVehicle?.id]);
+  const vehiclePreview = useMemo(() => {
+    if (s.phase !== 'movement' || !human || !hover || !selVehicle || hover === selVehicle.hex) return undefined;
+    return { from: selVehicle.hex, ...vehiclePath(ctx, s, selVehicle.id, hover) };
+  }, [s, human, hover, selVehicle, ctx]);
 
   // Map-space overlays, shared by the 2D board and the 3D landscape.
   const layers: OverlayLayers = useMemo(
@@ -332,20 +345,41 @@ function Battle() {
       },
       top: (pen, v) => {
         if (tutor && (aiVsAi || !human)) drawFocus(pen, tutor.note, tutor.action);
-        drawSelection(pen, sel.hex, session.target, groupHexes);
+        drawSelection(pen, sel.hex, session.target ?? vtarget, groupHexes);
+        if (selVehicle) drawArc(pen, ctx, selVehicle);
+        if (selVehicle && vtarget) drawFireLines(pen, ctx, [selVehicle.hex], vtarget);
+        if (vehiclePreview?.path.length) drawPath(pen, vehiclePreview.from, vehiclePreview.path, vehiclePreview.reachable);
         if (movePreview) drawPath(pen, movePreview.from, movePreview.path, movePreview.reachable);
         if (session.target && firers.length) drawFireLines(pen, ctx, groupHexes, session.target);
         if (losMode && los) (v === '3d' ? drawLosMarks : drawLos)(pen, map, los);
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
   const pov = useMemo(() => {
     if (!povHex || !map.hexes[povHex]) return undefined;
     const here = Object.values(s.units).filter((u) => u.hex === povHex);
+    // From a tank or SP gun: the commander's view along the gun (§29.4).
+    const veh = Object.values(s.vehicles).find((v) => v.hex === povHex && (!selVehicle || v.id === selVehicle.id));
+    if (veh && (!here.length || selVehicle?.id === veh.id)) {
+      const c = hexToPixel(parseHexKey(povHex));
+      const ang = facingAngle(veh.facing);
+      const visible = viewshed(map, povHex);
+      visible.add(povHex);
+      const foes = [...Object.values(s.units), ...Object.values(s.vehicles)].filter((x) => x.side !== veh.side && visible.has(x.hex));
+      return {
+        hex: povHex,
+        upper: false,
+        visible,
+        side: veh.side,
+        lookAt: { x: c.x + Math.cos(ang) * 6, y: c.y + Math.sin(ang) * 6 },
+        title: `${vehicleLabel(ctx, veh)} · commander’s view · ${map.hexes[povHex]!.id}`,
+        detail: `Looking along the gun (arc ${FACING_NAMES[veh.facing]}) · ${new Set(foes.map((x) => x.hex)).size} enemy-held hexes in sight`,
+      };
+    }
     if (!here.length) return undefined;
     const side = here[0]!.side;
     const ldr = here.find((u) => ctx.data.units[u.type]!.kind === 'leader');
@@ -367,7 +401,7 @@ function Battle() {
       title: `Eyes of ${who} · ${map.hexes[povHex]!.id}`,
       detail: `${upper ? 'Upper level' : 'Ground level'} · ${seen} enemy-held ${seen === 1 ? 'hex' : 'hexes'} in sight`,
     };
-  }, [povHex, map, ctx, s.units]);
+  }, [povHex, map, ctx, s.units, s.vehicles, selVehicle]);
 
   const ownIn = useCallback((h: HexKey) => selectable(s, sideUnitsIn(s, h, s.awaiting).map((u) => u.id)), [s]);
 
@@ -388,6 +422,36 @@ function Battle() {
       const mine = ownIn(h);
       const enemy = enemiesIn(s, h, s.awaiting).length > 0;
       const tracked = s.phase === 'defensiveFire' && Object.values(s.tracks).some((st) => st.some((x) => x.hex === h));
+      const myVehicle = Object.values(s.vehicles).find((v) => v.hex === h && v.side === s.awaiting);
+      const enemyVehicle = Object.values(s.vehicles).some((v) => v.hex === h && v.side !== s.awaiting);
+      if (selVehicle) {
+        if (s.phase === 'setup' && h !== selVehicle.hex && ctx.zones[s.awaiting]!.has(h) && !myVehicle) {
+          session.dispatch({ type: 'place', unit: selVehicle.id, hex: h });
+          return;
+        }
+        if (s.phase === 'movement' && h !== selVehicle.hex && !myVehicle) {
+          const { path } = vehiclePath(ctx, s, selVehicle.id, h);
+          let ok = true;
+          for (const st of path) {
+            if (!session.dispatch({ type: 'vmove', vehicle: selVehicle.id, to: st.hex })) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) useSession.getState().clearError();
+          return;
+        }
+        if (FIRE.has(s.phase) && (enemy || enemyVehicle || tracked)) {
+          setVtarget(h);
+          return;
+        }
+      }
+      if (myVehicle && !mine.length) {
+        setVsel(myVehicle.id);
+        session.select(h, []);
+        return;
+      }
+      setVsel(undefined);
       switch (s.phase) {
         case 'setup':
           if (selUnits.length && h !== sel.hex && ctx.zones[s.awaiting]!.has(h) && !p.shift) {
@@ -438,7 +502,7 @@ function Battle() {
       }
       session.select(h, mine);
     },
-    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting],
+    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting, selVehicle],
   );
 
   const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);
@@ -596,8 +660,8 @@ function Battle() {
         )}
         <button
           className={`btn ${povHex ? 'active' : ''}`}
-          disabled={!povHex && !(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex))}
-          onClick={() => setPovHex(povHex ? undefined : sel.hex)}
+          disabled={!povHex && !(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex)) && !selVehicle}
+          onClick={() => setPovHex(povHex ? undefined : (selVehicle?.hex ?? sel.hex))}
           title="Look from the selected unit's eyes (E)"
         >
           Eyes <kbd>E</kbd>
@@ -782,7 +846,8 @@ function Battle() {
               {session.error}
             </div>
           )}
-          {human && s.phase !== 'gameOver' && (
+          {human && s.phase !== 'gameOver' && selVehicle && <VehiclePanel ctx={ctx} s={s} vehicle={selVehicle.id} target={vtarget} hidden={fog.hidden} dispatch={session.dispatch} />}
+          {human && s.phase !== 'gameOver' && !selVehicle && (
             <ActionPanel
               ctx={ctx}
               s={s}
@@ -806,7 +871,15 @@ function Battle() {
                 hidden={fog.hidden}
                 hex={sel.hex}
                 selected={selUnits}
-                onToggle={session.toggleUnit}
+                onToggle={(id) => {
+                  setVsel(undefined);
+                  session.toggleUnit(id);
+                }}
+                vehicle={selVehicle?.id}
+                onVehicle={(id) => {
+                  setVsel(id);
+                  if (id) session.select(sel.hex, []);
+                }}
                 {...(human && (s.phase === 'movement' || s.phase === 'setup') ? { onTransfer: (w: string, to: string | null) => session.dispatch({ type: 'transfer', weapon: w, to }) } : {})}
               />
             </>

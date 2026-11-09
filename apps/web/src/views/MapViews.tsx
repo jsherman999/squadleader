@@ -36,7 +36,7 @@ export interface MapViewsProps extends RendererEvents {
   map: GameMap;
   mode: ViewMode;
   layers: OverlayLayers;
-  units?: { ctx: Ctx; s: GameState; selected: ReadonlySet<string>; hidden?: ReadonlySet<string> } | undefined;
+  units?: { ctx: Ctx; s: GameState; selected: ReadonlySet<string>; hidden?: ReadonlySet<string>; vehicle?: string | undefined } | undefined;
   /** Shown as a ray between eye heights in 3D. */
   los?: LosResult | undefined;
   hover?: HexKey | undefined;
@@ -168,13 +168,13 @@ export function MapViews(p: MapViewsProps) {
     const groups = sliding ? sliding.split('|').map((g) => g.split(',')) : [];
     const moving = new Set(groups.flat());
     const keep = (pred: (id: string) => boolean) => ({ ...units.s, units: Object.fromEntries(Object.entries(units.s.units).filter(([id]) => pred(id))) });
-    const opts = { selected: new Set(units.selected), ...(units.hidden ? { hidden: units.hidden } : {}) };
+    const opts = { selected: new Set(units.selected), ...(units.hidden ? { hidden: units.hidden } : {}), vehicle: units.vehicle };
     drawUnits(c, units.ctx, moving.size ? keep((id) => !moving.has(id)) : units.s, opts);
     // One container per moving group, shifted every frame from the hex the state puts it in.
     const subs: { box: Container; ids: string[] }[] = [];
     for (const ids of groups) {
       const box = new Container();
-      drawUnits(box, units.ctx, keep((id) => ids.includes(id)), opts);
+      drawUnits(box, units.ctx, { ...keep((id) => ids.includes(id)), vehicles: {}, wrecks: [] }, opts);
       sc.addChild(box);
       subs.push({ box, ids });
     }
@@ -212,7 +212,7 @@ export function MapViews(p: MapViewsProps) {
 
   useEffect(() => {
     if (!s3 || !show3d || !units) return;
-    s3.setUnits(units.ctx, units.s, units.selected, units.hidden);
+    s3.setUnits(units.ctx, units.s, units.selected, units.hidden, units.vehicle);
     const place = (slides: FxSlide[]) => {
       const off = new Map<string, { x: number; y: number; hop: number }>();
       for (const sl of slides) {

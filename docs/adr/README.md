@@ -12,3 +12,4 @@ Short records of decisions that shape the codebase. Each one says what was decid
 | [0006](0006-bot-explanations.md) | The bot explains each move; saves keep the explanations for review | Accepted |
 | [0007](0007-fire-director.md) | Fire Director: pure timeline and sampler, one clock for 2D, 3D, sound and dice; hold the board until results land | Accepted |
 | [0008](0008-llm-opponent.md) | LLM opponent: one decision per phase through engine tools, provider adapters, scripted-AI fallback, standing orders | Accepted |
+| [0009](0009-vehicles.md) | Vehicles as their own kind of piece: separate state, armour module, covered arc as a hex sector, wrecks and crews | Accepted |

@@ -4,8 +4,8 @@
  * side, carried weapons as tabs, status badges.
  */
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
-import { hexToPixel, parseHexKey, type HexKey } from '@squadwar/hex';
-import { leaderRating, weaponType, type Ctx, type GameState, type Nation, type Unit } from '@squadwar/engine';
+import { dirVector, hexToPixel, parseHexKey, type Direction, type HexKey } from '@squadwar/hex';
+import { leaderRating, vehicleType, weaponType, type Ctx, type GameState, type Nation, type Unit, type Vehicle } from '@squadwar/engine';
 import { HEX_PX } from './palette';
 
 const CS = 44; // counter size in world px
@@ -41,9 +41,98 @@ export interface CounterOptions {
   readonly highlightHexes?: ReadonlySet<HexKey>;
   /** Enemy units the viewer cannot identify: drawn as a concealment counter (§25). */
   readonly hidden?: ReadonlySet<string>;
+  /** The selected vehicle. */
+  readonly vehicle?: string | undefined;
+}
+
+/** Screen angle (radians, y down) of a vehicle's gun: the spine between hexsides f and f+1. */
+export function facingAngle(facing: number): number {
+  const a = hexToPixel(dirVector(facing as Direction));
+  const b = hexToPixel(dirVector(((facing + 1) % 6) as Direction));
+  return Math.atan2(a.y + b.y, a.x + b.x);
+}
+
+/** Tanks, SP guns and wrecks, drawn under the infantry in their hex. */
+export function drawVehicles(layer: Container, ctx: Ctx, s: GameState, opts: CounterOptions): void {
+  const nationOf = (side: string): Nation => s.sides.find((x) => x.id === side)?.nation ?? 'german';
+  const wrecksAt = new Map<HexKey, number>();
+  for (const w of s.wrecks) {
+    const n = wrecksAt.get(w.hex) ?? 0;
+    wrecksAt.set(w.hex, n + 1);
+    const c = hexToPixel(parseHexKey(w.hex));
+    const box = new Container();
+    const g = new Graphics();
+    g.roundRect(2.5, 3, CS, CS, 4).fill({ color: 0x000000, alpha: 0.35 });
+    g.roundRect(0, 0, CS, CS, 4).fill(0x3a3631).stroke({ width: 1, color: 0x161412 });
+    g.roundRect(9, 15, 26, 14, 2).fill(0x24211e);
+    g.circle(22, 22, 5).fill(0x1b1917);
+    g.moveTo(6, 6).lineTo(CS - 6, CS - 6).moveTo(CS - 6, 6).lineTo(6, CS - 6).stroke({ width: 2, color: 0xa04a2a, alpha: 0.8 });
+    box.addChild(g);
+    const t = new Text({ text: 'WRECK', style: { ...tiny, fill: 0xc9c0ad }, resolution: 4 });
+    t.anchor.set(0.5, 1);
+    t.position.set(CS / 2, CS - 2);
+    box.addChild(t);
+    box.position.set(c.x * HEX_PX - CS / 2 + 10 + n * 4, c.y * HEX_PX - CS / 2 + 10 - n * 4);
+    layer.addChild(box);
+  }
+  for (const v of Object.values(s.vehicles)) {
+    const c = hexToPixel(parseHexKey(v.hex));
+    const box = drawVehicle(ctx, v, nationOf(v.side), opts.vehicle === v.id);
+    const shift = (wrecksAt.get(v.hex) ?? 0) * 4;
+    const withInfantry = Object.values(s.units).some((u) => u.hex === v.hex);
+    box.position.set(c.x * HEX_PX - CS / 2 + (withInfantry ? 12 : 0) + shift, c.y * HEX_PX - CS / 2 + (withInfantry ? 12 : 0) - shift);
+    layer.addChild(box);
+  }
+}
+
+function drawVehicle(ctx: Ctx, v: Vehicle, nation: Nation, selected: boolean): Container {
+  const t = vehicleType(ctx, v);
+  const pal = NATION[nation];
+  const box = new Container();
+  const g = new Graphics();
+  g.roundRect(2.5, 3, CS, CS, 4).fill({ color: 0x000000, alpha: 0.35 });
+  g.roundRect(0, 0, CS, CS, 4).fill(mix(pal.bg, 0x000000, 0.25));
+  g.roundRect(0, 0, CS - 1.5, CS - 1.5, 4).fill(mix(pal.bg, 0xffffff, 0.12));
+  if (selected) g.roundRect(-3, -3, CS + 4, CS + 4, 6).stroke({ width: 3, color: 0xf0c66b });
+  else g.roundRect(0, 0, CS - 1.5, CS - 1.5, 4).stroke({ width: 1, color: mix(pal.bg, 0x000000, 0.5) });
+  box.addChild(g);
+  // The vehicle seen from above, turned to its facing.
+  const body = new Graphics();
+  const ink = pal.ink;
+  body.roundRect(-11, -7.5, 22, 15, 2).fill({ color: ink, alpha: 0.85 });
+  body.rect(-12, -9, 24, 3).fill({ color: ink, alpha: 0.95 });
+  body.rect(-12, 6, 24, 3).fill({ color: ink, alpha: 0.95 });
+  if (t.turret) body.circle(-1, 0, 5.2).fill(mix(pal.bg, 0x000000, 0.35)).stroke({ width: 1, color: ink });
+  else body.rect(-6, -5, 9, 10).fill(mix(pal.bg, 0x000000, 0.35));
+  body.moveTo(t.turret ? 3 : 3, 0).lineTo(t.turret ? 17 : 14, 0).stroke({ width: t.gun && t.gun >= 100 ? 3 : 2.2, color: ink });
+  body.rotation = facingAngle(v.facing);
+  body.position.set(CS / 2, CS / 2 - 3);
+  box.addChild(body);
+  const label = `${t.gun ?? '—'}${t.heOnly ? 'ᴴᴱ' : ''}${t.lowVelocity ? '*' : ''} · ${t.mp}`;
+  const txt = new Text({ text: label, style: { ...tiny, fontSize: 8, fill: ink }, resolution: 4 });
+  txt.anchor.set(0.5, 1);
+  txt.position.set(CS / 2, CS - 2);
+  box.addChild(txt);
+  const badges: [string, number][] = [];
+  if (v.immobilized) badges.push(['IM', 0xb02a1e]);
+  if (v.gun !== 'ok') badges.push([v.gun === 'disabled' ? 'G✕' : 'G!', 0xb02a1e]);
+  if (v.mg !== 'ok') badges.push(['MG!', 0xb02a1e]);
+  if (v.ce) badges.push(['CE', 0x6a5a9e]);
+  if (v.firedPhase) badges.push(['F', 0xd8893a]);
+  if (v.moved) badges.push(['M', 0x4f86b3]);
+  badges.forEach(([b, color], i) => {
+    const bg2 = new Graphics();
+    bg2.roundRect(CS - 7, 2 + i * 11, b.length > 1 ? 17 : 10, 10, 2).fill(color);
+    box.addChild(bg2);
+    const tt = new Text({ text: b, style: small, resolution: 4 });
+    tt.position.set(CS - 5, 2.5 + i * 11);
+    box.addChild(tt);
+  });
+  return box;
 }
 
 export function drawUnits(layer: Container, ctx: Ctx, s: GameState, opts: CounterOptions): void {
+  drawVehicles(layer, ctx, s, opts);
   const byHex = new Map<HexKey, Unit[]>();
   for (const u of Object.values(s.units)) (byHex.get(u.hex) ?? byHex.set(u.hex, []).get(u.hex)!).push(u);
   const nationOf = (side: string): Nation => s.sides.find((x) => x.id === side)?.nation ?? 'german';

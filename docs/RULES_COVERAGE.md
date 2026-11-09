@@ -57,20 +57,20 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | § | Topic | Notes | MS |
 |---|---|---|---|
-| 28 | AFVs | Vehicle classes (tank, SP gun, halftrack); armor factors front and side; gun; turret type; MP; MG armament (§28.4). Vehicle data comes from the rulebook's counter roster ([REFERENCE_TABLES §16](REFERENCE_TABLES.md#16-unit-roster-from-the-rulebooks-point-value-chart-counter-art-p-34-)); armor is modeled by kill-number modifiers (§33.41). | M9 |
-| 29 | Vehicle stacking and placement | Facing and **covered arc**; stacking. Drives the POV turret limit and 3D turret orientation. | M9 |
-| 30 | Vehicle movement | MP costs by terrain; pivoting (§30.4–30.5); entering enemy hexes (§30.7). Immediate defensive fire during the move (§16.7). | M9 |
-| 31 | Transporting infantry, tanks and SP guns | Riders; loading and unloading costs; Stacking §6.1 rows for "on AFV" and "on truck". | M9 |
-| 32 | AFVs as cover | Vehicles don't block LOS (§32.3, §32.6); infantry beneath gets +1; crossing an AFV counter cancels the moving-in-open DRM (§32.7). | M9 |
-| 33 | AFV combat | Two steps (§33.3): **To Hit** (range band × target type; black or red numbers by nationality; case DRMs A–K; unmodified-2 third-die rule, §33.32), then **AFV Kill** (weapon and ammunition × facing, plus per-vehicle modifiers, §33.41). Both tables are in REFERENCE_TABLES §10–11. Hull-down. Crew counters. Gun FX: miss, ricochet, penetration. | M9 |
-| 34 | AFVs vs. infantry | HE on the IFT using the column's HE-equivalent; vehicle MG fire; CE (crew exposed). | M9 |
-| 35 | Overruns | 16 FP (tanks, SP guns) or 8 FP (halftracks); −5 vs. trucks and jeeps; defensive fire against the overrunning AFV. | M9 |
-| 36 | Infantry vs. AFVs | Defensive Fire Phase method (§36.1); close assault in close combat. | M9 |
-| 37 | Special infantry weapons vs. AFVs | Panzerfaust (§37.3) and bazooka (§37.4) To Hit and Kill; leadership limits (§37.34, §37.43). Rocket FX with backblast. | M9 |
-| 38 | Fate vs. armor | Gun and vehicle malfunctions; repair. | M9 |
-| 39 | Immobilization | Immobilized vehicles; crew bail-out (§39.2). | M9 |
-| 40 | Wrecks | Wreck counters; cover; removal and pushing (§40.4). | M9 |
-| 41 | Miscellaneous armor | Captured equipment (§41.2), and the rest of the section. | M9 |
+| 28 | AFVs | **Done.** Tanks and SP guns from `vehicles.json`: MP, gun calibre, HE-only and low-velocity marks, covered-arc and all-round MGs, armour modifier, turret, crew type. 2D counters show the facing; 3D models turn with it. Halftracks come with §47. | M9 |
+| 29 | Vehicle stacking and placement | **Done.** Facing as the covered arc (the hex sector between the two front hexside rows); one vehicle per hex at the end of movement. Setup facing in scenarios ("N-NE" etc.); the selected vehicle shows its arc; the commander's view looks along the gun. | M9 |
+| 30 | Vehicle movement | **Done.** MP costs by terrain (road ½, open 1, wooden building 4, woods 6, higher ground +4, other vehicles and wrecks +2, enemy AFV +4, smoke +1), +2 to turn outside the arc in the starting hex, free facing after entering a hex, one hex always, no stone buildings. Defensive Fire comes after the move, at the vehicle's final hex. | M9 |
+| 31 | Transporting infantry, tanks and SP guns | Not yet: riders on AFVs. | M9 |
+| 32 | AFVs as cover | **Done, simplified.** Infantry beside a friendly AFV or a wreck +1; a vehicle or wreck in the hex just before the target acts as a wall (+2, or hull down for AFVs); vehicles that just moved don't count in Defensive Fire. Vehicles do not block LOS further. | M9 |
+| 33 | AFV combat | **Done.** To Hit (target type, range band, red Russian numbers, cases A–K, unmodified 2 with a third die, 12 malfunctions) then AFV Kill by aspect (front/side/rear from the hexside crossed) and armour modifier; AP or HE; crew survival and wrecks. | M9 |
+| 34 | AFVs vs. infantry | **Done.** HE hits on the IFT at the gun's firepower equivalent, doubled point blank, halved against concealed units; covered-arc and all-round MGs (halved after moving or pivoting); the all-round MG exposes the crew (CE), and infantry fire with a KIA forces a crew morale check. Canister (§34.9) not yet. | M9 |
+| 35 | Overruns | **Done, simplified.** 16 FP on entering the first enemy-held hex (halved with a weapon out), unmodified 12 immobilizes, no fire that turn, infantry left under the AFV move off after Defensive Fire. Resolved on entry, before Defensive Fire. | M9 |
+| 36 | Infantry vs. AFVs | **Done.** Defensive Fire immobilization attempts from cover next to the AFV's path (pre-attack check, then 2/3/4 by terrain); close assault from the Advance Phase (pre-attack check, kill on the squad's firepower, leader on 2; failures fall back). | M9 |
+| 37 | Special infantry weapons vs. AFVs | **Done.** Flamethrowers (automatic hit, FT kill column, same roll at 20 FP on infantry), panzerfausts (one shot) and bazookas (out of ammo on 11–12): To Hit by range and movement, leadership on the To Hit only; demolition charges use the DC column. Bazooka HE against infantry not yet. | M9 |
+| 38 | Fate vs. armor | **Done.** Main gun and MG malfunctions on 12; Rally Phase repair (1 fixes, 6 disables). | M9 |
+| 39 | Immobilization | **Done.** Breakdown rolls in woods and wooden buildings (German 5–6, others 6); immobilization forces a crew morale check, failure abandons the vehicle; hits on immobilized AFVs force another. | M9 |
+| 40 | Wrecks | **Done.** Wrecks: cover, extra MP, block road movement. Pushing wrecks (§40.4) not yet. | M9 |
+| 41 | Miscellaneous armor | **Done in part.** Hull down behind walls and wrecks; German smoke dischargers. Tank-fired smoke (§41.3) not yet. | M9 |
 
 ## Game Set II: The countryside (§42–49) (unlocks scenarios 5–7)
 

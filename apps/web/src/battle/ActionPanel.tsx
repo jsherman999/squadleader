@@ -7,6 +7,10 @@ import {
   canRepair,
   ccHexes,
   carried,
+  analyzeAntiTank,
+  chance2d6,
+  hitChance,
+  vehicleLabel,
   isSewerEntrance,
   oddsColumn,
   range,
@@ -106,6 +110,48 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch }: Actio
         </button>
       </Row>,
     );
+  }
+  // Infantry against AFVs (§36–37).
+  if (s.phase === 'prepFire' || s.phase === 'defensiveFire' || s.phase === 'advancingFire') {
+    for (const u of units) {
+      for (const w of carried(s, u)) {
+        const kind = weaponType(ctx, w).kind;
+        if (kind !== 'PF' && kind !== 'BAZ' && kind !== 'FT') continue;
+        for (const v of Object.values(s.vehicles)) {
+          if (v.side === side) continue;
+          try {
+            const a = analyzeAntiTank(ctx, s, [u.id], v.id, w.id);
+            const p = (a.hit === undefined ? 1 : hitChance(a.hit, a.hitDrm ?? 0)) * chance2d6(a.kill!, a.killDrm ?? 0);
+            rows.push(
+              <Row key={`at-${w.id}-${v.id}`} text={`${weaponType(ctx, w).name} → ${vehicleLabel(ctx, v)} (${hexId(v.hex)})`} why={`${a.aspect} armour · about ${Math.round(p * 100)}% to knock it out`}>
+                <button className="btn tiny primary" title={a.trace.join('\n')} onClick={() => dispatch({ type: 'antiTank', units: [u.id], vehicle: v.id, weapon: w.id })}>
+                  Fire
+                </button>
+              </Row>,
+            );
+          } catch {
+            // out of range or not possible
+          }
+        }
+      }
+    }
+    if (s.phase === 'defensiveFire' && units.length && units.every((u) => u.hex === units[0]!.hex)) {
+      for (const v of Object.values(s.vehicles)) {
+        if (v.side === side || !v.moved || v.immobilized) continue;
+        try {
+          const a = analyzeAntiTank(ctx, s, units.map((u) => u.id), v.id);
+          rows.push(
+            <Row key={`imm-${v.id}`} text={`Grenade bundles on ${vehicleLabel(ctx, v)}`} why={`Each unit: pre-attack morale check, then ${a.immobilizeOn} or less immobilizes it (§36.1)`}>
+              <button className="btn tiny primary" onClick={() => dispatch({ type: 'antiTank', units: units.map((u) => u.id), vehicle: v.id })}>
+                Attack
+              </button>
+            </Row>,
+          );
+        } catch {
+          // not adjacent to its path, or in the open
+        }
+      }
+    }
   }
   if (s.phase === 'advancingFire') {
     for (const c of s.charges.filter((x) => x.side === side && x.armed)) {

@@ -1,5 +1,5 @@
 import type { HexKey } from '@squadwar/hex';
-import { leaderRating, mfAllowance, unitsIn, weaponType, weaponsIn, type Ctx, type GameState } from '@squadwar/engine';
+import { leaderRating, mfAllowance, mpLeft, unitsIn, vehicleLabel, vehicleType, weaponType, weaponsIn, type Ctx, type GameState } from '@squadwar/engine';
 
 export function StackPanel({
   ctx,
@@ -9,6 +9,8 @@ export function StackPanel({
   selected,
   onToggle,
   onTransfer,
+  vehicle,
+  onVehicle,
 }: {
   ctx: Ctx;
   s: GameState;
@@ -18,13 +20,38 @@ export function StackPanel({
   selected: readonly string[];
   onToggle: (id: string) => void;
   onTransfer?: (weapon: string, to: string | null) => void;
+  /** The selected vehicle, and picking one. */
+  vehicle?: string | undefined;
+  onVehicle?: (id: string | undefined) => void;
 }) {
   const units = unitsIn(s, hex);
   const loose = weaponsIn(s, hex).filter((w) => w.owner === null);
+  const vehicles = Object.values(s.vehicles).filter((v) => v.hex === hex);
+  const wrecks = s.wrecks.filter((w) => w.hex === hex).length;
   const sideName = (id: string) => s.sides.find((x) => x.id === id)?.name ?? id;
-  if (!units.length && !loose.length) return null;
+  if (!units.length && !loose.length && !vehicles.length && !wrecks) return null;
   return (
     <div className="stack">
+      {vehicles.map((v) => {
+        const t = vehicleType(ctx, v);
+        const mine = v.side === s.awaiting;
+        return (
+          <label key={v.id} className={`stack-row ${mine ? '' : 'enemy'}`}>
+            {mine && onVehicle && <input type="checkbox" checked={vehicle === v.id} onChange={() => onVehicle(vehicle === v.id ? undefined : v.id)} />}
+            <span className={`chip nation-${s.sides.find((x) => x.id === v.side)?.nation}`}>{sideName(v.side)}</span>
+            <span className="stack-name">
+              {vehicleLabel(ctx, v)} <span className="dim small">{t.gun ? `${t.gun}mm` : ''}</span>
+              {v.immobilized && <span className="tag bad">immobilized</span>}
+              {v.gun !== 'ok' && <span className="tag bad">gun {v.gun}</span>}
+              {v.ce && <span className="tag">CE</span>}
+              {v.firedPhase && <span className="tag">fired</span>}
+              {v.moved && <span className="tag">moved</span>}
+            </span>
+            {mine && s.phase === 'movement' && <span className="dim small mono">{mpLeft(ctx, v)}/{t.mp} MP</span>}
+          </label>
+        );
+      })}
+      {wrecks > 0 && <div className="stack-row loose dim small">{wrecks} wreck{wrecks > 1 ? 's' : ''}: cover +1 for infantry here (§40.5)</div>}
       {units.map((u) => {
         const t = ctx.data.units[u.type]!;
         const mine = u.side === s.awaiting;

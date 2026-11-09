@@ -32,5 +32,16 @@ Interpretation calls the engine makes where the rulebook is silent, ambiguous, o
 | §27.7 sewer fights | Units come up in an enemy-held entrance at point blank. Defensive Fire against them ignores terrain and gets −2. Fire into that hex hits only the other side; it is not treated as a melee. A broken arrival is eliminated. | `engine/rules/fire.ts`, `engine/rules/morale.ts` |
 | Q&A 27.3 portage in the sewers | Not yet enforced: a squad need not be able to move 3 hexes after portage to go underground. HMGs are refused (§27.3). | — |
 | Sewer entrances on the city boards | Manholes are generated along the paved streets so that each entrance has another within the 3 hexes a sewer move allows, and the networks of City A and City B join when B lies north of A. | `content/scripts/build-boards.ts` |
+| §29.4 covered arc | The arc is the hex sector between the two front hexside rows (the gun points at the spine between them). Facing is stored as the pair of front hexsides, e.g. N-NE. | `engine/rules/armor.ts` |
+| §30.5, Q&A 30.4 turning | Turning in the starting hex costs 2 MP (once per turn); entering a hex outside the arc from the starting hex costs +2 MP. After the vehicle has entered a new hex, it may face any way for free. | `engine/rules/armor.ts` |
+| §30 chart "0 MP + COT" | Wall and hedge hexsides and shellholes add nothing for vehicles. | `content/rules/armor.json` |
+| §33.9 crew survival | The survival numbers printed on the wreck counters were not transcribed; every vehicle uses 3. | `content/rules/vehicles.json` |
+| §32.3 vehicles and LOS | Vehicles and wrecks don't block LOS. A vehicle or wreck in the hex just before the target gives that hex the wall modifier (+2), or makes an AFV there hull down. | `engine/rules/fire.ts`, `engine/rules/armor.ts` |
+| §35.6 overrun timing | The overrun attack is resolved as the AFV enters the hex, before any Defensive Fire. The §35.7 limit on Defensive Fire from an open overrun hex is not applied. | `engine/rules/armor.ts` |
+| Defensive Fire on moving AFVs | Fire at a vehicle that moved targets its final hex (with case A, +2). The target facing is its facing there. | `engine/rules/armor.ts` |
+| §36.11, §36.4 leaders in AFV attacks | The best leader in the hex modifies every unit's pre-attack check and immobilization roll in Defensive Fire; in close assault one leader's modifier applies to one attack. A close-assault kill leaves no surviving crew. | `engine/rules/armor.ts` |
+| Infantry MGs against AFVs | Not offered: the MMG/HMG kill numbers against tanks and SP guns are below 2. | — |
+| Vehicles and victory | Vehicles do not control buildings. A side with only vehicles left is not eliminated. | `engine/rules/victory.ts` |
+| Not yet implemented | Riders (§31), canister (§34.9), bazooka HE against infantry (§37.47), pushing wrecks (§40.4), tank-fired smoke (§41.3), captured vehicles. | — |
 | Victory: "control" | A building is controlled by the side that has an unbroken unit in it and no enemy unit in any of its hexes. | `engine/rules/victory.ts` |
 | Sudden death | A side with no units left loses at once. | `engine/rules/victory.ts` |

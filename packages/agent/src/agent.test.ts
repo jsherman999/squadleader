@@ -314,3 +314,29 @@ describe('special rules for the LLM (§22–27)', () => {
     }
   }, 60_000);
 });
+
+describe('armour for the LLM (§28–41)', () => {
+  it('vehicle orders round-trip and vehicles appear in the situation', async () => {
+    const { executeOrder } = await import('./orders');
+    const { situation } = await import('./serialize');
+    const c = scenarioCtx(3);
+    let s = createGame(c, 5).state;
+    expect(situation(c, s, 'ger')).toContain('YOUR VEHICLES (3)');
+    const kinds = new Set<string>();
+    for (let i = 0; i < 4000 && s.phase !== 'gameOver'; i++) {
+      const d = botDecide(c, s);
+      const o = actionToOrder(c, d.action);
+      if (o && o.type.startsWith('vehicle_')) {
+        const env: GameEnv = { ctx: c, state: () => s, apply: (a) => { const r = tryAction(c, s, a); return r.ok ? { ok: true, events: r.events } : { ok: false, error: r.error }; } };
+        const res = executeOrder(env, s.awaiting, o);
+        expect(res.ok, `${o.type}: ${res.text}`).toBe(true);
+        kinds.add(o.type);
+      }
+      const r = tryAction(c, s, d.action);
+      if (!r.ok) break;
+      s = r.state;
+    }
+    expect(kinds.has('vehicle_move')).toBe(true);
+    expect(kinds.has('vehicle_fire')).toBe(true);
+  }, 60_000);
+});

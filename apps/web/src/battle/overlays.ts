@@ -1,10 +1,31 @@
-import { hexToPixel, parseHexKey, type HexKey, type Vec2 } from '@squadwar/hex';
+import { DIRECTIONS, hexKey, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type Vec2 } from '@squadwar/hex';
+import { inArc, type Vehicle } from '@squadwar/engine';
 import type { Rationale } from '@squadwar/bot';
 import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
 import { hexFill, hexOutline, type Pen } from '../draw/pen';
 import type { PathStep } from './pathing';
 
 const at = (h: HexKey): Vec2 => hexToPixel(parseHexKey(h));
+
+/** A vehicle's covered arc (§29.4): the two front hex rows and a light wash over the hexes between them. */
+export function drawArc(pen: Pen, ctx: Ctx, v: Vehicle, reach = 10): void {
+  const start = parseHexKey(v.hex);
+  for (const d of [v.facing, (v.facing + 1) % 6]) {
+    let h = start;
+    const pts = [hexToPixel(h)];
+    for (let i = 0; i < reach; i++) {
+      h = neighbor(h, DIRECTIONS[d] as Direction);
+      if (!ctx.map.hexes[hexKey(h)]) break;
+      pts.push(hexToPixel(h));
+    }
+    pen.line(pts, { width: 2.5, color: 0xf0c66b, alpha: 0.7 }, [7, 5]);
+  }
+  for (const h of Object.values(ctx.map.hexes)) {
+    const r = Math.max(Math.abs(h.hex.q - start.q), Math.abs(h.hex.r - start.r), Math.abs(h.hex.q + h.hex.r - start.q - start.r));
+    if (r === 0 || r > reach || !inArc(v.hex, v.facing, h.key)) continue;
+    hexFill(pen, h.hex, 0xf0c66b, 0.07, 0.06);
+  }
+}
 
 /** Smoke screens, placed demolition charges and blown sewer entrances (§23–27). */
 export function drawSpecial(pen: Pen, s: GameState): void {

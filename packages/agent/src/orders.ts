@@ -5,10 +5,27 @@
  */
 import type { HexKey } from '@squadwar/hex';
 import type { Rationale } from '@squadwar/bot';
-import { carried, squadType, weaponType, type Action, type Ctx, type FireUnit, type GameEvent, type GameState } from '@squadwar/engine';
+import { carried, FACING_NAMES, facingIndex, squadType, weaponType, type Action, type Ctx, type FireUnit, type GameEvent, type GameState } from '@squadwar/engine';
 import { hexId, hexKeyOf } from './serialize';
 
-export type OrderType = 'fire' | 'move' | 'advance' | 'rally' | 'repair' | 'transfer' | 'end_move' | 'smoke' | 'place_charge' | 'detonate' | 'sewer';
+export type OrderType =
+  | 'fire'
+  | 'move'
+  | 'advance'
+  | 'rally'
+  | 'repair'
+  | 'transfer'
+  | 'end_move'
+  | 'smoke'
+  | 'place_charge'
+  | 'detonate'
+  | 'sewer'
+  | 'vehicle_move'
+  | 'vehicle_face'
+  | 'vehicle_fire'
+  | 'anti_tank'
+  | 'smoke_dischargers'
+  | 'vehicle_repair';
 
 export interface Order {
   readonly type: OrderType;
@@ -19,6 +36,11 @@ export interface Order {
   readonly to?: string;
   readonly unit?: string;
   readonly weapon?: string;
+  readonly vehicle?: string;
+  readonly facing?: string;
+  readonly gun?: 'main' | 'mg';
+  readonly vs?: string;
+  readonly ammo?: 'AP' | 'HE';
   readonly goal?: string;
   readonly reason?: string;
 }
@@ -35,7 +57,25 @@ export interface OrderResult {
   readonly text: string;
 }
 
-const ORDER_TYPES: readonly OrderType[] = ['fire', 'move', 'advance', 'rally', 'repair', 'transfer', 'end_move', 'smoke', 'place_charge', 'detonate', 'sewer'];
+const ORDER_TYPES: readonly OrderType[] = [
+  'fire',
+  'move',
+  'advance',
+  'rally',
+  'repair',
+  'transfer',
+  'end_move',
+  'smoke',
+  'place_charge',
+  'detonate',
+  'sewer',
+  'vehicle_move',
+  'vehicle_face',
+  'vehicle_fire',
+  'anti_tank',
+  'smoke_dischargers',
+  'vehicle_repair',
+];
 const MG = new Set(['LMG', 'MMG', 'HMG']);
 
 export function orderSchema(): Record<string, unknown> {
@@ -50,6 +90,11 @@ export function orderSchema(): Record<string, unknown> {
       to: { type: 'string', description: 'advance: the adjacent hex. sewer: the destination sewer entrance. transfer: receiving unit id, or "drop".' },
       unit: { type: 'string', description: 'rally: the broken unit id. smoke/place_charge: the engineer unit id.' },
       weapon: { type: 'string', description: 'repair/transfer/place_charge/detonate: weapon id. fire: a flamethrower id to fire it alone.' },
+      vehicle: { type: 'string', description: 'vehicle_*/anti_tank/smoke_dischargers: the vehicle id (yours, or the enemy AFV for anti_tank).' },
+      facing: { type: 'string', enum: [...FACING_NAMES], description: 'vehicle_face: the covered arc, as its two front hexsides.' },
+      gun: { type: 'string', enum: ['main', 'mg'], description: 'vehicle_fire: main gun or MGs.' },
+      vs: { type: 'string', description: 'vehicle_fire with the main gun: the enemy vehicle id to shoot at (omit to fire HE at infantry).' },
+      ammo: { type: 'string', enum: ['AP', 'HE'], description: 'vehicle_fire at a vehicle: ammunition (default AP).' },
       goal: { type: 'string', description: 'One short line: what this order is trying to achieve.' },
       reason: { type: 'string', description: 'Why this order, with the numbers or rules that decided it.' },
     },
@@ -196,6 +241,49 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       const r = env.apply({ type: 'sewer', units: o.units!, to: t }, n);
       return r.ok ? { ok: true, text: texts(r.events) || 'done' } : fail(r.error);
     }
+    case 'vehicle_move': {
+      const v = o.vehicle ? s.vehicles[o.vehicle] : undefined;
+      if (!v || v.side !== side) return fail('vehicle_move needs one of your vehicle ids');
+      if (!o.path?.length) return fail('vehicle_move needs a path of adjacent hex ids');
+      const done: string[] = [];
+      for (const id of o.path) {
+        const h = hex(id, 'path');
+        if (!isKey(h)) return fail(`${h}${done.length ? ` (moved ${done.join(' → ')} first)` : ''}`);
+        const r = env.apply({ type: 'vmove', vehicle: v.id, to: h }, done.length ? { ...n, weight: 'routine' } : n);
+        if (!r.ok) return { ok: done.length > 0, text: `${done.length ? `moved ${done.join(' → ')}, then ` : ''}refused at ${id}: ${r.error}` };
+        done.push(id);
+      }
+      return { ok: true, text: `moved ${done.join(' → ')}` };
+    }
+    case 'vehicle_face': {
+      if (!o.vehicle || !o.facing) return fail('vehicle_face needs vehicle and facing');
+      const r = env.apply({ type: 'face', vehicle: o.vehicle, facing: facingIndex(o.facing) }, n);
+      return r.ok ? { ok: true, text: texts(r.events) || 'turned' } : fail(r.error);
+    }
+    case 'vehicle_fire': {
+      if (!o.vehicle) return fail('vehicle_fire needs vehicle');
+      const t = hex(o.target ?? (o.vs ? hexId(ctx, s.vehicles[o.vs]?.hex ?? '') : undefined), 'target');
+      if (!isKey(t)) return fail(t);
+      const r = env.apply({ type: 'vfire', vehicle: o.vehicle, target: t, weapon: o.gun ?? 'main', ...(o.vs ? { vs: o.vs } : {}), ...(o.ammo ? { ammo: o.ammo } : {}) }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'anti_tank': {
+      const bad = unknownUnits(s, o.units, side);
+      if (bad) return fail(bad);
+      if (!o.vehicle) return fail('anti_tank needs the enemy vehicle id');
+      const r = env.apply({ type: 'antiTank', units: o.units!, vehicle: o.vehicle, ...(o.weapon ? { weapon: o.weapon } : {}) }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'smoke_dischargers': {
+      if (!o.vehicle) return fail('smoke_dischargers needs vehicle');
+      const r = env.apply({ type: 'discharge', vehicle: o.vehicle }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
+    case 'vehicle_repair': {
+      if (!o.vehicle) return fail('vehicle_repair needs vehicle');
+      const r = env.apply({ type: 'vrepair', vehicle: o.vehicle }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
     default:
       return fail(`unknown order type "${String((o as { type?: unknown }).type)}"`);
   }
@@ -216,6 +304,20 @@ export function actionToOrder(ctx: Ctx, a: Action): Order | undefined {
       return { type: 'detonate', weapon: a.weapon };
     case 'sewer':
       return { type: 'sewer', units: a.units, to: hexId(ctx, a.to) };
+    case 'vmove':
+      return { type: 'vehicle_move', vehicle: a.vehicle, path: [hexId(ctx, a.to)] };
+    case 'vstop':
+      return undefined;
+    case 'face':
+      return { type: 'vehicle_face', vehicle: a.vehicle, facing: FACING_NAMES[a.facing] ?? 'N-NE' };
+    case 'vfire':
+      return { type: 'vehicle_fire', vehicle: a.vehicle, target: hexId(ctx, a.target), gun: a.weapon, ...(a.vs ? { vs: a.vs } : {}), ...(a.ammo ? { ammo: a.ammo } : {}) };
+    case 'antiTank':
+      return { type: 'anti_tank', units: a.units, vehicle: a.vehicle, ...(a.weapon ? { weapon: a.weapon } : {}) };
+    case 'discharge':
+      return { type: 'smoke_dischargers', vehicle: a.vehicle };
+    case 'vrepair':
+      return { type: 'vehicle_repair', vehicle: a.vehicle };
     case 'move':
       return { type: 'move', units: a.units, path: [hexId(ctx, a.to)] };
     case 'endMove':

@@ -14,6 +14,8 @@ import { canvasPen } from '../draw/canvasPen';
 import type { Pen } from '../draw/pen';
 import type { FxFrame } from '../fx/sample';
 import { counterTexture, labelTexture } from './counters3d';
+import { selectionRing, vehicleModel } from './vehicles3d';
+import { vehicleType } from '@squadwar/engine';
 import { Fx3D } from './fx3d';
 import { paintGround } from './ground';
 import { buildingLevels, EYE, LEVEL, terrainHeight } from './heights';
@@ -369,8 +371,8 @@ export class Scene3D {
   }
 
   /** Counter standees for the units, floating above roofs in building hexes. */
-  setUnits(ctx: Ctx, s: GameState, selected: ReadonlySet<string>, hidden: ReadonlySet<string> = new Set()): void {
-    this.lastUnits = () => this.setUnits(ctx, s, selected, hidden);
+  setUnits(ctx: Ctx, s: GameState, selected: ReadonlySet<string>, hidden: ReadonlySet<string> = new Set(), vehicle?: string): void {
+    this.lastUnits = () => this.setUnits(ctx, s, selected, hidden, vehicle);
     for (const c of [...this.units.children]) {
       this.units.remove(c);
       const m = c as THREE.Mesh;
@@ -407,6 +409,36 @@ export class Scene3D {
         base.userData = { unit: u.id, base: base.position.clone() };
         this.units.add(base);
       });
+    }
+    // Tanks, SP guns and wrecks (§28, §40).
+    const nationOf = (side: string) => s.sides.find((x) => x.id === side)?.nation ?? 'german';
+    const ground = (hex: HexKey) => {
+      const h = map.hexes[hex]!;
+      return { c: hexToPixel(h.hex), y: h.level * LEVEL };
+    };
+    for (const w of s.wrecks) {
+      const t = ctx.data.vehicles[w.type];
+      if (!t) continue;
+      const { c, y } = ground(w.hex);
+      const m = vehicleModel(t, nationOf(w.side), 1, true);
+      m.position.set(c.x + 0.18, y, c.y + 0.14);
+      m.userData = { hex: w.hex };
+      this.units.add(m);
+    }
+    for (const v of Object.values(s.vehicles)) {
+      if (pov?.visible && pov.side && v.side !== pov.side && !pov.visible.has(v.hex)) continue;
+      if (pov && pov.hex === v.hex) continue;
+      const { c, y } = ground(v.hex);
+      const shared = Object.values(s.units).some((u) => u.hex === v.hex);
+      const m = vehicleModel(vehicleType(ctx, v), nationOf(v.side), v.facing);
+      m.position.set(c.x + (shared ? 0.25 : 0), y, c.y + (shared ? 0.2 : 0));
+      m.userData = { hex: v.hex, vehicle: v.id, base: m.position.clone() };
+      this.units.add(m);
+      if (vehicle === v.id) {
+        const ring = selectionRing();
+        ring.position.set(m.position.x, y + 0.01, m.position.z);
+        this.units.add(ring);
+      }
     }
   }
 

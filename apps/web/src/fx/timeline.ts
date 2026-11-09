@@ -16,9 +16,9 @@ export interface Pt {
   readonly z: number;
 }
 
-export type WeaponFx = 'rifle' | 'LMG' | 'MMG' | 'HMG';
+export type WeaponFx = 'rifle' | 'LMG' | 'MMG' | 'HMG' | 'GUN' | 'AT';
 export type Tone = 'bad' | 'warn' | 'good' | 'info';
-export type SoundId = 'burst' | 'impact' | 'melee' | 'clank' | 'whizz' | 'flame' | 'blast' | 'hiss';
+export type SoundId = 'burst' | 'impact' | 'melee' | 'clank' | 'whizz' | 'flame' | 'blast' | 'hiss' | 'cannon';
 
 export type Cue =
   | { readonly kind: 'burst'; readonly t0: number; readonly dur: number; readonly from: Pt; readonly to: Pt; readonly weapon: WeaponFx; readonly rounds: number; readonly interval: number; readonly speed: number; readonly color: number; readonly seed: number; readonly spread: number }
@@ -62,6 +62,8 @@ const WEAPON: Record<WeaponFx, { rounds: number; interval: number; spread: numbe
   LMG: { rounds: 11, interval: 0.06, spread: 0.42 },
   MMG: { rounds: 15, interval: 0.055, spread: 0.36 },
   HMG: { rounds: 17, interval: 0.07, spread: 0.32 },
+  GUN: { rounds: 1, interval: 0.1, spread: 0.1 },
+  AT: { rounds: 1, interval: 0.1, spread: 0.15 },
 };
 /** Tracer speed in map units per second (slowed down so the eye can follow). */
 const TRACER_SPEED = 24;
@@ -90,6 +92,9 @@ export function hexPoint(ctx: Ctx, hex: HexKey, lift = 0): Pt {
 }
 
 function weaponOf(kind: string): WeaponFx {
+  if (kind === 'GUN') return 'GUN';
+  if (kind === 'PF' || kind === 'BAZ') return 'AT';
+  if (kind === 'VMG') return 'MMG';
   return kind === 'LMG' || kind === 'MMG' || kind === 'HMG' ? kind : 'rifle';
 }
 
@@ -163,10 +168,15 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
         const farTarget = targets[targets.length - 1];
         let end = start;
         let land = start;
-        const special = shooters.find((sh) => sh.kind === 'FT' || sh.kind === 'DC');
+        const special = shooters.find((sh) => sh.kind === 'FT' || sh.kind === 'DC' || sh.kind === 'OVR');
         if (special && farTarget) {
           const tgt = hexPoint(ctx, farTarget, 0.25);
-          if (opts.reducedMotion) {
+          if (special.kind === 'OVR') {
+            cues.push({ kind: opts.reducedMotion ? 'label' : 'melee', t0: start, dur: 1 * k, at: tgt, seed: hashSeed(e.text), text: 'Overrun', tone: 'warn' } as Cue);
+            cues.push({ kind: 'sound', t0: start, sound: 'melee', at: tgt });
+            land = start + 0.6 * k;
+            end = start + 1 * k;
+          } else if (opts.reducedMotion) {
             const from = special.kind === 'FT' ? hexPoint(ctx, special.hex, EYE) : tgt;
             cues.push({ kind: 'line', t0: start, dur: 1.2 * k, from, to: tgt, color: 0xff7a30 });
             land = start + 0.3 * k;
@@ -204,9 +214,16 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
             end = Math.max(end, t0 + 1.4 * k);
             return;
           }
-          const dur = (spec.rounds * spec.interval + travel) * k + 0.6;
-          cues.push({ kind: 'burst', t0, dur, from, to: tgt, weapon: w, rounds: spec.rounds, interval: spec.interval * k, speed: TRACER_SPEED / k, color, seed: hashSeed(`${sh.hex}${to}${i}${e.text}`), spread: spec.spread });
-          cues.push({ kind: 'sound', t0, sound: 'burst', at: from, weapon: w, rounds: spec.rounds, interval: spec.interval * k });
+          const speed = w === 'GUN' ? TRACER_SPEED * 2.5 : w === 'AT' ? TRACER_SPEED * 0.6 : TRACER_SPEED;
+          const fly = dist / speed;
+          const dur = (spec.rounds * spec.interval + fly) * k + 0.6;
+          cues.push({ kind: 'burst', t0, dur, from, to: tgt, weapon: w, rounds: spec.rounds, interval: spec.interval * k, speed: speed / k, color: w === 'GUN' ? 0xffe2a0 : color, seed: hashSeed(`${sh.hex}${to}${i}${e.text}`), spread: spec.spread });
+          cues.push({ kind: 'sound', t0, sound: w === 'GUN' || w === 'AT' ? 'cannon' : 'burst', at: from, weapon: w, rounds: spec.rounds, interval: spec.interval * k });
+          if (w === 'GUN' || w === 'AT') {
+            land = Math.max(land, t0 + fly * k);
+            end = Math.max(end, t0 + dur);
+            return;
+          }
           land = Math.max(land, t0 + travel * k + spec.rounds * spec.interval * k * 0.6);
           end = Math.max(end, t0 + dur);
         });
@@ -220,6 +237,21 @@ export function buildTimeline(ctx: Ctx, before: GameState, events: readonly Game
           }
         }
         const results = fx.outcomes ?? targets.map((hex) => ({ hex, penetration: false, results: (fx as { results?: (string | number)[] }).results?.map((r) => ({ unit: '', result: r })) ?? [] }));
+        // Shots at vehicles: a miss, a hit that bounces, or a kill with a fireball.
+        const fv = fx as { vs?: string; hit?: boolean; kill?: boolean };
+        if (fv.vs && targets[0]) {
+          const h = targets[0];
+          label(h, land, fv.kill ? 'Knocked out!' : fv.hit ? 'Hit: no penetration' : 'Miss', fv.kill ? 'bad' : fv.hit ? 'warn' : 'info');
+          cues.push({ kind: 'hit', t0: land, hex: h, severity: fv.hit ? 'hit' : 'near' });
+          if (fv.kill && !opts.reducedMotion) {
+            cues.push({ kind: 'blast', t0: land, dur: 2.4 * k, at: hexPoint(ctx, h, 0.2), seed: hashSeed(`${h}${e.text}`) });
+            cues.push({ kind: 'sound', t0: land, sound: 'blast', at: hexPoint(ctx, h) });
+          }
+          commitAt ??= land;
+          t = Math.max(land, start + 0.5 * k);
+          break;
+        }
+        if (fv.hit === false && targets[0]) label(targets[0], land, 'Miss', 'info');
         for (const o of results) {
           // The worst result in the hex, once.
           const order = (r: string | number) => (r === 'KIA' ? 99 : r === 'M' ? 1 : r === '-' ? -1 : Number(r) + 1);

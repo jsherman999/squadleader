@@ -135,16 +135,21 @@ export function sampleFx(cues: readonly Cue[], t: number): FxFrame {
           const p = (t - r.start) / travel;
           // Muzzle flash.
           const fl = (t - r.start) / 0.06;
-          if (fl >= 0 && fl <= 1) f.glows.push({ at: r.from, r: c.weapon === 'HMG' ? 0.32 : 0.24, color: 0xfff1b0, alpha: 1 - fl, light: true });
+          if (fl >= 0 && fl <= 1) f.glows.push({ at: r.from, r: c.weapon === 'GUN' ? 0.6 : c.weapon === 'HMG' || c.weapon === 'AT' ? 0.32 : 0.24, color: 0xfff1b0, alpha: 1 - fl, light: true });
+          // Gun smoke drifting from the muzzle.
+          if (c.weapon === 'GUN' || c.weapon === 'AT') {
+            const sm = (t - r.start) / 1.2;
+            if (sm >= 0 && sm <= 1) f.glows.push({ at: { ...r.from, z: r.from.z + sm * 0.4 }, r: 0.2 + sm * 0.5, color: 0xc8c4b8, alpha: 0.5 * (1 - sm), light: false });
+          }
           if (p >= 0 && p <= 1 && r.tracer) {
             const head = lerp(r.from, r.to, p);
             const tail = lerp(r.from, r.to, Math.max(0, p - STREAK_LEN / dist));
-            f.streaks.push({ a: tail, b: head, color: c.color, alpha: 1, width: c.weapon === 'HMG' ? 3.2 : c.weapon === 'rifle' ? 1.8 : 2.4 });
+            f.streaks.push({ a: tail, b: head, color: c.color, alpha: 1, width: c.weapon === 'GUN' ? 4.5 : c.weapon === 'HMG' || c.weapon === 'AT' ? 3.2 : c.weapon === 'rifle' ? 1.8 : 2.4 });
           }
           // Impact: a spark, then dust.
           const imp = (t - (r.start + travel)) / 0.55;
           if (imp >= 0 && imp <= 1) {
-            if (imp < 0.18) f.glows.push({ at: r.to, r: 0.16, color: 0xffd28a, alpha: 1 - imp / 0.18, light: true });
+            if (imp < 0.18) f.glows.push({ at: r.to, r: c.weapon === 'GUN' ? 0.45 : 0.16, color: 0xffd28a, alpha: 1 - imp / 0.18, light: true });
             f.glows.push({ at: { ...r.to, z: r.to.z + imp * 0.25 }, r: 0.1 + imp * 0.28, color: DUST, alpha: 0.55 * (1 - imp), light: false });
           }
         }

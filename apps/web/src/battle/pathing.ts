@@ -1,5 +1,5 @@
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
-import { enemiesIn, mfLeft, moveCost, type Ctx, type GameState } from '@squadwar/engine';
+import { enemiesIn, mfLeft, moveCost, vehicleStepCost, vehicleType, type Ctx, type GameState } from '@squadwar/engine';
 
 export interface PathStep {
   readonly hex: HexKey;
@@ -50,4 +50,48 @@ export function groupPath(ctx: Ctx, s: GameState, units: readonly string[], to: 
     return { hex: h, mf, total };
   });
   return { path, reachable: total <= left + 1e-9 };
+}
+
+/** Cheapest MP path for a vehicle to `to` (facing changes on the way are free once it moves, §30.5). */
+export function vehiclePath(ctx: Ctx, s: GameState, id: string, to: HexKey): { path: PathStep[]; reachable: boolean } {
+  const v = s.vehicles[id];
+  if (!v) return { path: [], reachable: false };
+  const dist = new Map<HexKey, number>([[v.hex, 0]]);
+  const prev = new Map<HexKey, HexKey>();
+  const open = [v.hex];
+  const done = new Set<HexKey>();
+  const at = (h: HexKey, first: boolean) => ({ ...v, hex: h, moved: v.moved || !first });
+  while (open.length) {
+    open.sort((a, b) => dist.get(a)! - dist.get(b)!);
+    const cur = open.shift()!;
+    if (done.has(cur)) continue;
+    done.add(cur);
+    if (cur === to) break;
+    for (const d of DIRECTIONS) {
+      const nk = hexKey(neighbor(parseHexKey(cur), d));
+      if (!ctx.map.hexes[nk] || done.has(nk)) continue;
+      const c = vehicleStepCost(ctx, s, at(cur, cur === v.hex), nk).mp;
+      if (!Number.isFinite(c)) continue;
+      const nd = dist.get(cur)! + c;
+      if (nd < (dist.get(nk) ?? Infinity)) {
+        dist.set(nk, nd);
+        prev.set(nk, cur);
+        open.push(nk);
+      }
+    }
+  }
+  if (!dist.has(to) || to === v.hex) return { path: [], reachable: false };
+  const hexes: HexKey[] = [];
+  for (let h: HexKey | undefined = to; h && h !== v.hex; h = prev.get(h)) hexes.unshift(h);
+  let total = v.mpSpent;
+  let cur = v.hex;
+  const path = hexes.map((h, i) => {
+    const mf = vehicleStepCost(ctx, s, at(cur, i === 0), h).mp;
+    total += mf;
+    cur = h;
+    return { hex: h, mf, total };
+  });
+  const allowance = vehicleType(ctx, v).mp;
+  // One hex is always allowed (§30.3).
+  return { path, reachable: total <= allowance + 1e-9 || (!v.moved && path.length === 1) };
 }
