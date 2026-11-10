@@ -17,12 +17,11 @@ export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameS
             </span>
           ))}
         </div>
-        {s.phase !== 'setup' && s.phase !== 'gameOver' && (
+        {s.phase !== 'setup' && s.phase !== 'gameOver' ? (
           <div className={`phasing nation-${side(s.phasing).nation}`}>{side(s.phasing).name} player turn</div>
-        )}
-        {/* Phones: who acts now, when it is not the side whose turn it is (Defensive Fire, routs, close combat). */}
-        {s.phase !== 'setup' && s.phase !== 'gameOver' && s.awaiting !== s.phasing && (
-          <div className={`phasing acting nation-${side(s.awaiting).nation}`}>{side(s.awaiting).name} to act</div>
+        ) : (
+          // Phones: holds this line before and after play, so the phase blocks below never move.
+          <div className="phasing acting">{s.phase === 'setup' ? 'Setup' : 'Game over'}</div>
         )}
       </section>
       <section className="rb-phases">
@@ -37,6 +36,10 @@ export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameS
             </li>
           ))}
         </ol>
+        {/* Phones: who acts now, always on its own line under the phase blocks, so they stay where they are. */}
+        <div className={`phasing acting ${s.phase === 'gameOver' ? '' : `nation-${side(s.awaiting).nation}`}`}>
+          {s.phase === 'gameOver' ? 'Game over' : s.phase === 'setup' ? `${side(s.awaiting).name} to set up` : `${side(s.awaiting).name} to act`}
+        </div>
       </section>
       <section className="rb-obj">
         <h3 className="panel-h">Objectives</h3>

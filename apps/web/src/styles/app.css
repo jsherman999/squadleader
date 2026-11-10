@@ -1512,9 +1512,15 @@ kbd {
     padding: 2px 8px;
     font-size: 12px;
   }
-  .ribbon .rb-turn .phasing.acting {
+  /* Who acts now sits under the phase blocks, and the turn line is always there: nothing above the blocks comes and goes. */
+  .ribbon .phasing.acting {
     display: block;
-    margin-left: 0;
+  }
+  @media (max-width: 520px) {
+    .ribbon .rb-turn .phasing {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
   }
   .ribbon .rb-phases {
     order: 2;
@@ -1529,7 +1535,13 @@ kbd {
     clip-path: inset(50%);
   }
   .ribbon .rb-phases .phasing {
-    margin: 0 0 5px;
+    display: none;
+  }
+  .ribbon .rb-phases .phasing.acting {
+    display: block;
+    margin: 6px 0 0;
+    padding: 2px 8px;
+    font-size: 12px;
   }
   /* The eight phases as two rows of four, the current one lit. */
   .ribbon .phase-list {
