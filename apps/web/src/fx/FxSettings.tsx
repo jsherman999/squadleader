@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { testSound } from './audio';
 import { useFxSettings, type BattleSpeed } from './settings';
 
 /**
@@ -11,6 +12,9 @@ export function FxSettingsButton() {
   const fx = useFxSettings();
   const [open, setOpen] = useState(false);
   const [top, setTop] = useState(50);
+  /** Result of the last sound test: undefined before one is run. */
+  const [heard, setHeard] = useState<boolean>();
+  const touch = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
   const ref = useRef<HTMLDivElement>(null);
   const pop = useRef<HTMLDivElement>(null);
   /** Just under the top bar, however many rows it has wrapped to. */
@@ -90,6 +94,16 @@ export function FxSettingsButton() {
                 onChange={(e) => fx.set({ volume: Number(e.target.value) })}
               />
             </label>
+            <button className="btn tiny" disabled={!fx.sound} onClick={() => void testSound().then(setHeard)}>
+              Test sound
+            </button>
+            {heard === false && <p className="small warn">This browser would not start the sound.</p>}
+            {fx.sound && (touch || heard) && (
+              <p className="small faint">
+                {heard ? 'A machine-gun burst should have played. ' : ''}
+                Nothing to hear? Turn the device volume up. An iPhone or iPad also keeps games silent while silent mode is on (the switch or Action button on its side).
+              </p>
+            )}
             <label className="check">
               <input
                 type="checkbox"

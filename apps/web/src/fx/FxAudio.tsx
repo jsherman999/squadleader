@@ -9,12 +9,12 @@ export function FxAudio() {
   useEffect(() => setAudio(sound, volume), [sound, volume]);
   useEffect(() => {
     const unlock = () => unlockAudio();
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    // A mouse button going down counts as the player's go-ahead; on a touch screen only the end of a tap does.
+    const events = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
+    for (const e of events) window.addEventListener(e, unlock, { capture: true, passive: true });
     const off = fxPlayer.onCue(playCue);
     return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
+      for (const e of events) window.removeEventListener(e, unlock, { capture: true });
       off();
     };
   }, []);

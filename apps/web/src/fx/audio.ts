@@ -3,7 +3,9 @@
  * rifle cracks, machine-gun bursts timed to the tracers, impacts, close
  * combat and a malfunction clank. Browsers only allow audio after the
  * player has interacted with the page, so the context starts on the
- * first click or key press.
+ * first click, tap or key press. On a touch screen only the end of a tap
+ * counts (a finger going down does not), and an iPhone also keeps Web
+ * Audio silent while its silent switch is on.
  */
 import type { Cue, Pt, WeaponFx } from './timeline';
 
@@ -30,11 +32,41 @@ function ensure(): AudioContext | undefined {
   return ctx;
 }
 
-/** Call from a user gesture (click, key) so playback is allowed. */
+/**
+ * Call from a user gesture (click, the end of a tap, key) so playback is allowed.
+ * Anything short of running is resumed: iOS reports "interrupted" after a call
+ * or a trip to another app.
+ */
 export function unlockAudio(): void {
   if (!enabled) return;
   const c = ensure();
-  if (c && c.state === 'suspended') void c.resume();
+  if (!c || c.state === 'running' || c.state === 'closed') return;
+  void c.resume().catch(() => undefined);
+  // Older iOS only opens the output once a source has started inside the gesture.
+  try {
+    const src = c.createBufferSource();
+    src.buffer = c.createBuffer(1, 1, c.sampleRate);
+    src.connect(c.destination);
+    src.start(0);
+  } catch {
+    // Not allowed yet: the next gesture tries again.
+  }
+}
+
+/** Play a short burst now, from a button press. False when the browser will not start audio. */
+export async function testSound(): Promise<boolean> {
+  const c = ensure();
+  if (!c) return false;
+  if (c.state !== 'running') {
+    try {
+      await c.resume();
+    } catch {
+      return false;
+    }
+  }
+  if ((c.state as string) !== 'running') return false;
+  playCue({ kind: 'sound', t0: 0, sound: 'burst', weapon: 'MMG', rounds: 5, interval: 0.09, at: { x: listener.x, y: listener.y, z: 0 } });
+  return true;
 }
 
 export function setAudio(on: boolean, vol: number): void {
