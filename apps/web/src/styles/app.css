@@ -2518,3 +2518,9 @@ body.resizing {
   padding-top: 3px;
   border-top: 1px solid var(--c-line);
 }
+
+/* The lowest danger band is drawn with a dashed outline on the map; its legend swatch matches. */
+.swatch.dashed {
+  outline: 1.5px dashed #a88300;
+  outline-offset: -2px;
+}

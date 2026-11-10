@@ -2,7 +2,7 @@ import { DIRECTIONS, hexKey, hexsideEndpoints, hexsideHexes, hexToPixel, neighbo
 import { inArc, type Vehicle } from '@squadwar/engine';
 import type { Rationale } from '@squadwar/bot';
 import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
-import { hexFill, hexOutline, type Pen } from '../draw/pen';
+import { hexFill, hexOutline, hexPolygon, type Pen } from '../draw/pen';
 import type { PathStep } from './pathing';
 
 const at = (h: HexKey): Vec2 => hexToPixel(parseHexKey(h));
@@ -267,6 +267,53 @@ export function drawLastFire(pen: Pen, e: GameEvent | undefined): void {
   const targets = (e.fx.targets as HexKey[] | undefined) ?? [];
   for (const f of from) for (const t of targets) pen.line([at(f), at(t)], { width: 2, color: 0xffb04a, alpha: 0.45 });
   for (const t of targets) pen.circle(at(t), 14, undefined, { width: 2, color: 0xffb04a, alpha: 0.6 });
+}
+
+/** Danger map colours: fill and outline for a chance under 25%, 25–50% and over 50%. */
+const DANGER_FILL = [0xf0d24a, 0xe08a3a, 0xd0402e];
+const DANGER_LINE = [0xa88300, 0xd06a12, 0xb82a1a];
+const dangerTier = (p: number): number => (p > 0.5 ? 2 : p > 0.25 ? 1 : 0);
+
+/**
+ * The danger map: each hex shaded by the chance a squad moving through it breaks.
+ * The outline sits well inside the hex, clear of the gold outline of an objective,
+ * and the lowest band is dashed, so the three bands differ by more than colour.
+ */
+export function drawDanger(pen: Pen, hexes: Iterable<readonly [HexKey, number]>): void {
+  for (const [key, p] of hexes) {
+    const tier = dangerTier(p);
+    const h = parseHexKey(key);
+    hexFill(pen, h, DANGER_FILL[tier]!, Math.min(0.42, 0.2 + p * 0.28));
+    const ring = hexPolygon(h, 0.2);
+    pen.line([...ring, ring[0]!], { width: tier === 2 ? 3 : 2.5, color: DANGER_LINE[tier]!, alpha: 0.9 }, tier === 0 ? [5, 4] : undefined);
+  }
+}
+
+/**
+ * A tag on each of the player's own stacks that the enemy can fire on where it
+ * stands: the chance one of its squads breaks if it stays put and everything in
+ * sight fires. Drawn over the counters, at the top of the hex.
+ */
+export function drawDangerTags(pen: Pen, stacks: Iterable<readonly [HexKey, number]>): void {
+  for (const [key, p] of stacks) {
+    if (p < 0.005) continue;
+    const c = at(key);
+    const y = c.y - 0.69;
+    const color = DANGER_FILL[dangerTier(p)]!;
+    const w = 0.36;
+    const h = 0.17;
+    pen.poly(
+      [
+        { x: c.x - w, y: y - h },
+        { x: c.x + w, y: y - h },
+        { x: c.x + w, y: y + h },
+        { x: c.x - w, y: y + h },
+      ],
+      { color: 0x15181a, alpha: 0.94 },
+      { width: 2, color },
+    );
+    pen.text({ x: c.x, y }, `${Math.max(1, Math.round(p * 100))}%`, { size: 14, color });
+  }
 }
 
 /**
