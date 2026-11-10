@@ -453,6 +453,9 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
       return (
         <Hint>
           Select units, then click a hex in your setup area (shaded) to place them. End the phase when ready.
+          {Object.values(s.vehicles).some((v) => v.side === side) && (
+            <span>To turn a gun or vehicle, click its hex a second time (or tick it in the list for that hex), then use Turn left and Turn right. The shaded wedge on the map is where it points.</span>
+          )}
           {notes && <span className="faint">{notes}</span>}
         </Hint>
       );

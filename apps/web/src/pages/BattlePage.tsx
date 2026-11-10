@@ -616,7 +616,9 @@ function Battle() {
           return;
         }
       }
-      if (myVehicle && !mine.length) {
+      // A gun or vehicle is picked by clicking its hex; where your infantry (a gun's crew) is there too,
+      // the first click picks the infantry and a second click on the same hex picks the gun or vehicle.
+      if (myVehicle && (!mine.length || (!p.shift && !selVehicle && sel.hex === h && selUnits.length > 0))) {
         setVsel(myVehicle.id);
         session.select(h, []);
         return;

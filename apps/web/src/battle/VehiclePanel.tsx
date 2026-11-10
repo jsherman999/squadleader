@@ -71,7 +71,10 @@ export function VehiclePanel({
     return (
       <div className="actions">
         {head}
-        <p className="small dim">Click a hex in your setup area to place it. The covered arc (shaded) is where its gun points (§29.4).</p>
+        <p className="small dim">
+          Click a hex in your setup area to place it. The covered arc (the shaded wedge) is where its gun points (§29.4): turn it with the buttons below, as often as you like during setup. Click the
+          hex again to go back to the infantry there.
+        </p>
         {facingButtons('')}
       </div>
     );
