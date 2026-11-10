@@ -100,18 +100,33 @@ export function WhyCard({ ctx, s, note, position, events, actor, title, variant 
       )}
     </>
   );
+  // A new decision, and then its result, print out afresh: the keys restart the teletype animation.
+  const kDecision = `${s.turn}|${s.phase}|${s.awaiting}|${position?.index ?? ''}|${note?.goal ?? ''}|${note?.reasons[0] ?? ''}`;
+  const kRest = `${kDecision}|${events?.length ?? 0}`;
   if (!wide)
     return (
       <div className="why-card" aria-live="polite">
-        {decision}
-        {rest}
+        <div key={kDecision} className="printout">
+          {decision}
+        </div>
+        <div key={kRest} className="printout">
+          {rest}
+        </div>
       </div>
     );
   const hasRest = !!(note?.alternatives?.length || note?.tip || events?.length);
   return (
     <div className="why-wide" aria-live="polite">
-      <div className="why-card dock-box">{decision}</div>
-      <div className="why-card dock-box why-rest">{hasRest ? rest : <p className="small faint">No lesson or result for this decision yet.</p>}</div>
+      <div className="why-card dock-box">
+        <div key={kDecision} className="printout">
+          {decision}
+        </div>
+      </div>
+      <div className="why-card dock-box why-rest">
+        <div key={kRest} className="printout">
+          {hasRest ? rest : <p className="small faint">No lesson or result for this decision yet.</p>}
+        </div>
+      </div>
     </div>
   );
 }

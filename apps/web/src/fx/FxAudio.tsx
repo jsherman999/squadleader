@@ -5,8 +5,12 @@ import { useFxSettings } from './settings';
 
 /** Mounted once: plays cue sounds and keeps the audio settings in sync. */
 export function FxAudio() {
-  const { sound, volume } = useFxSettings();
+  const { sound, volume, reducedMotion } = useFxSettings();
   useEffect(() => setAudio(sound, volume), [sound, volume]);
+  // Reduced motion also stills the teletype printing in the side panels (styles/teletype.css).
+  useEffect(() => {
+    document.body.classList.toggle('calm', reducedMotion);
+  }, [reducedMotion]);
   useEffect(() => {
     const unlock = () => unlockAudio();
     // A mouse button going down counts as the player's go-ahead; on a touch screen only the end of a tap does.

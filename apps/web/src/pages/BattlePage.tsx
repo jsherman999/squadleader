@@ -872,7 +872,7 @@ function Battle() {
           </button>
         )}
       </TopBar>
-      <div className={`battle ${docked ? 'with-dock' : ''} ${sideEmpty ? 'no-side' : ''}`}>
+      <div className={`battle ${docked ? 'with-dock' : ''} ${sideEmpty ? 'no-side' : ''} ${aiVsAi && !paused && (speed === 'fast' || speed === 'max') ? 'rapid' : ''}`}>
         <PhaseRibbon ctx={ctx} s={s} focus={objFocus} onObjective={(name) => setObjFocus((cur) => (cur === name ? undefined : name))} />
         <div className="board-wrap">
           <MapViews

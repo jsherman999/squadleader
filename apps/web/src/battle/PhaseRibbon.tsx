@@ -1,7 +1,7 @@
 import { PHASE_NAMES, PLAYER_TURN_PHASES, objectiveStatus, type Ctx, type GameState } from '@squadwar/engine';
 
 /** Shorter phase names for narrow phones. */
-const SHORT: Record<string, string> = { defensiveFire: 'Def. Fire', advancingFire: 'Adv. Fire' };
+const SHORT: Record<string, string> = { defensiveFire: 'Def. Fire', advancingFire: 'Adv. Fire', closeCombat: 'Cl. Combat' };
 
 export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameState; onObjective?: (name: string) => void; focus?: string | undefined }) {
   const side = (id: string) => s.sides.find((x) => x.id === id)!;

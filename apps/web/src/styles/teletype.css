@@ -1,0 +1,510 @@
+/*
+ * Teletype printouts. The side panels of the battle and review screens, and
+ * the boxes of the dock under the map, are fan-fold paper off a teleprinter:
+ * buff stock with sprocket holes and a perforation down each edge, faint
+ * green bars, typewriter type in black ink with the red half of the ribbon
+ * for losses. Inside a sheet the interface colours are remapped to paper
+ * and ink, so the existing rules follow without being repeated here.
+ * The typeface (Courier Prime) is bundled and loaded in main.tsx.
+ */
+:root {
+  --font-type: 'Courier Prime', 'Courier New', Courier, 'Nimbus Mono PS', 'Liberation Mono', monospace;
+  --paper: #ece6d2;
+  --paper-2: #e2dbc4;
+  --paper-3: #d5cdb3;
+  --ink: #26221d;
+  --ink-2: #4b443a;
+  --ink-3: #6e6658;
+  --ink-red: #a32a1a;
+  --ink-blue: #2b4b6c;
+  /* Width of the tractor-feed strip down each edge. */
+  --feed: 17px;
+  --sprocket: radial-gradient(circle at 50% 50%, #15181a 0 3px, rgba(0, 0, 0, 0.28) 3.2px 3.9px, transparent 4.3px);
+  --perf: repeating-linear-gradient(to bottom, rgba(38, 34, 29, 0.4) 0 2px, transparent 2px 6px);
+  --paper-bg:
+    var(--sprocket) 4px 2px / 10px 22px no-repeat space, var(--sprocket) calc(100% - 4px) 2px / 10px 22px no-repeat space, var(--perf) var(--feed) 0 / 1px 100% no-repeat,
+    var(--perf) calc(100% - var(--feed)) 0 / 1px 100% no-repeat, repeating-linear-gradient(to bottom, transparent 0 57px, rgba(84, 128, 92, 0.08) 57px 114px), var(--paper);
+  /* Room for the feed strip plus a margin before the type starts. */
+  --paper-pad: calc(var(--feed) + 9px);
+}
+
+/* ---- The sheets ------------------------------------------------------- */
+.ribbon,
+.side-right,
+.dock-box,
+.review > .dl {
+  --c-panel: var(--paper);
+  --c-panel-2: var(--paper-2);
+  --c-panel-3: var(--paper-3);
+  --c-line: rgba(38, 34, 29, 0.32);
+  --c-text: var(--ink);
+  --c-text-dim: var(--ink-2);
+  --c-text-faint: var(--ink-3);
+  --c-brass: var(--ink);
+  --c-brass-dim: var(--ink-3);
+  --c-accent: var(--ink);
+  --c-ok: #2f5f2b;
+  --c-warn: #8a4a06;
+  --c-bad: var(--ink-red);
+  --c-info: var(--ink-blue);
+  --c-ger: var(--c-ger-dark);
+  --c-rus: var(--c-rus-dark);
+  --c-us: var(--c-us-dark);
+  --font-ui: var(--font-type);
+  --font-cond: var(--font-type);
+  --font-mono: var(--font-type);
+  --radius: 2px;
+  color: var(--ink);
+  font-family: var(--font-type);
+  font-variant-ligatures: none;
+}
+.ribbon,
+.side-right,
+.dock-box,
+.review > .dl {
+  background: var(--paper-bg);
+  background-attachment: local;
+  padding-left: var(--paper-pad);
+  padding-right: var(--paper-pad);
+  border-color: #0d0f10;
+}
+.ribbon,
+.side-right {
+  font-size: 12.5px;
+  line-height: 1.38;
+}
+.battle {
+  grid-template-columns: 250px 1fr 372px;
+}
+.battle.with-dock {
+  grid-template-columns: 250px minmax(0, 1fr) 352px;
+}
+.battle.with-dock.no-side {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+/* The pages of the fan-fold tear along a row of perforations. */
+.ribbon section {
+  border-bottom: 1px dashed var(--c-line);
+}
+.ribbon section:last-child {
+  border-bottom: none;
+}
+
+/* ---- Type ------------------------------------------------------------- */
+:is(.ribbon, .side-right, .dock-box, .review > .dl) :is(.panel-h, .dock-h, .dl-head, .why-result-h) {
+  font-family: var(--font-type);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+/* Section headings are underlined the way a printer does it: a row of equals signs. */
+:is(.ribbon, .side-right, .dock-box) :is(.panel-h, .dock-h)::after {
+  content: '';
+  display: block;
+  margin-top: 2px;
+  border-bottom: 3px double rgba(38, 34, 29, 0.55);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .small {
+  font-size: 11.5px;
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) :is(strong, b) {
+  font-weight: 700;
+}
+
+/* ---- Controls printed on the sheet ------------------------------------ */
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  color: var(--ink);
+  font-family: var(--font-type);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  box-shadow: 1px 1px 0 rgba(38, 34, 29, 0.45);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn:hover:not(:disabled) {
+  background: var(--paper-3);
+  border-color: var(--ink);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn:active:not(:disabled) {
+  box-shadow: none;
+  transform: translate(1px, 1px);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn.primary:hover:not(:disabled) {
+  background: #000;
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn.active {
+  background: var(--paper-3);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+:is(.ribbon, .side-right, .dock-box, .review > .dl) .btn.ghost {
+  background: none;
+  box-shadow: none;
+  border-style: dashed;
+}
+:is(.ribbon, .side-right, .dock-box) :is(input[type='checkbox'], input[type='radio'], input[type='range']) {
+  accent-color: var(--ink);
+}
+:is(.ribbon, .side-right, .dock-box) :is(select, input[type='text'], input[type='number'], textarea) {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--ink-3);
+  border-radius: 2px;
+  color: var(--ink);
+  font-family: var(--font-type);
+}
+:is(.side-right, .dock-box) .panel-card {
+  background: none;
+  border: 1px dashed var(--ink-3);
+  border-radius: 0;
+  box-shadow: none;
+}
+.side-right .error-box {
+  background: none;
+  border: 2px solid var(--ink-red);
+  border-radius: 0;
+  color: var(--ink-red);
+  font-weight: 700;
+}
+.side-right .hint {
+  background: none;
+  border: 1px dashed var(--ink-3);
+  border-radius: 0;
+  color: var(--ink-2);
+}
+.side-right :is(.stack-row, .action-row, .calc) {
+  background: rgba(38, 34, 29, 0.055);
+  border-radius: 0;
+}
+.side-right .calc {
+  border: 1px solid var(--ink-3);
+}
+.side-right .calc.error,
+.side-right .odds tr.friendly td,
+.side-right .stack-row.broken .stack-name {
+  color: var(--ink-red);
+}
+/* Odds bars: an inked outline with a wash for the chance, the figure typed over it. */
+.side-right .bar {
+  background: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--ink-3);
+}
+.side-right .bar-fill {
+  background: rgba(38, 34, 29, 0.3);
+  border-radius: 0;
+  margin-left: 0;
+  height: 100%;
+}
+.side-right .bar-fill.strong {
+  background: rgba(163, 42, 26, 0.42);
+}
+.side-right .bar-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Rubber stamps: the side a unit or a dispatch belongs to. */
+:is(.ribbon, .side-right, .dock-box, .review > .dl) :is(.chip, .side-chip) {
+  background: none;
+  border: 1.5px solid var(--nation, var(--ink));
+  border-radius: 2px;
+  color: var(--nation, var(--ink));
+  font-family: var(--font-type);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+:is(.ribbon, .side-right, .dock-box) .tag {
+  background: none;
+  border: 1px solid var(--ink-3);
+  border-radius: 2px;
+  color: var(--ink-2);
+}
+:is(.ribbon, .side-right, .dock-box) .tag.bad {
+  background: none;
+  border-color: var(--ink-red);
+  color: var(--ink-red);
+}
+:is(.ribbon, .side-right, .dock-box) .tag.weapon {
+  background: none;
+  color: var(--ink);
+}
+:is(.ribbon, .side-right, .dock-box) .tag-btn {
+  color: var(--ink);
+}
+
+/* ---- Turn, phases, objectives ---------------------------------------- */
+.ribbon .turn-box {
+  border-radius: 0;
+}
+.ribbon .turn-box.past {
+  background: none;
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.ribbon .turn-box.now {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.ribbon .phasing {
+  background: none;
+  border-left-width: 5px;
+  font-weight: 700;
+}
+/* Keep the numbers clear of the perforation. */
+.ribbon .phase-list {
+  padding-left: 3.4ch;
+}
+.ribbon .phase-list li.now {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ribbon .phase-list li.now::marker {
+  color: var(--ink-red);
+}
+.ribbon .obj-no {
+  background: none;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.ribbon .obj-item {
+  border-radius: 0;
+}
+.ribbon .obj-item.on {
+  background: var(--paper-3);
+  border-color: var(--ink);
+}
+.ribbon .obj-dot {
+  border-color: var(--ink);
+}
+.side-right .objective-line {
+  color: var(--ink);
+}
+
+/* ---- Dispatches: the decision card ------------------------------------ */
+:is(.side-right, .dock-box).why-card,
+.side-right .why-card {
+  border: none;
+  border-radius: 0;
+}
+.side-right .why-card {
+  background: none;
+  border-top: 1px dashed var(--c-line);
+  border-bottom: 1px dashed var(--c-line);
+  padding: 8px 0 10px;
+}
+.dock-box.why-card:first-child {
+  border-left: none;
+}
+:is(.side-right, .dock-box) .why-head .small {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+:is(.side-right, .dock-box) .why-goal {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+.side-right .why-goal {
+  font-size: 13px;
+}
+:is(.side-right, .dock-box) .why-key {
+  border: 1.5px solid var(--ink-red);
+  border-radius: 0;
+  color: var(--ink-red);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0 4px;
+}
+/* Lists are typed with a dash, not a printed bullet. */
+:is(.side-right, .dock-box) :is(.why-reasons, .why-alt ul, .calc-trace, .log-trace) {
+  list-style: none;
+  padding-left: 0;
+}
+:is(.side-right, .dock-box) :is(.why-reasons, .why-alt ul, .calc-trace, .log-trace) > li {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+:is(.side-right, .dock-box) :is(.why-reasons, .why-alt ul, .calc-trace, .log-trace) > li::before {
+  content: '- ';
+}
+:is(.side-right, .dock-box) .log-trace {
+  border-left: 1px dashed var(--ink-3);
+}
+:is(.side-right, .dock-box) .why-tip {
+  background: none;
+  border: 1px dashed var(--ink-3);
+  border-radius: 0;
+}
+:is(.side-right, .dock-box) .why-tip strong {
+  color: var(--ink);
+  font-size: inherit;
+  letter-spacing: 0.1em;
+}
+:is(.side-right, .dock-box) .why-tip strong::after {
+  content: ':';
+}
+:is(.side-right, .dock-box) .why-result {
+  border-top-style: dashed;
+}
+
+/* ---- The combat log and the radio ------------------------------------- */
+:is(.side-right, .dock-box) .log {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+.side-right .log {
+  border-top: 1px dashed var(--c-line);
+  padding-top: 2px;
+  font-size: 11.5px;
+}
+:is(.side-right, .dock-box) .log-line {
+  font-family: var(--font-type);
+  color: var(--ink-2);
+}
+:is(.side-right, .dock-box) .log-line:hover {
+  background: rgba(38, 34, 29, 0.08);
+}
+:is(.side-right, .dock-box) .kind-phase .log-line {
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+:is(.side-right, .dock-box) :is(.kind-fire, .kind-closeCombat) .log-line {
+  color: var(--ink);
+}
+:is(.side-right, .dock-box) :is(.kind-eliminated, .kind-berserk) .log-line {
+  color: var(--ink-red);
+}
+:is(.side-right, .dock-box) .kind-gameOver .log-line {
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.dock-log .kind-phase {
+  background: var(--paper);
+  box-shadow: 0 2px 0 var(--paper);
+}
+.side-right .radio-log {
+  background: none;
+  border: 1px dashed var(--ink-3);
+  border-left: 3px solid var(--c-warn);
+  border-radius: 0;
+  color: var(--ink);
+}
+.side-right .thoughts {
+  color: var(--ink-2);
+}
+
+/* ---- The dock under the map ------------------------------------------- */
+.dock-box {
+  border: none;
+  border-radius: 0;
+  padding-top: 8px;
+  padding-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.38;
+}
+.dock-grid {
+  gap: 10px;
+}
+.dock-box.dock-log {
+  padding-left: var(--paper-pad);
+  padding-right: calc(var(--feed) + 4px);
+}
+
+/* ---- Review: the list of decisions ------------------------------------ */
+.review > .dl {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.review > .dl .dl-item:hover {
+  background: rgba(38, 34, 29, 0.08);
+}
+.review > .dl .dl-item.active {
+  background: var(--paper-3);
+  border-color: var(--ink);
+  border-radius: 0;
+}
+
+/* ---- Printing: new copy feeds out line by line ------------------------ */
+@keyframes teletype-feed {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes teletype-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.printout {
+  animation: teletype-feed 0.5s steps(9, end);
+}
+:is(.side-right, .dock-box) .log > .log-row:nth-last-child(-n + 4) {
+  animation: teletype-type 0.4s steps(28, end);
+}
+@media (prefers-reduced-motion: reduce) {
+  .printout,
+  :is(.side-right, .dock-box) .log > .log-row {
+    animation: none !important;
+  }
+}
+/* Reduced motion in Effects, or the computer playing itself too fast to read a line being typed. */
+:is(body.calm, .battle.rapid) .printout,
+:is(body.calm, .battle.rapid) :is(.side-right, .dock-box) .log > .log-row {
+  animation: none !important;
+}
+
+/* ---- Phones: each section of the ribbon is its own sheet -------------- */
+@media (max-width: 900px) {
+  :root {
+    --feed: 15px;
+  }
+  .ribbon section {
+    background: var(--paper-bg);
+    padding-left: var(--paper-pad);
+    padding-right: var(--paper-pad);
+    border-bottom: 1px dashed var(--c-line);
+  }
+  .ribbon .rb-turn,
+  .ribbon .rb-obj {
+    border-top: 1px dashed var(--c-line);
+  }
+  .side-right {
+    background-attachment: scroll;
+    border-top: 1px dashed var(--c-line);
+    padding-left: var(--paper-pad);
+    padding-right: var(--paper-pad);
+  }
+  .ribbon .phase-list {
+    font-size: 11px;
+    padding-left: 0;
+  }
+  .ribbon .phase-list li {
+    border-radius: 0;
+    letter-spacing: -0.02em;
+    padding: 4px 2px;
+  }
+  .ribbon .phase-list li.now {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+  }
+}

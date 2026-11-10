@@ -2318,10 +2318,10 @@ body.resizing {
   font-size: 14px;
 }
 .why-rest .why-result:first-child,
-.why-rest > .why-tip:first-child {
+.why-rest .printout > .why-tip:first-child {
   margin-top: 0;
 }
-.why-rest > .why-alt:first-child summary {
+.why-rest .printout > .why-alt:first-child summary {
   margin-top: 0;
 }
 .why-rest .why-result:first-child {
