@@ -9,7 +9,7 @@ import { makeCtx, parseScenario } from '../index';
 import { rawBoards, rawScenarios } from '@squadwar/content';
 import { parseBoard } from '@squadwar/terrain';
 import type { GameEvent } from '../types';
-import { blankState, data, hexOf, put, testCtx } from './helpers';
+import { blankState, data, hexOf, put, putVehicle, testCtx } from './helpers';
 
 describe('fire combat (§8–11)', () => {
   it('reproduces the §10.6 example: 2× 4-6-7 at long range + MMG + −2 leader → 8 FP column', () => {
@@ -182,6 +182,43 @@ describe('exposure (planner)', () => {
     expect(open.shooters).toBe(1);
     expect(open.pBreak).toBeGreaterThan(bldg.pBreak);
     expect(exposureAt(ctx, s, 'ger', hexOf(ctx, 'X9')).pBreak).toBe(0);
+  });
+
+  it('counts a tank or gun that can see the hex: its MG, and its main gun after a To Hit roll', async () => {
+    const { exposureAt } = await import('../rules/exposure');
+    const ctx = testCtx();
+    const s = blankState(ctx, 'movement');
+    // A StuG facing down the K column: a 75mm gun (8 FP HE) and a 6 FP covered-arc MG.
+    const v = putVehicle(ctx, s, 'ger-stug3', 'K8', 'N-NE');
+    const e = exposureAt(ctx, s, 'rus', hexOf(ctx, 'K4'));
+    expect(e.shooters).toBe(1);
+    expect(e.threats.map((t) => t.weapon).sort()).toEqual(['gun', 'mg']);
+    const gun = e.threats.find((t) => t.weapon === 'gun')!;
+    expect(gun.vehicle).toBe(v.id);
+    expect(gun.fp).toBe(8);
+    expect(gun.hit).toBeGreaterThan(0);
+    expect(gun.hit).toBeLessThan(1);
+    expect(e.pBreak).toBeGreaterThan(0.2);
+    // Behind it, the MG does not bear and the gun must pivot first: less danger, but not none.
+    const behind = exposureAt(ctx, s, 'rus', hexOf(ctx, 'K10'));
+    expect(behind.threats.some((t) => t.weapon === 'gun')).toBe(true);
+    expect(behind.pBreak).toBeLessThan(e.pBreak);
+    // A gun with no crew is silent.
+    const g = blankState(ctx, 'movement');
+    putVehicle(ctx, g, 'rus-zis3', 'K8', 'N-NE');
+    expect(exposureAt(ctx, g, 'ger', hexOf(ctx, 'K4')).pBreak).toBe(0);
+  });
+
+  it('is lower through smoke', async () => {
+    const { exposureAt } = await import('../rules/exposure');
+    const ctx = testCtx();
+    const s = blankState(ctx, 'movement');
+    put(ctx, s, 'rus-447', 'K2', { weapons: ['rus-lmg'] });
+    const clear = exposureAt(ctx, s, 'ger', hexOf(ctx, 'K6')).pBreak;
+    s.smoke.push({ hex: hexOf(ctx, 'K4'), side: 'ger' });
+    const smoked = exposureAt(ctx, s, 'ger', hexOf(ctx, 'K6'));
+    expect(smoked.threats[0]!.smoke).toBe(true);
+    expect(smoked.pBreak).toBeLessThan(clear);
   });
 });
 

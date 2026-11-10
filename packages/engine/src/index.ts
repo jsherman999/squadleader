@@ -14,7 +14,7 @@ export { detonate } from './rules/fire';
 export { ccHexes, autoPlan, oddsColumn } from './rules/closeCombat';
 export { objectiveStatus, evaluateVictory, controller } from './rules/victory';
 export { moraleOf } from './rules/morale';
-export { exposureAt, exposureMap, type Exposure } from './rules/exposure';
+export { exposureAt, exposureMap, type Exposure, type Threat } from './rules/exposure';
 export {
   FACING_NAMES,
   facingIndex,

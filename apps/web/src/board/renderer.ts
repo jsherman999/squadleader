@@ -318,11 +318,16 @@ export class BoardRenderer {
         const held = d.touch && performance.now() - d.t0 >= HOLD_MS;
         const info = this.info(e);
         this.events.onClick?.(held ? { ...info, shift: true } : info);
+        // A finger does not hover: the tapped hex stays the one described until the next tap.
+        if (d.touch) this.events.onHover?.(info);
       }
     };
     stage.on('pointerup', up);
     stage.on('pointerupoutside', up);
-    stage.on('pointerleave', () => this.events.onHover?.({ hex: undefined, world: { x: 0, y: 0 }, shift: false, alt: false, ctrl: false, button: 0 }));
+    stage.on('pointerleave', (e) => {
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') return;
+      this.events.onHover?.({ hex: undefined, world: { x: 0, y: 0 }, shift: false, alt: false, ctrl: false, button: 0 });
+    });
   }
 
   private onWheel = (e: WheelEvent) => {

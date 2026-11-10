@@ -678,6 +678,8 @@ export class Scene3D {
     const held = e.pointerType !== 'mouse' && d.t0 !== undefined && performance.now() - d.t0 >= HOLD_MS;
     if (e.button === 0) this.events.onClick?.(held ? { ...p, shift: true } : p);
     else if (e.button === 2) this.events.onContext?.(p);
+    // A finger does not hover: the tapped hex stays the one described until the next tap.
+    if (e.button === 0 && e.pointerType !== 'mouse') this.events.onHover?.(p);
   };
 
   private onDbl = (e: MouseEvent) => {

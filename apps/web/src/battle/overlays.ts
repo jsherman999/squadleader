@@ -269,13 +269,38 @@ export function drawLastFire(pen: Pen, e: GameEvent | undefined): void {
   for (const t of targets) pen.circle(at(t), 14, undefined, { width: 2, color: 0xffb04a, alpha: 0.6 });
 }
 
-/** Hexes the moving units passed through this phase (Defensive Fire targets, §16.1). */
-export function drawTracks(pen: Pen, s: GameState): void {
+/**
+ * Defensive Fire: where the enemy moved this phase (§16.1). Each unit's route
+ * is a dashed line. With `canHit` (the hexes the player has a shot at), those
+ * hexes get a target ring, red where the mover was caught in the open (−2 on
+ * the dice), amber elsewhere, and the rest a small grey dot. Without it
+ * (watching the computer) every hex gets a dot.
+ */
+export function drawTracks(pen: Pen, s: GameState, canHit?: ReadonlySet<HexKey>): void {
+  const open = new Map<HexKey, boolean>();
   for (const steps of Object.values(s.tracks)) {
-    for (const st of steps) {
-      const p = at(st.hex);
-      pen.circle({ x: p.x, y: p.y + 0.3 }, 3.5, { color: st.open ? 0xff7a5a : 0xe0c070, alpha: 0.9 });
+    if (steps.length > 1) pen.line(steps.map((st) => at(st.hex)), { width: 2, color: 0xfff1c9, alpha: 0.45 }, [6, 6]);
+    for (const st of steps) open.set(st.hex, (open.get(st.hex) ?? false) || st.open);
+  }
+  for (const [hex, inOpen] of open) {
+    const p = at(hex);
+    const color = inOpen ? 0xff5a46 : 0xf0c66b;
+    if (!canHit) {
+      pen.circle({ x: p.x, y: p.y + 0.3 }, 5, { color: inOpen ? 0xff7a5a : 0xe0c070, alpha: 0.9 }, { width: 1, color: 0x101410, alpha: 0.7 });
+      continue;
     }
+    if (!canHit.has(hex)) {
+      pen.circle({ x: p.x, y: p.y + 0.3 }, 4, { color: 0x8f8b80, alpha: 0.85 });
+      continue;
+    }
+    // A sight ring wide enough to show round a counter, with four ticks.
+    const R = 36;
+    pen.circle(p, R, undefined, { width: 6, color: 0x101410, alpha: 0.45 });
+    pen.circle(p, R, undefined, { width: 3.5, color, alpha: 0.95 });
+    const r0 = (R - 9) / 48;
+    const r1 = (R + 7) / 48;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) pen.line([{ x: p.x + dx * r0, y: p.y + dy * r0 }, { x: p.x + dx * r1, y: p.y + dy * r1 }], { width: 3.5, color, alpha: 0.95 });
+    if (inOpen) pen.text({ x: p.x, y: p.y + 0.52 }, '−2 open', { size: 11, color: 0xffd8d0 });
   }
 }
 

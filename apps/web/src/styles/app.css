@@ -2472,3 +2472,37 @@ body.resizing {
 .btn.idle {
   opacity: 0.5;
 }
+
+/* ---- Shots on offer in the fire phases ---- */
+.shots-note {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--c-text);
+}
+.suggest.shots {
+  margin-bottom: 6px;
+}
+
+/* ---- Danger map: legend note and the hex card's list of who can fire ---- */
+.legend.danger-legend {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  max-width: min(440px, calc(100% - 24px));
+}
+.legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.legend-note {
+  color: var(--c-text-dim);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.hex-card-danger {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--c-line);
+}

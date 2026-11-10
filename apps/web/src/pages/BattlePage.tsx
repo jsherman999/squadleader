@@ -14,12 +14,13 @@ import {
   phaseBlockers,
   sideUnitsIn,
   type GameState,
+  type Threat,
 } from '@squadwar/engine';
 import { bestLos, canBeUpper, viewshed, type LosResult } from '@squadwar/los';
 import type { BoardRenderer, PointerInfo } from '../board/renderer';
 import { drawLos, drawLosMarks } from '../board/losOverlay';
 import { hexFill, hexOutline } from '../draw/pen';
-import { ActionPanel, type MapPick } from '../battle/ActionPanel';
+import { ActionPanel, type MapPick, type Shot } from '../battle/ActionPanel';
 import { autoSkipReason } from '../battle/automation';
 import { defaultFirers, defaultLeader, flameFirers } from '../battle/firers';
 import { fogOfWar, viewerOf } from '../game/fog';
@@ -43,6 +44,7 @@ import { SPEED_SCALE, useFxSettings } from '../fx/settings';
 import { buildTimeline } from '../fx/timeline';
 import { cancelLlm, llmBusy, runLlmPhase, useLlm } from '../game/llm';
 import { STANDING_PRESETS, standingFire } from '@squadwar/agent';
+import { fireOptions } from '@squadwar/bot';
 import { go } from '../router';
 import { describeHex } from '../ui/describe';
 import { HexCard } from '../ui/HexCard';
@@ -52,6 +54,10 @@ import { loadViewMode, MapViews, nextViewMode, setViewMode, type OverlayLayers, 
 import { ViewToggle } from '../views/ViewToggle';
 
 const FIRE = new Set(['prepFire', 'defensiveFire', 'advancingFire']);
+/** Danger map: hexes under this chance are left unshaded; fill and outline colours for under 25%, 25–50% and over 50%. */
+const DANGER_MIN = 0.03;
+const DANGER_FILL = [0xe0c070, 0xe08a3a, 0xd0402e];
+const DANGER_LINE = [0xb98d14, 0xd06a12, 0xb82a1a];
 
 type Speed = 'slow' | 'normal' | 'fast' | 'max';
 /** Pause after a key decision in AI vs AI; routine steps go four times faster. */
@@ -295,6 +301,46 @@ function Battle() {
   const sideEmpty = docked && aiVsAi && !losMode && !session.error && !sel.hex && radio.length === 0 && llmSides.length === 0;
   const statusText =
     s.phase === 'setup' ? `Setup · ${sideName(s.awaiting)}` : s.phase === 'gameOver' ? 'Game over' : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`;
+  /** The attacks open to the player in a fire phase, the best one for each target hex, best first. */
+  const fire = useMemo(() => {
+    const none = { shots: [] as Shot[], canHit: new Set<HexKey>() };
+    if (!human || plan || !FIRE.has(s.phase)) return none;
+    const moved = new Map<HexKey, boolean>();
+    if (s.phase === 'defensiveFire') for (const steps of Object.values(s.tracks)) for (const st of steps) moved.set(st.hex, (moved.get(st.hex) ?? false) || st.open);
+    const best = new Map<HexKey, Shot>();
+    const canHit = new Set<HexKey>();
+    // Worked out on what the player can see: enemy units still hidden are not offered as targets.
+    for (const o of fireOptions(ctx, fog.s, s.awaiting, false).options) {
+      canHit.add(o.target);
+      // Flamethrowers fire alone through their own control; shots with nothing to gain are left out of the list.
+      const f0 = o.a.firers[0]!;
+      const flame = o.a.firers.length === 1 && !f0.inherent && f0.weapons.some((w) => s.weapons[w] && weaponType(ctx, s.weapons[w]!).kind === 'FT');
+      if (flame || o.score < 0.02 || best.has(o.target)) continue;
+      best.set(o.target, {
+        from: o.from,
+        target: o.target,
+        units: o.a.firers.map((f) => f.unit),
+        score: o.score,
+        moved: moved.has(o.target),
+        open: moved.get(o.target) ?? false,
+        occupied: enemiesIn(fog.s, o.target, s.awaiting).length > 0,
+        concealed: enemiesIn(fog.s, o.target, s.awaiting).some((u) => fog.hidden.has(u.id)),
+      });
+    }
+    return { shots: [...best.values()], canHit };
+  }, [human, plan, ctx, s, fog]);
+  const takeShot = useCallback(
+    (x: Shot) => {
+      setVsel(undefined);
+      session.select(x.from, [...x.units]);
+      session.setTarget(x.target);
+      // Bring the shot into view: on a phone the board is wider than the screen.
+      const a = hexToPixel(parseHexKey(x.from));
+      const b = hexToPixel(parseHexKey(x.target));
+      renderer?.centerOn({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    },
+    [session, renderer],
+  );
   const eyesReady = !!povHex || !!selVehicle || !!(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex));
   const whyTitle = aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision';
 
@@ -340,19 +386,22 @@ function Battle() {
     return () => clearTimeout(t);
   }, [real, human, plan, automation, ctx, session, fxBusy]);
 
-  const dangers = useMemo(() => (threat ? exposureMap(ctx, s, s.awaiting) : undefined), [threat, ctx, s]);
+  // The danger map is for the side you play (the side to act when both or neither are yours), from the enemy you can see.
+  const dangerSide = viewer ?? s.awaiting;
+  const dangers = useMemo(() => (threat ? exposureMap(ctx, fog.s, dangerSide) : undefined), [threat, ctx, fog.s, dangerSide]);
   const planScore = useMemo(() => {
     if (!plan) return undefined;
     const end = plan.states[plan.states.length - 1]!;
+    const seen = fogOfWar(plan.states[0]!, viewer).s;
     let expected = 0;
     for (const [id, steps] of Object.entries(end.tracks)) {
       if (end.units[id]?.side !== end.awaiting) continue;
       let survive = 1;
-      for (const st of steps) survive *= 1 - exposureAt(ctx, plan.states[0]!, end.awaiting, st.hex).pBreak;
+      for (const st of steps) survive *= 1 - exposureAt(ctx, seen, end.awaiting, st.hex).pBreak;
       expected += 1 - survive;
     }
     return expected;
-  }, [plan, ctx]);
+  }, [plan, ctx, viewer]);
 
   const movePreview = useMemo(() => {
     if (s.phase !== 'movement' || !human || !hover || !selUnits.length) return undefined;
@@ -388,11 +437,14 @@ function Battle() {
         drawArtillery(pen, ctx, s, viewer);
         if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
         if (pick?.kind === 'enter') drawSetupZone(pen, (s.reserves ?? []).find((r) => r.units.some((u) => u.id === pick.units[0]))?.hexes ?? []);
-        if (s.phase === 'defensiveFire') drawTracks(pen, s);
+        if (s.phase === 'defensiveFire') drawTracks(pen, s, human ? fire.canHit : undefined);
         if (dangers) {
           for (const [h, e] of dangers) {
-            if (e.pBreak < 0.08 || enemiesIn(s, h, s.awaiting).length) continue;
-            hexFill(pen, map.hexes[h]!.hex, e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : 0xe0c070, Math.min(0.38, 0.1 + e.pBreak * 0.3));
+            if (e.pBreak < DANGER_MIN || enemiesIn(fog.s, h, dangerSide).length) continue;
+            const tier = e.pBreak > 0.5 ? 2 : e.pBreak > 0.25 ? 1 : 0;
+            hexFill(pen, map.hexes[h]!.hex, DANGER_FILL[tier]!, Math.min(0.4, 0.14 + e.pBreak * 0.3));
+            // An inset outline, so the lowest band still shows on open ground and wheat.
+            hexOutline(pen, map.hexes[h]!.hex, DANGER_LINE[tier]!, 0.8, 2, 0.09);
           }
         }
       },
@@ -400,6 +452,7 @@ function Battle() {
         drawLastFire(pen, lastFire);
         if (!plan) return;
         const base = plan.states[0]!;
+        const known = fogOfWar(base, viewer).s;
         for (const [id, u] of Object.entries(s.units)) {
           const b0 = base.units[id];
           if (b0 && b0.hex !== u.hex) hexOutline(pen, map.hexes[b0.hex]!.hex, 0xffffff, 0.55, 2, 0.18);
@@ -410,7 +463,7 @@ function Battle() {
           for (const st of steps) {
             if (seen.has(st.hex)) continue;
             seen.add(st.hex);
-            const e = exposureAt(ctx, base, s.awaiting, st.hex);
+            const e = exposureAt(ctx, known, s.awaiting, st.hex);
             const c = hexToPixel(map.hexes[st.hex]!.hex);
             const p = { x: c.x, y: c.y + 1 / 3 };
             const color = e.pBreak > 0.5 ? 0xd0402e : e.pBreak > 0.25 ? 0xe08a3a : e.pBreak > 0.05 ? 0xe0c070 : 0x7fd06a;
@@ -431,7 +484,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus, fire.canHit, dangerSide],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -681,6 +734,16 @@ function Battle() {
   const hoverObjective = hoverObjectiveIx >= 0 ? { n: hoverObjectiveIx + 1, name: ctx.objectives[hoverObjectiveIx]!.name } : undefined;
   const loose = hover ? Object.values(fog.s.weapons).filter((w) => !w.owner && w.hex === hover && !s.charges.some((c) => c.weapon === w.id)) : [];
   const mf = hover && sel.hex && hover !== sel.hex ? moveCost(ctx, sel.hex, hover) : undefined;
+  // With the danger map on, the hex card says who can fire on the hex and how hard.
+  const hoverDanger = threat && hover && !enemiesIn(fog.s, hover, dangerSide).length ? dangers?.get(hover) : undefined;
+  const hoverConcealed =
+    hoverDanger && hover ? new Set(Object.values(fog.s.units).filter((u) => fog.hidden.has(u.id) && u.hex !== hover && ctx.los(u.hex, hover).clear).map((u) => u.hex)).size : 0;
+  const threatText = (x: Threat) => {
+    const v = x.vehicle ? fog.s.vehicles[x.vehicle] : undefined;
+    const who = v ? vehicleLabel(ctx, v) : 'Infantry';
+    const what = x.weapon === 'gun' ? `gun ${x.fp} FP, hits ${Math.round((x.hit ?? 0) * 100)}%` : x.weapon === 'mg' ? `MG ${x.fp} FP` : `${x.fp} FP`;
+    return `${who} in ${map.hexes[x.from]?.id ?? x.from}: ${what}${x.smoke ? ', through smoke' : ''} · ${Math.round(x.p * 100)}%`;
+  };
 
   return (
     <div className="page">
@@ -895,11 +958,16 @@ function Battle() {
             </div>
           )}
           {threat && (
-            <div className="legend">
-              <span className="small">Chance a moving squad breaks:</span>
-              <span className="swatch" style={{ background: '#e0c070' }} /> &lt;25%
-              <span className="swatch" style={{ background: '#e08a3a' }} /> 25–50%
-              <span className="swatch" style={{ background: '#d0402e' }} /> &gt;50%
+            <div className="legend danger-legend">
+              <span className="legend-row">
+                <span className="small">Moving squad breaks:</span>
+                <span className="swatch" style={{ background: '#e0c070' }} /> &lt;25%
+                <span className="swatch" style={{ background: '#e08a3a' }} /> 25–50%
+                <span className="swatch" style={{ background: '#d0402e' }} /> &gt;50%
+              </span>
+              <span className="legend-note">
+                Enemy infantry, tanks and guns in view; not artillery, mines or hidden units. Tap or point at a hex to see who can hit it.
+              </span>
             </div>
           )}
           {fxBusy && (
@@ -925,6 +993,26 @@ function Battle() {
                     {hoverObjective && (
                       <div className="hex-card-line objective-line">
                         Objective {hoverObjective.n}: {hoverObjective.name}
+                      </div>
+                    )}
+                    {hoverDanger && (
+                      <div className="hex-card-danger">
+                        <div className="hex-card-line">
+                          {hoverDanger.threats.length
+                            ? `Danger ${Math.round(hoverDanger.pBreak * 100)}%: a squad moving here breaks if all of these fire`
+                            : 'No enemy in view can fire here'}
+                        </div>
+                        {hoverDanger.threats.slice(0, 4).map((x, i) => (
+                          <div key={i} className="hex-card-line dim">
+                            {threatText(x)}
+                          </div>
+                        ))}
+                        {hoverDanger.threats.length > 4 && <div className="hex-card-line dim">and {hoverDanger.threats.length - 4} more</div>}
+                        {hoverConcealed > 0 && (
+                          <div className="hex-card-line dim">
+                            {hoverConcealed} concealed {hoverConcealed === 1 ? 'stack' : 'stacks'} in sight: strength unknown
+                          </div>
+                        )}
                       </div>
                     )}
                     {loose.length > 0 && (
@@ -988,6 +1076,8 @@ function Battle() {
               dispatch={session.dispatch}
               setTarget={session.setTarget}
               addUnits={(ids) => session.select(sel.hex, [...new Set([...selUnits, ...ids])])}
+              shots={fire.shots}
+              onShot={takeShot}
               pick={pick}
               setPick={setPick}
             />

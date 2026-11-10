@@ -54,6 +54,26 @@ export interface ActionPanelProps {
   setTarget: (h: HexKey) => void;
   /** Add these units to the selection (forming a fire group with a neighbouring hex). */
   addUnits?: (ids: string[]) => void;
+  /** The attacks open to the player now, best first (one per target hex). */
+  shots?: readonly Shot[];
+  /** Take up a shot: select its firers and its target, ready to confirm. */
+  onShot?: (shot: Shot) => void;
+}
+
+/** One attack the player could make: a stack, a target hex, and what it should do. */
+export interface Shot {
+  readonly from: HexKey;
+  readonly target: HexKey;
+  readonly units: readonly string[];
+  /** Expected enemy units broken or worse. */
+  readonly score: number;
+  /** Defensive Fire: an enemy unit moved through the target hex this phase, and whether it was in the open there. */
+  readonly moved: boolean;
+  readonly open: boolean;
+  /** Enemy units stand in the target hex now. */
+  readonly occupied: boolean;
+  /** The target is a concealed stack: what is under it, and so the odds, are not known. */
+  readonly concealed: boolean;
 }
 
 /** Friendly stacks next to the fire group that could join it (§8.6), nearest hex first. */
@@ -76,10 +96,13 @@ function groupCandidates(ctx: Ctx, s: GameState, selected: readonly string[]): {
   return out;
 }
 
+/** How a shot is rated in the lists: the number of enemy units it should leave broken or worse. */
+const expectText = (score: number): string => `breaks ≈${score.toFixed(1)}`;
+
 /** The best few targets for a fire group, by expected broken-or-worse results. */
 function bestTargets(ctx: Ctx, s: GameState, firers: FireUnit[], leader?: string): { hex: HexKey; score: number }[] {
   const side = s.awaiting;
-  const cands = new Set(Object.values(s.units).filter((u) => u.side !== side).map((u) => u.hex));
+  const cands = new Set(Object.values(s.units).filter((u) => u.side !== side && !u.hidden).map((u) => u.hex));
   if (s.phase === 'defensiveFire') for (const steps of Object.values(s.tracks)) for (const st of steps) cands.add(st.hex);
   const out: { hex: HexKey; score: number }[] = [];
   for (const h of cands) {
@@ -397,7 +420,7 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
   return <div className="actions specials">{rows}</div>;
 }
 
-function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = [], hidden, dispatch, setTarget, addUnits }: ActionPanelProps) {
+function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = [], hidden, dispatch, setTarget, addUnits, shots = [], onShot }: ActionPanelProps) {
   const side = s.awaiting;
   const label = (id: string) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
@@ -436,13 +459,36 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
     case 'prepFire':
     case 'defensiveFire':
     case 'advancingFire':
-      if (!firers.length)
+      if (!firers.length) {
+        const movedHexes = new Set(Object.values(s.tracks).flatMap((steps) => steps.map((st) => st.hex)));
+        const movedHit = shots.filter((x) => x.moved).length;
         return (
           <Hint>
+            {s.phase === 'defensiveFire' && movedHexes.size > 0 && (
+              <span className="shots-note">
+                The enemy moved through {movedHexes.size} {movedHexes.size === 1 ? 'hex' : 'hexes'} this phase.{' '}
+                {movedHit > 0
+                  ? `You have a shot at ${movedHit} of them: they are ringed on the map, red where a unit was caught in the open (−2 on the dice).`
+                  : 'None of them is in range and line of sight of a unit that can still fire.'}
+              </span>
+            )}
+            {shots.length > 0 && onShot && (
+              <span className="suggest shots">
+                Your best shots, by enemy units expected broken:
+                {shots.slice(0, 6).map((x) => (
+                  <button key={`${x.from}>${x.target}`} className="btn tiny" title="Select these firers and this target; you still confirm the shot" onClick={() => onShot(x)}>
+                    {hexId(x.from)} → {hexId(x.target)}
+                    {x.open ? ' (in the open)' : x.moved && !x.occupied ? ' (moved through)' : ''} · {x.concealed ? 'concealed' : expectText(x.score)}
+                  </button>
+                ))}
+              </span>
+            )}
+            {!shots.length && <span className="faint shots-note">No enemy is in range and line of sight right now.</span>}
             Select one of your stacks to fire with, then click a target hex. To fire together with a neighbouring hex, add it with the buttons that appear here, or shift-click it (on a touch
             screen, press and hold it).
           </Hint>
         );
+      }
       if (!target) {
         const best = bestTargets(ctx, s, firers, leader);
         const more = addUnits ? groupCandidates(ctx, s, selected) : [];
@@ -464,7 +510,7 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
                 Suggested:
                 {best.map((b) => (
                   <button key={b.hex} className="btn tiny" onClick={() => setTarget(b.hex)}>
-                    {hexId(b.hex)} · {Math.round(b.score * 100)}%
+                    {hexId(b.hex)} · {expectText(b.score)}
                   </button>
                 ))}
               </span>
