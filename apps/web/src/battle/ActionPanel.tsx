@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
   analyzeFire,
@@ -139,15 +138,13 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   const ok = (a: Action) => tryAction(ctx, s, a).ok;
   const units = selected.map((id) => s.units[id]!).filter((u) => u && u.side === side);
-  const [chosen, setChosen] = useState<string[]>([]);
   const rows: React.ReactNode[] = [];
-  if (pick && setPick) {
+  // Units waiting off the map are chosen below and stay chosen until they come on or are dropped.
+  if (pick && setPick && pick.kind !== 'enter') {
     const text =
       pick.kind === 'starshell'
         ? 'Click the hex for the starshell (within 5 hexes)'
-        : pick.kind === 'enter'
-          ? 'Click a highlighted entry hex on the board edge'
-          : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`;
+        : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`;
     rows.push(
       <Row key="pick" text={text}>
         <button className="btn tiny" onClick={() => setPick(undefined)}>
@@ -286,33 +283,37 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
         continue;
       }
       const limit = s.landing?.[side];
-      const pickHere = chosen.filter((id) => r.units.some((u) => u.id === id));
+      const pickHere = (pick?.kind === 'enter' ? pick.units : []).filter((id) => r.units.some((u) => u.id === id));
       const squadsPicked = pickHere.filter((id) => ctx.data.units[r.units.find((u) => u.id === id)!.type]?.kind !== 'leader').length;
+      const over = limit !== undefined && squadsPicked > limit;
+      const toggle = (id: string) => {
+        const next = pickHere.includes(id) ? pickHere.filter((x) => x !== id) : [...pickHere, id];
+        setPick(next.length ? { kind: 'enter', units: next } : undefined);
+      };
+      const where = r.endsMove ? 'blue hex on the bank' : 'blue hex on the board edge';
       rows.push(
         <Row
           key={`res-${r.turn}-${r.units[0]!.id}`}
+          stacked
           text={`${r.endsMove ? 'In the boats' : 'Reinforcements'}: ${r.units.length} unit${r.units.length === 1 ? '' : 's'}${limit !== undefined ? ` · boats land ${limit} more squad${limit === 1 ? '' : 's'} this turn` : ''}`}
-          why={`Pick who comes on together, then the entry hex. ${r.endsMove ? 'Landing ends their move (§60.2).' : 'They enter along the edge and may keep moving.'}`}
+          why={
+            over
+              ? `Only ${limit} more squad${limit === 1 ? '' : 's'} can land this turn: you have picked ${squadsPicked}.`
+              : pickHere.length
+                ? `${pickHere.length} picked: now click a ${where}. ${r.endsMove ? 'Landing ends their move (§60.2).' : 'They may keep moving.'}`
+                : `1. Pick the units that come on together (up to three squads, and leaders, to a hex). 2. Click a ${where}.`
+          }
         >
           {r.units.map((u) => (
-            <button
-              key={u.id}
-              className={`btn tiny ${pickHere.includes(u.id) ? 'primary' : ''}`}
-              onClick={() => setChosen((c) => (c.includes(u.id) ? c.filter((x) => x !== u.id) : [...c.filter((x) => r.units.some((y) => y.id === x)), u.id]))}
-            >
+            <button key={u.id} className={`btn tiny ${pickHere.includes(u.id) ? 'primary' : ''}`} aria-pressed={pickHere.includes(u.id)} onClick={() => toggle(u.id)}>
               {unitLabel(ctx, u)}
             </button>
           ))}
-          <button
-            className="btn tiny primary"
-            disabled={!pickHere.length || (limit !== undefined && squadsPicked > limit)}
-            onClick={() => {
-              setPick({ kind: 'enter', units: pickHere });
-              setChosen([]);
-            }}
-          >
-            Entry hex…
-          </button>
+          {pickHere.length > 0 && (
+            <button className="btn tiny ghost" onClick={() => setPick(undefined)}>
+              Clear
+            </button>
+          )}
         </Row>,
       );
     }
@@ -622,9 +623,10 @@ function Hint({ children }: { children: React.ReactNode }) {
   return <div className="hint small">{children}</div>;
 }
 
-function Row({ text, why, children }: { text: string; why?: string | undefined; children?: React.ReactNode }) {
+/** One action with its buttons; `stacked` puts the buttons under the text, for a long list of them. */
+function Row({ text, why, children, stacked }: { text: string; why?: string | undefined; children?: React.ReactNode; stacked?: boolean }) {
   return (
-    <div className="action-row">
+    <div className={`action-row ${stacked ? 'stacked' : ''}`}>
       <div>
         {text}
         {why && <div className="faint small">{why}</div>}

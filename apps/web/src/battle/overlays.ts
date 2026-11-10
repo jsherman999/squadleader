@@ -1,8 +1,8 @@
-import { DIRECTIONS, hexKey, hexsideEndpoints, hexsideHexes, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type HexsideKey, type Vec2 } from '@squadwar/hex';
+import { DIRECTIONS, hexCorners, hexKey, hexsideEndpoints, hexsideHexes, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type HexsideKey, type Vec2 } from '@squadwar/hex';
 import { inArc, type Vehicle } from '@squadwar/engine';
 import type { Rationale } from '@squadwar/bot';
 import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
-import { hexFill, hexOutline, hexPolygon, type Pen } from '../draw/pen';
+import { hexFill, hexOutline, hexPolygon, type Pen, type Stroke } from '../draw/pen';
 import type { PathStep } from './pathing';
 
 const at = (h: HexKey): Vec2 => hexToPixel(parseHexKey(h));
@@ -233,8 +233,56 @@ export function drawSelection(pen: Pen, sel: HexKey | undefined, target: HexKey 
   }
 }
 
+/** The outer edge of a set of hexes: every hex side with no hex of the set beyond it. */
+function zoneBorder(pen: Pen, hexes: ReadonlySet<HexKey>, stroke: Stroke): void {
+  for (const key of hexes) {
+    const h = parseHexKey(key);
+    const c = hexToPixel(h);
+    const corners = hexCorners(h);
+    for (const d of DIRECTIONS) {
+      const n = neighbor(h, d);
+      if (hexes.has(hexKey(n))) continue;
+      // The side facing that neighbour is the one whose middle lies between the two hex centres.
+      const nc = hexToPixel(n);
+      const mx = (c.x + nc.x) / 2;
+      const my = (c.y + nc.y) / 2;
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < 6; i++) {
+        const a = corners[i]!;
+        const b = corners[(i + 1) % 6]!;
+        const dd = ((a.x + b.x) / 2 - mx) ** 2 + ((a.y + b.y) / 2 - my) ** 2;
+        if (dd < bestD) {
+          bestD = dd;
+          best = i;
+        }
+      }
+      pen.line([corners[best]!, corners[(best + 1) % 6]!], stroke);
+    }
+  }
+}
+
+/** The area a side may set up in: a green wash with a firm border round the whole area. */
 export function drawSetupZone(pen: Pen, hexes: Iterable<HexKey>): void {
-  for (const h of hexes) hexFill(pen, parseHexKey(h), 0x7fd06a, 0.12, 0.04);
+  const zone = new Set(hexes);
+  for (const h of zone) hexFill(pen, parseHexKey(h), 0x6fd058, 0.26);
+  zoneBorder(pen, zone, { width: 7, color: 0x0e1a0c, alpha: 0.6 });
+  zoneBorder(pen, zone, { width: 3.5, color: 0x4fc23c, alpha: 1 });
+}
+
+/**
+ * Where units waiting off the map come on (reinforcements, boats): a blue strip, a colour
+ * nothing else on the map uses, with its label repeated along it. Brighter while the
+ * player is choosing the hex.
+ */
+export function drawEntryHexes(pen: Pen, hexes: Iterable<HexKey>, armed: boolean, label: string): void {
+  const zone = new Set(hexes);
+  const blue = 0x2f9bff;
+  for (const h of zone) hexFill(pen, parseHexKey(h), blue, armed ? 0.5 : 0.34);
+  zoneBorder(pen, zone, { width: 7, color: 0x0a1622, alpha: 0.7 });
+  zoneBorder(pen, zone, { width: 3.5, color: 0x8fd0ff, alpha: 1 });
+  const along = [...zone].map(at).sort((a, b) => a.x - b.x || a.y - b.y);
+  for (let i = Math.min(2, along.length - 1); i < along.length; i += 6) pen.text(along[i]!, label, { size: 15, color: 0xeaf6ff });
 }
 
 /** Planned or hovered move path with cumulative MF labels. */

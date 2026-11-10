@@ -33,6 +33,7 @@ import {
   drawArtillery,
   drawDanger,
   drawDangerTags,
+  drawEntryHexes,
   drawNight,
   drawFireLines,
   drawFocus,
@@ -401,6 +402,12 @@ function Battle() {
     return () => clearTimeout(t);
   }, [real, human, plan, automation, ctx, session, fxBusy]);
 
+  // Units of the side to act that are due on the map this Movement Phase (reinforcements, boats), and where they come on.
+  const entry = useMemo(() => {
+    if (!human || s.phase !== 'movement' || s.awaiting !== s.phasing) return undefined;
+    const due = (s.reserves ?? []).filter((r) => r.side === s.awaiting && r.turn <= s.turn && r.units.length > 0);
+    return due.length ? { hexes: [...new Set(due.flatMap((r) => r.hexes))], boats: due.some((r) => r.endsMove) } : undefined;
+  }, [human, s]);
   // The danger map is for the side you play (the side to act when both or neither are yours), from the enemy you can see.
   const dangerSide = viewer ?? s.awaiting;
   const dangers = useMemo(() => (threat ? exposureMap(ctx, fog.s, dangerSide) : undefined), [threat, ctx, fog.s, dangerSide]);
@@ -458,14 +465,16 @@ function Battle() {
         drawObjectives(pen, ctx, objFocus, fog.s);
         drawSpecial(pen, s);
         drawArtillery(pen, ctx, s, viewer);
-        if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
-        if (pick?.kind === 'enter') drawSetupZone(pen, (s.reserves ?? []).find((r) => r.units.some((u) => u.id === pick.units[0]))?.hexes ?? []);
+        // The setup area, unless this side has nothing on the map to place in it.
+        if (s.phase === 'setup' && human && (Object.values(s.units).some((u) => u.side === s.awaiting) || Object.values(s.vehicles).some((v) => v.side === s.awaiting))) drawSetupZone(pen, ctx.zones[s.awaiting]!);
         if (s.phase === 'defensiveFire') drawTracks(pen, s, human ? fire.canHit : undefined);
         if (dangers) {
           const shade: [HexKey, number][] = [];
           for (const [h, e] of dangers) if (e.pBreak >= DANGER_MIN && !enemiesIn(fog.s, h, dangerSide).length) shade.push([h, e.pBreak]);
           drawDanger(pen, shade);
         }
+        // Drawn last, over the danger shading: the one place waiting units can come on.
+        if (entry) drawEntryHexes(pen, entry.hexes, pick?.kind === 'enter', entry.boats ? 'LAND HERE' : 'ENTER HERE');
       },
       over: (pen) => {
         drawLastFire(pen, lastFire);
@@ -504,7 +513,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus, fire.canHit, dangerSide, ownDanger],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus, fire.canHit, dangerSide, ownDanger, entry],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -570,8 +579,13 @@ function Battle() {
       }
       if (pick) {
         if (pick.kind === 'arty') session.dispatch({ type: 'arty', battery: pick.battery, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) });
-        else if (pick.kind === 'enter') session.dispatch({ type: 'enter', units: pick.units, hex: h });
-        else session.dispatch({ type: 'starshell', unit: pick.unit, hex: h });
+        else if (pick.kind === 'enter') {
+          // A click anywhere else keeps the units picked, so a slip does not undo the choice.
+          const res = (s.reserves ?? []).find((r) => r.units.some((u) => u.id === pick.units[0]));
+          if (res && !res.hexes.includes(h)) setNotice(`They come on only at the blue hexes along the ${res.endsMove ? 'bank' : 'board edge'}.`);
+          else if (session.dispatch({ type: 'enter', units: pick.units, hex: h })) setPick(undefined);
+          return;
+        } else session.dispatch({ type: 'starshell', unit: pick.unit, hex: h });
         setPick(undefined);
         return;
       }
