@@ -8,6 +8,7 @@ import { roll2d6 } from '../rng';
 import { enemiesIn, hexLabel, isLeader, range, unitLabel } from '../queries';
 import { RuleError, type GameState } from '../types';
 import type { Emit } from './common';
+import { unitSees } from './floors';
 
 /** Lit by a starshell within 3 hexes (§49.7). */
 export function illuminated(s: GameState, hex: HexKey): boolean {
@@ -56,7 +57,7 @@ export function fireStarshell(ctx: Ctx, s: GameState, unitId: string, hex: HexKe
   if (!ctx.map.hexes[hex] || range(u.hex, hex) > 5) throw new RuleError('Within 5 hexes of the leader', '§49.6');
   const left = s.starshellsLeft?.[u.side] ?? 0;
   if (left <= 0) throw new RuleError('No starshells left');
-  const seen = Object.values(s.units).some((e) => e.side !== u.side && ctx.los(u.hex, e.hex).clear && range(u.hex, e.hex) <= (s.nightVis ?? 2));
+  const seen = Object.values(s.units).some((e) => e.side !== u.side && unitSees(ctx, s, u, e) && range(u.hex, e.hex) <= (s.nightVis ?? 2));
   if (!seen) throw new RuleError('The leader must see enemy units within the night visibility range', '§49.6');
   if ((s.starshells ?? []).some((x) => x.side === u.side && x.hex === hex)) throw new RuleError('A starshell is already there');
   s.starshellsLeft![u.side] = left - 1;

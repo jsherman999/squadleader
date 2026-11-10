@@ -31,6 +31,10 @@ import {
   squadType,
   stackingProblem,
   tryAction,
+  STAIRS_MF,
+  floorsOn,
+  hasUpper,
+  isUpper,
   unitLabel,
   unitsIn,
   weaponType,
@@ -61,7 +65,7 @@ export function decide(ctx: Ctx, s: GameState, opts: BotOptions = {}): Decision 
   const side = s.awaiting;
   switch (s.phase) {
     case 'setup':
-      return end({ goal: 'Deploy as the scenario suggests', reasons: ['The bot keeps the scenario’s suggested setup inside its setup zone.'], weight: 'routine' });
+      return upstairsDecision(ctx, s, side) ?? end({ goal: 'Deploy as the scenario suggests', reasons: ['The bot keeps the scenario’s suggested setup inside its setup zone.'], weight: 'routine' });
     case 'rout':
       return end({
         goal: 'Let broken units rout',
@@ -701,7 +705,8 @@ function moveDecision(ctx: Ctx, s: GameState, side: string): Decision | undefine
     // Slow units (heavy weapons) stay as a fire base when far from the goal.
     const minLeft = Math.min(...group.map((u) => mfLeft(ctx, s, u)));
     const mc = moveCost(ctx, h, next);
-    const cost = mc.mf;
+    // Units on an upper floor come down the stairs first (§57.3).
+    const cost = mc.mf + (group.some((u) => isUpper(ctx, s, u)) ? STAIRS_MF : 0);
     if (cost > minLeft + 1e-9) {
       // Split off whoever can still go on, or stop.
       const able = group.filter((u) => mfLeft(ctx, s, u) >= cost);
@@ -803,7 +808,7 @@ function reachesSafeStop(ctx: Ctx, s: GameState, side: string, from: HexKey, pat
   let left = Math.min(...group.map((u) => mfLeft(ctx, s, u)));
   let at = from;
   for (const h of path) {
-    const c = moveCost(ctx, at, h).mf;
+    const c = moveCost(ctx, at, h).mf + (at === from && group.some((u) => isUpper(ctx, s, u)) ? STAIRS_MF : 0);
     if (c > left + 1e-9) break;
     left -= c;
     at = h;
@@ -855,6 +860,46 @@ function ccStrength(ctx: Ctx, s: GameState, units: Unit[], attacking: boolean): 
     if (attacking) for (const w of carried(s, u)) if (weaponType(ctx, w).kind === 'LMG' && !w.malfunctioned) fp += weaponType(ctx, w).fp;
     return acc + fp;
   }, 0);
+}
+
+/**
+ * Take the upper floor of a multi-storey building (§57): during setup, or as the advance.
+ * Defenders go up wherever they can, for the view over the ground-level cover around the
+ * building. Attackers send up only machine-gun teams, their fire base: coming back down
+ * costs 2 MF, half a squad's move.
+ */
+function upstairsDecision(ctx: Ctx, s: GameState, side: string): Decision | undefined {
+  if (!floorsOn(s)) return undefined;
+  const attacker = ctx.scenario.victory.side === side;
+  const hexes = [...new Set(Object.values(s.units).filter((u) => u.side === side).map((u) => u.hex))].sort();
+  for (const h of hexes) {
+    if (!hasUpper(ctx, s, h) || (s.phase !== 'setup' && inMelee(s, h))) continue;
+    // A gun's crew stays with its gun, which cannot leave the ground floor (§57.6).
+    const gunHere = Object.values(s.vehicles).some((v) => v.hex === h && v.side === side);
+    const group = sideUnitsIn(s, h, side).filter(
+      (u) => !u.broken && !u.riding && !isUpper(ctx, s, u) && (s.phase === 'setup' || !u.advanced) && !(gunHere && ctx.data.units[u.type]?.kind === 'crew'),
+    );
+    if (!group.length) continue;
+    const mg = group.some((u) => carried(s, u).some((w) => ['LMG', 'MMG', 'HMG'].includes(weaponType(ctx, w).kind) && !w.malfunctioned));
+    if (attacker && !mg) continue;
+    const a: Action = { type: 'floor', units: group.map((u) => u.id), upper: true };
+    if (!legal(ctx, s, a)) continue;
+    return {
+      action: a,
+      why: {
+        goal: `Take the upper floor in ${hexId(ctx, h)}`,
+        reasons: [
+          `${unitList(ctx, group)} ${group.length === 1 ? 'goes' : 'go'} upstairs: from the upper floor they see, and fire, over the walls, hedges, woods and small buildings that hide the ground around them (§57.7).`,
+          s.phase === 'setup' ? 'During setup the floor is free to choose.' : 'Using the advance for the stairs draws no defensive fire; in the Movement Phase it would cost 2 MF and could be shot at (§57.3–57.4).',
+          'The price: whatever they can see upstairs can see them, and coming down again costs 2 MF.',
+        ],
+        tip: 'Put your fire base upstairs and keep units you want hidden, or ready to move, on the ground floor.',
+        weight: 'routine',
+        focus: { from: h, to: h },
+      },
+    };
+  }
+  return undefined;
 }
 
 function advanceDecision(ctx: Ctx, s: GameState, side: string): Decision {
@@ -962,6 +1007,9 @@ function advanceDecision(ctx: Ctx, s: GameState, side: string): Decision {
       }
     }
   }
+  // Nothing to assault: use the advance to take an upper floor (§57.4), which draws no defensive fire.
+  const up = upstairsDecision(ctx, s, side);
+  if (up) return up;
   return end({
     goal: 'Stay put',
     reasons: declined.length ? ['No assault at good enough odds.'] : ['Nothing to assault or occupy next to our units.'],

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
-import { leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions } from '@squadwar/engine';
+import { DEFAULT_OPTIONS, leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions } from '@squadwar/engine';
 import { allScenarios, customScenarios, registerScenario, removeScenario, rulesData, scenarioById } from '../game/scenarios';
 import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '../game/library';
 import { useReview } from '../game/review';
@@ -43,12 +43,13 @@ export function PlayPage() {
   const usesLlm = Object.values(controllers).includes('llm');
   const [options, setOptions] = useState<GameOptions>(() => {
     try {
-      return JSON.parse(localStorage.getItem('squadwar:options') ?? '{}') as GameOptions;
+      return { ...DEFAULT_OPTIONS, ...(JSON.parse(localStorage.getItem('squadwar:options') ?? '{}') as GameOptions) };
     } catch {
-      return {};
+      return { ...DEFAULT_OPTIONS };
     }
   });
-  const applies = (id: keyof GameOptions) => (id === 'woodsFires' ? sc.rulesLevel >= 59 : sc.rulesLevel >= 25);
+  // Building floors matter wherever there is a building of three or more hexes, at any rules level.
+  const applies = (id: keyof GameOptions) => (id === 'floors' ? true : id === 'woodsFires' ? sc.rulesLevel >= 59 : sc.rulesLevel >= 25);
   const inForce = Object.fromEntries(OPTIONAL_RULES.filter((r) => options[r.id] && applies(r.id)).map((r) => [r.id, true])) as GameOptions;
   const start = () => {
     useLlm.getState().reset();

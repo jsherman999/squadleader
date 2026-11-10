@@ -15,6 +15,7 @@ import { heEquivalent, hitChance, iftColumn, inArc, vehicleType } from './armor'
 import { DICE2, iftLookup } from './fire';
 import { smokeOnLine } from './special';
 import { gunCrew } from './transport';
+import { isUpper, losBetween, postOf, type Post } from './floors';
 import { fireOnLine } from './western';
 
 /** One attack the enemy could make on the hex. */
@@ -61,10 +62,12 @@ function breakChance(ctx: Ctx, col: number, drm: number, smoke: boolean): number
   return smoke ? p / 6 : p;
 }
 
-export function exposureAt(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, moving = true): Exposure {
+export function exposureAt(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, moving = true, upper = false): Exposure {
   const target = parseHexKey(hex);
-  const byHex = new Map<HexKey, number>();
+  // Enemy infantry fires by stack, and with building floors (§57) by the floor of the stack it is on.
+  const posts = new Map<string, Post>();
   const leaderOf = new Map<HexKey, number>();
+  const key = (p: Post) => `${p.hex}${p.upper ? '^' : ''}`;
   for (const u of Object.values(s.units)) {
     if (u.side === side || u.broken) continue;
     const lt = leaderType(ctx, u);
@@ -72,17 +75,21 @@ export function exposureAt(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, mo
       leaderOf.set(u.hex, Math.min(leaderOf.get(u.hex) ?? 0, lt.leadership));
       continue;
     }
-    byHex.set(u.hex, 0);
+    const p = postOf(ctx, s, u);
+    posts.set(key(p), p);
   }
   const tem = hexTem(ctx, hex).drm + (moving && isOpenGround(ctx, hex) ? ctx.data.tables.tem.movingInOpen : 0);
   const threats: Threat[] = [];
-  const sees = (from: HexKey) => ctx.los(from, hex).clear && !fireOnLine(ctx, s, from, hex);
-  for (const h of byHex.keys()) {
+  const there: Post = { hex, upper };
+  const seesFrom = (from: Post) => losBetween(ctx, s, from, there).clear && !fireOnLine(ctx, s, from.hex, hex);
+  const sees = (from: HexKey) => seesFrom({ hex: from, upper: false });
+  for (const post of posts.values()) {
+    const h = post.hex;
     const r = hexDistance(parseHexKey(h), target);
-    if (r === 0 || !sees(h)) continue;
+    if (r === 0 || !seesFrom(post)) continue;
     let fp = 0;
     for (const u of Object.values(s.units)) {
-      if (u.hex !== h || u.side === side || u.broken) continue;
+      if (u.hex !== h || u.side === side || u.broken || isUpper(ctx, s, u) !== post.upper) continue;
       const st = squadType(ctx, u);
       const add = (base: number, rng: number) => {
         if (r > rng * 2) return;

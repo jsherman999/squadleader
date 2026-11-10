@@ -1,5 +1,5 @@
 import type { HexKey } from '@squadwar/hex';
-import { leaderRating, mfAllowance, mpLeft, unitsIn, vehicleLabel, vehicleType, weaponType, weaponsIn, type Ctx, type GameState } from '@squadwar/engine';
+import { floorsOn, hasUpper, isUpper, leaderRating, mfAllowance, mpLeft, unitsIn, vehicleLabel, vehicleType, weaponType, weaponsIn, type Ctx, type GameState } from '@squadwar/engine';
 
 export function StackPanel({
   ctx,
@@ -25,6 +25,8 @@ export function StackPanel({
   onVehicle?: (id: string | undefined) => void;
 }) {
   const units = unitsIn(s, hex);
+  // A building of three or more hexes has two floors (§57): each unit is on one of them.
+  const floors = floorsOn(s) && hasUpper(ctx, s, hex);
   const loose = weaponsIn(s, hex).filter((w) => w.owner === null);
   const vehicles = Object.values(s.vehicles).filter((v) => v.hex === hex);
   const wrecks = s.wrecks.filter((w) => w.hex === hex).length;
@@ -78,6 +80,7 @@ export function StackPanel({
               {u.firedPhase && <span className="tag">fired</span>}
               {u.moved && <span className="tag">moved {u.mfSpent} MF</span>}
               {u.concealed && <span className="tag">concealed</span>}
+              {floors && <span className={`tag ${isUpper(ctx, s, u) ? 'floor-up' : ''}`}>{isUpper(ctx, s, u) ? '▲ upstairs' : 'ground floor'}</span>}
             </span>
             {al && <span className="dim small mono" title={al.parts.join('\n')}>{Math.max(0, al.mf - u.mfSpent)}/{al.mf} MF</span>}
             {u.weapons.map((wid) => {

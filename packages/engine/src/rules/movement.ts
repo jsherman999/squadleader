@@ -20,6 +20,7 @@ import type { Emit } from './common';
 import { reveal, smokeMf } from './special';
 import { illuminated } from './night';
 import { fortMoveCost, hasWire, mineAttack, wireExitCost } from './western';
+import { STAIRS_MF, floorName, floorsOn, hasUpper, isUpper, unitSees, unitSeesHex } from './floors';
 
 /** MF a unit may spend this Movement Phase (§5.41–5.44, §5.7). */
 export function mfAllowance(ctx: Ctx, s: GameState, u: Unit): { mf: number; parts: string[] } {
@@ -58,6 +59,89 @@ function checkMover(ctx: Ctx, s: GameState, u: Unit | undefined): asserts u is U
   if (u.debarked && u.moved) throw new RuleError(`${unitLabel(ctx, u)} got off a vehicle and may move only one hex`, '§31.4');
 }
 
+/** The units now moving together: a new group finishes the previous one (§19.2, §19.4). */
+function beginGroup(ctx: Ctx, s: GameState, ids: readonly string[], movers: readonly Unit[]): void {
+  const continuing = s.moving.length > 0 && ids.every((id) => s.moving.includes(id));
+  if (!continuing) {
+    for (const id of s.moving) if (s.units[id]) s.units[id]!.moveDone = true;
+    s.moving = [...ids];
+    const leader = movers.find((u) => isLeader(ctx, u) && u.mfSpent === 0);
+    for (const u of movers) {
+      if (u.mfSpent === 0) u.withLeader = !isLeader(ctx, u) && leader ? leader.id : null;
+      u.ppUsed = Math.max(u.ppUsed, portageOf(ctx, s, u));
+    }
+  } else {
+    for (const id of s.moving) if (!ids.includes(id) && s.units[id]) s.units[id]!.moveDone = true;
+    s.moving = [...ids];
+  }
+  // Squads lose the leader bonus once their leader stops moving with them.
+  for (const u of movers) if (u.withLeader && !ids.includes(u.withLeader)) u.withLeader = null;
+}
+
+/**
+ * Go up or down the stairs of a multi-storey building hex (§57.3).
+ * - Setup: free, for the side setting up.
+ * - Movement Phase: 2 MF. The unit counts as moving through that floor of the hex, so the enemy
+ *   may fire on it there in Defensive Fire if he can see that floor.
+ * - Advance Phase: it is the unit's advance (§57.4).
+ */
+export function changeFloor(ctx: Ctx, s: GameState, ids: readonly string[], upper: boolean, emit: Emit): void {
+  if (!floorsOn(s)) throw new RuleError('This game is not using building floors', '§57');
+  if (!ids.length) throw new RuleError('Choose units to change floor');
+  const units = ids.map((id) => s.units[id]);
+  if (units.some((u) => !u)) throw new RuleError('Unknown unit');
+  const movers = units as Unit[];
+  const hex = movers[0]!.hex;
+  if (movers.some((u) => u.hex !== hex)) throw new RuleError('Units changing floor together must be in the same hex', '§19.4');
+  if (!hasUpper(ctx, s, hex)) throw new RuleError(`${hexLabel(ctx, hex)} has no upper floor: only buildings of three or more hexes do`, '§57.1');
+  const to = floorName(upper);
+  for (const u of movers) {
+    if (u.side !== s.awaiting) throw new RuleError(`${unitLabel(ctx, u)} is not yours`);
+    if (u.riding) throw new RuleError(`${unitLabel(ctx, u)} is riding a vehicle`, '§57.6');
+    if (isUpper(ctx, s, u) === upper) throw new RuleError(`${unitLabel(ctx, u)} is already on the ${to}`);
+  }
+  const names = movers.map((u) => unitLabel(ctx, u)).join(', ');
+  const set = (u: Unit) => {
+    if (upper) u.upstairs = hex;
+    else delete u.upstairs;
+  };
+  if (s.phase === 'setup') {
+    movers.forEach(set);
+    emit({ kind: 'info', text: `${names} set up on the ${to} of ${hexLabel(ctx, hex)}`, side: s.awaiting, units: [...ids], hexes: [hex] });
+    return;
+  }
+  if (s.phase === 'advance') {
+    for (const u of movers) {
+      if (u.side !== s.phasing || s.awaiting !== s.phasing) throw new RuleError('Only the moving player advances', '§4.7');
+      if (u.broken) throw new RuleError('Broken units cannot advance', '§4.7');
+      if (u.advanced) throw new RuleError(`${unitLabel(ctx, u)} has already advanced`);
+      if (inMelee(s, u.hex)) throw new RuleError(`${unitLabel(ctx, u)} is locked in melee`, '§20.8');
+    }
+    for (const u of movers) {
+      u.advanced = true;
+      set(u);
+    }
+    emit({ kind: 'advance', text: `${names} advance to the ${to} of ${hexLabel(ctx, hex)} (§57.4)`, side: s.phasing, units: [...ids], hexes: [hex] });
+    return;
+  }
+  movers.forEach((u) => checkMover(ctx, s, u));
+  for (const u of movers) {
+    const left = mfLeft(ctx, s, u);
+    if (STAIRS_MF > left + 1e-9) throw new RuleError(`${unitLabel(ctx, u)} has ${left} MF left; the stairs cost ${STAIRS_MF}`, '§57.3');
+  }
+  beginGroup(ctx, s, ids, movers);
+  // Using the stairs is movement: it gives a concealed stack away like any other move (§25.4), except at night (§49.4).
+  if (!ctx.scenario.night) reveal(ctx, s, hex, emit, 'moved');
+  for (const u of movers) {
+    u.noConceal = true;
+    u.mfSpent += STAIRS_MF;
+    u.moved = true;
+    set(u);
+    (s.tracks[u.id] ??= []).push({ hex, mf: STAIRS_MF, open: false, ...(upper ? { upper: true } : {}) });
+  }
+  emit({ kind: 'move', text: `${names} ${upper ? 'go upstairs' : 'come downstairs'} in ${hexLabel(ctx, hex)} (${STAIRS_MF} MF, §57.3)`, side: s.phasing, units: [...ids], from: hex, to: hex });
+}
+
 /** Move a stack of units one hex (§5, §19.4). */
 export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: HexKey, emit: Emit): void {
   if (!ids.length) throw new RuleError('Choose units to move');
@@ -79,31 +163,18 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
   }
   if (foes.length || foeVehicles.length) throw new RuleError('Infantry may enter an enemy-occupied hex only in the Advance Phase', '§5.6');
 
-  // A new group finishes the previous one (§19.2, §19.4).
-  const continuing = s.moving.length > 0 && ids.every((id) => s.moving.includes(id));
-  if (!continuing) {
-    for (const id of s.moving) if (s.units[id]) s.units[id]!.moveDone = true;
-    s.moving = [...ids];
-    const leader = movers.find((u) => isLeader(ctx, u) && u.mfSpent === 0);
-    for (const u of movers) {
-      if (u.mfSpent === 0) u.withLeader = !isLeader(ctx, u) && leader ? leader.id : null;
-      u.ppUsed = Math.max(u.ppUsed, portageOf(ctx, s, u));
-    }
-  } else {
-    for (const id of s.moving) if (!ids.includes(id) && s.units[id]) s.units[id]!.moveDone = true;
-    s.moving = [...ids];
-  }
-  // Squads lose the leader bonus once their leader stops moving with them.
-  for (const u of movers) if (u.withLeader && !ids.includes(u.withLeader)) u.withLeader = null;
+  beginGroup(ctx, s, ids, movers);
 
   const base = moveCost(ctx, from, to);
   const smokeExtra = smokeMf(s, to);
   const fort = fortMoveCost(s, from, to);
   // Getting out of wire costs a die roll of MF; one hex is always possible (§53.4).
   const wire = hasWire(s, from) && !movers.some((u) => u.moved) ? wireExitCost(s, from) : 0;
+  // Units on the upper floor come down the stairs first (§57.3).
+  const stairs = movers.some((u) => isUpper(ctx, s, u)) ? STAIRS_MF : 0;
   const cost = {
-    mf: base.mf + smokeExtra + fort.mf + wire,
-    parts: [...base.parts, ...(smokeExtra ? ['+1 smoke (§24.5)'] : []), ...fort.parts, ...(wire ? [`+${wire} out of the wire (§53.4)`] : [])],
+    mf: base.mf + smokeExtra + fort.mf + wire + stairs,
+    parts: [...(stairs ? [`${stairs} down the stairs (§57.3)`] : []), ...base.parts, ...(smokeExtra ? ['+1 smoke (§24.5)'] : []), ...fort.parts, ...(wire ? [`+${wire} out of the wire (§53.4)`] : [])],
   };
   if (!Number.isFinite(fort.mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}: ${fort.parts.join(', ')}`);
   if (!Number.isFinite(cost.mf)) throw new RuleError(`Cannot enter ${hexLabel(ctx, to)}: ${cost.parts.join(', ')}`);
@@ -127,15 +198,17 @@ export function moveStep(ctx: Ctx, s: GameState, ids: readonly string[], to: Hex
   const unseen =
     !!s.options?.concealedMove &&
     movers.every((u) => u.concealed) &&
-    !Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && (ctx.los(e.hex, from).clear || ctx.los(e.hex, to).clear));
+    !Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && (movers.some((m) => unitSees(ctx, s, e, m)) || unitSeesHex(ctx, s, e, to)));
   if (!ctx.scenario.night && !unseen) reveal(ctx, s, from, emit, 'moved');
   else {
     for (const u of movers) u.hidden = false;
-    const lit = illuminated(s, to) && Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && ctx.los(e.hex, to).clear);
+    const lit = illuminated(s, to) && Object.values(s.units).some((e) => e.side !== s.phasing && !e.broken && unitSeesHex(ctx, s, e, to));
     if (lit) for (const u of movers) u.concealed = false;
   }
   for (const u of movers) {
     u.noConceal = true;
+    // Coming down the stairs, the unit passes through the ground floor of the hex it leaves (§57).
+    if (stairs && isUpper(ctx, s, u)) (s.tracks[u.id] ??= []).push({ hex: from, mf: stairs, open: false });
     u.hex = to;
     u.mfSpent += cost.mf;
     u.moved = true;

@@ -18,6 +18,7 @@ import { RuleError, type GameState, type Unit } from '../types';
 import type { Emit } from './common';
 import { enemyVehiclesIn, preAfvCheck, vehicleLabel } from './armor';
 import { mineAttack, onFire } from './western';
+import { unitSees } from './floors';
 
 export function advance(ctx: Ctx, s: GameState, ids: readonly string[], to: HexKey, emit: Emit): void {
   if (s.phase !== 'advance') throw new RuleError('Units advance only in the Advance Phase', '§4.7');
@@ -70,7 +71,7 @@ function nearestEnemyInLos(ctx: Ctx, s: GameState, u: Unit): Unit | undefined {
   for (const e of allUnits(s)) {
     if (e.side === u.side) continue;
     const r = range(u.hex, e.hex);
-    if (r < bestR && ctx.los(u.hex, e.hex).clear) {
+    if (r < bestR && unitSees(ctx, s, u, e)) {
       best = e;
       bestR = r;
     }

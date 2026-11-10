@@ -1,6 +1,6 @@
 import type { HexKey } from '@squadwar/hex';
 import { colIndex, composeMap, type BoardDef, type GameMap } from '@squadwar/terrain';
-import { bestLos, type LosResult } from '@squadwar/los';
+import { bestLos, checkLos, type LosResult } from '@squadwar/los';
 import type { RulesData, Scenario } from './data';
 import type { SideId } from './types';
 
@@ -13,7 +13,10 @@ export interface Ctx {
   readonly zones: Readonly<Record<SideId, ReadonlySet<HexKey>>>;
   /** Hexes of each objective building, by objective name. */
   readonly objectives: readonly { readonly name: string; readonly building: string; readonly hexes: readonly HexKey[] }[];
+  /** Line of sight between two hexes, from whichever floors give one (§7.9). */
   los(from: HexKey, to: HexKey): LosResult;
+  /** Line of sight between named floors of two hexes (§57); "upper" means nothing in a hex with no upper floor. */
+  losLevel(from: HexKey, fromUpper: boolean, to: HexKey, toUpper: boolean): LosResult;
 }
 
 /** Wheatfields stand from June to October (§44.24). */
@@ -58,6 +61,7 @@ export function makeCtx(scenario: Scenario, data: RulesData, boards: Readonly<Re
     return { name: b.name, building, hexes: map.buildings[building]!.hexes };
   });
   const cache = new Map<string, LosResult>();
+  const levelCache = new Map<string, LosResult>();
   return {
     map,
     data,
@@ -73,6 +77,15 @@ export function makeCtx(scenario: Scenario, data: RulesData, boards: Readonly<Re
       }
       // Results are symmetric for clear/blocked; callers needing direction
       // details (hexside TEM) use losFrom.
+      return r;
+    },
+    losLevel(from, fromUpper, to, toUpper) {
+      const k = `${from}${fromUpper ? '^' : ''}>${to}${toUpper ? '^' : ''}`;
+      let r = levelCache.get(k);
+      if (!r) {
+        r = checkLos(map, { hex: from, upper: fromUpper }, { hex: to, upper: toUpper });
+        levelCache.set(k, r);
+      }
       return r;
     },
   };

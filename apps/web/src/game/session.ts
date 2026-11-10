@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand';
 import type { HexKey } from '@squadwar/hex';
-import { createGame, parseScenario, tryAction, type Action, type Ctx, type GameEvent, type GameOptions, type GameState, type SideId } from '@squadwar/engine';
+import { DEFAULT_OPTIONS, createGame, parseScenario, tryAction, type Action, type Ctx, type GameEvent, type GameOptions, type GameState, type SideId } from '@squadwar/engine';
 import { decide, type Rationale } from '@squadwar/bot';
 import { putGame } from './library';
 import { ctxFor, customScenario, registerScenario, scenarioById } from './scenarios';
@@ -135,7 +135,7 @@ export const useSession = create<SessionState>((set, get) => ({
   selection: { units: [] },
   botBusy: false,
 
-  start(scenarioId, controllers, seed = Math.floor(Math.random() * 2 ** 31), options) {
+  start(scenarioId, controllers, seed = Math.floor(Math.random() * 2 ** 31), options = DEFAULT_OPTIONS) {
     const ctx = ctxFor(scenarioId);
     const first = createGame(ctx, seed, options);
     set({

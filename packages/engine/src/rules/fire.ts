@@ -32,6 +32,7 @@ import { chargeVsVehicles, fireOnExposedCrews, inArc, mgVsHalftracks } from './a
 import { nightSight, noteFlash } from './night';
 import { blastClears, bunkerAt, buildingHit, fireOnLine, fireOnSoftVehicles, fortTem } from './western';
 import type { Emit } from './common';
+import { floorName, floorsOfHex, floorsOn, floorsSeen, isUpper, postOf } from './floors';
 
 export interface FireContribution {
   readonly unit: string;
@@ -213,8 +214,11 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
   for (const h of hexes) {
     if (s.attacks.includes(`${h}>${target}`)) throw new RuleError(`Units in ${hexLabel(ctx, h)} already attacked ${hexLabel(ctx, target)} this phase; units in one hex combine fire on a target`, '§8.5');
     if (h === target) continue;
-    const l = ctx.los(h, target);
-    if (!l.clear) throw new RuleError(`No line of sight from ${hexLabel(ctx, h)}: ${l.reason}`, '§7');
+    // With building floors (§57) each firer needs a line from its own floor: checked below.
+    if (!floorsOn(s)) {
+      const l = ctx.los(h, target);
+      if (!l.clear) throw new RuleError(`No line of sight from ${hexLabel(ctx, h)}: ${l.reason}`, '§7');
+    }
     if (fireOnLine(ctx, s, h, target)) throw new RuleError('A burning hex blocks the line of sight', '§59.7');
     const bk = bunkerAt(s, h);
     if (bk && bk.side === side && !inArc(bk.hex, bk.facing, target)) throw new RuleError('From a bunker, fire only through its covered arc', '§56.3');
@@ -254,17 +258,31 @@ export function analyzeFire(ctx: Ctx, s: GameState, firers: readonly FireUnit[],
   const column = columnFor(totalFp);
   const areaColumn = columnFor(totalFp / 2);
 
+  // Building floors (§57): the attack strikes the units on each floor of the target hex that every firer can see.
+  const posts = floorsOn(s) ? contributions.map((c) => postOf(ctx, s, s.units[c.unit]!)).filter((p, i, all) => all.findIndex((q) => q.hex === p.hex && q.upper === p.upper) === i) : [];
+  const seenFloors = (hex: HexKey) => (floorsOn(s) ? floorsSeen(ctx, s, posts, hex) : undefined);
+  const mainSeen = seenFloors(target);
+  if (mainSeen && !mainSeen.floors.size) throw new RuleError(`No line of sight from ${hexLabel(ctx, mainSeen.from ?? hexes[0]!)}: ${mainSeen.blocked?.reason ?? 'blocked'}`, '§7');
+
   // Targets: main hex plus MG penetration hexes.
   const targets: TargetHex[] = [];
-  const main = targetUnits(ctx, s, side, target, hexes, leaderDrm, false, flamethrower);
+  const main = targetUnits(ctx, s, side, target, hexes, leaderDrm, false, flamethrower, mainSeen?.floors);
   // Crew-exposed AFVs and soft vehicles can be shot at with nobody else there (§34.8, §51.4).
   const exposedCrew = Object.values(s.vehicles).some((v) => v.hex === target && v.side !== side && (v.ce || ['truck', 'jeep'].includes(ctx.data.vehicles[v.type]?.kind ?? '')));
-  if (!main.units.some((t) => s.units[t.unit]!.side !== side) && !exposedCrew) throw new RuleError(`No enemy units to attack in ${hexLabel(ctx, target)}`);
+  if (!main.units.some((t) => s.units[t.unit]!.side !== side) && !exposedCrew) {
+    // Someone is there, but on a floor the firers cannot see.
+    if (mainSeen && mainSeen.floors.size < 2 && targetUnits(ctx, s, side, target, hexes, leaderDrm, false, flamethrower).units.some((t) => s.units[t.unit]!.side !== side)) {
+      const unseen = floorName(!mainSeen.floors.has(true));
+      throw new RuleError(`No line of sight to the enemy in ${hexLabel(ctx, target)}: they are on the ${unseen}, and these firers see only the ${floorName(mainSeen.floors.has(true))}`, '§57.7');
+    }
+    throw new RuleError(`No enemy units to attack in ${hexLabel(ctx, target)}`);
+  }
   targets.push(main);
   for (const h of flamethrower ? [] : penetrationHexes(ctx, s, contributions, hexes, target)) {
-    const t = targetUnits(ctx, s, side, h, hexes, leaderDrm, true, false);
+    const t = targetUnits(ctx, s, side, h, hexes, leaderDrm, true, false, seenFloors(h)?.floors);
     if (t.units.length) targets.push(t);
   }
+  if (mainSeen && mainSeen.floors.size === 1 && floorsOfHex(ctx, s, target).length === 2) trace.push(`Only the ${floorName(mainSeen.floors.has(true))} of ${hexLabel(ctx, target)} is in sight: units on the other floor are not hit (§57.7)`);
 
   trace.push(
     `Firepower: ${contributions
@@ -316,7 +334,18 @@ function fmtFp(x: number): string {
 }
 
 /** Units affected in a target hex and their DRMs (§11, §16.5–16.6, §20.83). */
-export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, firerHexes: readonly HexKey[], leaderDrm: number, penetration: boolean, flamethrower: boolean): TargetHex {
+export function targetUnits(
+  ctx: Ctx,
+  s: GameState,
+  side: SideId,
+  hex: HexKey,
+  firerHexes: readonly HexKey[],
+  leaderDrm: number,
+  penetration: boolean,
+  flamethrower: boolean,
+  /** Building floors (§57): the floors of the hex the firers can see. Units on other floors are not affected. */
+  floors?: ReadonlySet<boolean>,
+): TargetHex {
   const tem = hexTem(ctx, hex);
   const t = ctx.data.tables.tem;
   // Hexside wall/hedge applies only if every firing hex's LOS crosses it (§11.53, §11.6).
@@ -334,19 +363,22 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
   // In a sewer fight (§27.7) only the other side is hit; otherwise fire into a melee hits everyone (§20.83).
   const melee = inMelee(s, hex) && !unitsIn(s, hex).some((x) => x.sewerAssault);
   // Penetrating fire hits friend and foe alike beyond the first target (§17.6).
-  for (const u of unitsIn(s, hex)) if (u.side !== side || melee || penetration) affected.set(u.id, u);
-  // Defensive fire may "move back" enemy units to any hex they entered (§16.1–16.3).
+  const inSight = (upper: boolean) => !floors || floors.has(upper);
+  for (const u of unitsIn(s, hex)) if ((u.side !== side || melee || penetration) && inSight(isUpper(ctx, s, u))) affected.set(u.id, u);
+  // Defensive fire may "move back" enemy units to any hex they entered (§16.1–16.3), on the floor they were on there (§57).
   const tracked = new Set<string>();
   if (s.phase === 'defensiveFire') {
     for (const [id, steps] of Object.entries(s.tracks)) {
       const u = s.units[id];
       if (!u || u.side === side) continue;
-      if (steps.some((st) => st.hex === hex)) {
+      if (steps.some((st) => st.hex === hex && inSight(!!st.upper))) {
         affected.set(id, u);
         tracked.add(id);
       }
     }
   }
+  // A unit struck on the upper floor is above any wall or hedge on the hexside (§57.7).
+  const struckUpstairs = (u: Unit) => !!floors && floors.has(true) && (u.hex === hex ? isUpper(ctx, s, u) : !floors.has(false));
   const units: TargetUnit[] = [];
   // At night, a target seen only by its gun flashes is area fire (§49.2).
   const nightArea = !!ctx.scenario.night && firerHexes.length > 0 && firerHexes.every((f) => nightSight(ctx, s, f, hex) === 'flash');
@@ -394,7 +426,8 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
     }
     const fort = tracked.has(u.id) ? undefined : fortTem(ctx, s, u, hex, firerHexes, flamethrower ? 'ft' : 'fire');
     const baseTem = fort ?? tem;
-    let drm = baseTem.drm + sideDrm + leaderDrm;
+    const hexside = struckUpstairs(u) ? 0 : sideDrm;
+    let drm = baseTem.drm + hexside + leaderDrm;
     const notes: string[] = [];
     if (ftHere) {
       drm -= 1;
@@ -412,7 +445,7 @@ export function targetUnits(ctx: Ctx, s: GameState, side: SideId, hex: HexKey, f
       drm += sh;
       notes.push(`+${sh} gun shield (§48)`);
     }
-    if (sideDrm) notes.push(sideNote);
+    if (hexside) notes.push(sideNote);
     if (leaderDrm) notes.push(`${leaderDrm > 0 ? '+' : ''}${leaderDrm} leader`);
     if (tracked.has(u.id) && isOpenGround(ctx, hex)) {
       drm += t.movingInOpen;

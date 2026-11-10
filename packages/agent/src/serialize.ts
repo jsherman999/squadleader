@@ -16,6 +16,9 @@ import {
   moveCost,
   objectiveStatus,
   OPTIONAL_RULES,
+  floorsOn,
+  hasUpper,
+  isUpper,
   PHASE_NAMES,
   unitLabel,
   weaponType,
@@ -64,6 +67,7 @@ function unitLine(ctx: Ctx, s: GameState, u: Unit, own: boolean): string {
     if (u.directed) notes.push('has directed fire');
     if (u.advanced) notes.push('advanced');
     if (u.concealed) notes.push('concealed');
+    if (floorsOn(s) && hasUpper(ctx, s, u.hex)) notes.push(isUpper(ctx, s, u) ? 'on the UPPER floor' : 'on the ground floor (building has an upper floor)');
     if (u.hidden) notes.push('hidden: the enemy has not seen it yet');
     if (u.riding) notes.push(`riding ${u.riding}`);
     if (u.smokeMade) notes.push('laid smoke this turn');

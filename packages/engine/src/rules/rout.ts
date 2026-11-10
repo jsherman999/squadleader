@@ -29,6 +29,7 @@ import {
 } from '../queries';
 import { RuleError, type GameState, type Unit } from '../types';
 import { eliminate, type Emit } from './common';
+import { unitSees } from './floors';
 
 export function mustRout(ctx: Ctx, s: GameState, u: Unit): boolean {
   if (!u.broken || u.routed) return false;
@@ -55,7 +56,7 @@ function normalRange(ctx: Ctx, s: GameState, e: Unit): number {
 /** Legal rout plans for a unit, cheapest first. Empty means the unit cannot rout. */
 export function routOptions(ctx: Ctx, s: GameState, u: Unit): RoutPlan[] {
   const enemies = allUnits(s).filter((e) => e.side !== u.side);
-  const known = enemies.filter((e) => ctx.los(e.hex, u.hex).clear);
+  const known = enemies.filter((e) => unitSees(ctx, s, e, u));
   const shooters = enemies.filter((e) => !e.broken && normalRange(ctx, s, e) > 0).map((e) => ({ hex: e.hex, r: normalRange(ctx, s, e) }));
   const mfMax = isLeader(ctx, u) ? ctx.data.tables.movement.leaderMF : ctx.data.tables.movement.squadMF;
 

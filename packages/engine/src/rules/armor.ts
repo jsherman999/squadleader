@@ -18,6 +18,7 @@ import { applyHexResults, moraleOf } from './morale';
 import { canOperateSpecial, reveal, smokeAt, smokeOnLine } from './special';
 import { nightSight, noteFlash } from './night';
 import { carryRiders, dismountAll, gunCrew } from './transport';
+import { floorName, floorsOn, floorsSeen, unitSeesHex } from './floors';
 import { buildingHit, fireOnLine, fireOnSoftVehicles, fortTem, hasWire, inTrench, mineVsVehicle, onFire, roadblockBetween, rubbled, vehicleWire } from './western';
 
 export const FACING_NAMES = ['N-NE', 'NE-SE', 'SE-S', 'S-SW', 'SW-NW', 'NW-N'] as const;
@@ -617,7 +618,10 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   if (v.overran) throw new RuleError('An AFV that overran may not fire this player turn', '§35.9');
   if (!ctx.map.hexes[req.target]) throw new RuleError('Not on the map');
   const r = range(v.hex, req.target);
-  if (r > 0 && !ctx.los(v.hex, req.target).clear) throw new RuleError(`No line of sight: ${ctx.los(v.hex, req.target).reason}`, '§7');
+  // Vehicles and guns are on the ground (§57.6); with building floors, what they can hit is what they see of each floor of the target hex.
+  const seen = floorsOn(s) && r > 0 ? floorsSeen(ctx, s, [{ hex: v.hex, upper: false }], req.target) : undefined;
+  if (seen ? !seen.floors.size : r > 0 && !ctx.los(v.hex, req.target).clear) throw new RuleError(`No line of sight: ${(seen?.blocked ?? ctx.los(v.hex, req.target)).reason}`, '§7');
+  if (seen && req.vs && !seen.floors.has(false)) throw new RuleError('No line of sight to the vehicle: only the upper floor of that hex is in view', '§57.7');
   if (r > 1 && fireOnLine(ctx, s, v.hex, req.target)) throw new RuleError('A burning hex blocks the line of sight', '§59.7');
   if (t.kind === 'mortar') {
     if (r < (t.minRange ?? 10) || r > (t.maxRange ?? 60)) throw new RuleError(`Mortars fire at ${t.minRange ?? 10}–${t.maxRange ?? 60} hexes`, '§63.21');
@@ -629,8 +633,12 @@ export function analyzeVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   const trace: string[] = [];
   const dfMoving = (hex: HexKey) => s.phase === 'defensiveFire' && Object.entries(s.tracks).some(([id, steps]) => s.units[id] && s.units[id]!.side !== v.side && steps.some((st) => st.hex === hex));
   const infantryHere = () => {
-    const there = targetUnits(ctx, s, v.side, req.target, [v.hex], 0, false, false);
-    if (!there.units.some((x) => s.units[x.unit]?.side !== v.side)) throw new RuleError('No enemy infantry there (pick a vehicle to shoot at instead)');
+    const there = targetUnits(ctx, s, v.side, req.target, [v.hex], 0, false, false, seen?.floors);
+    if (!there.units.some((x) => s.units[x.unit]?.side !== v.side)) {
+      if (seen && seen.floors.size < 2 && targetUnits(ctx, s, v.side, req.target, [v.hex], 0, false, false).units.some((x) => s.units[x.unit]?.side !== v.side))
+        throw new RuleError(`No line of sight to the infantry there: they are on the ${floorName(!seen.floors.has(true))}, out of view`, '§57.7');
+      throw new RuleError('No enemy infantry there (pick a vehicle to shoot at instead)');
+    }
     return there.units;
   };
   if (t.kind === 'gun' && !gunCrew(ctx, s, v)) throw new RuleError('Only its crew can fire an AT gun', '§48.8');
@@ -984,7 +992,7 @@ export function analyzeAntiTank(ctx: Ctx, s: GameState, ids: readonly string[], 
   const u = us[0]!;
   if (u.firedPhase && u.firedPhase !== s.phase) throw new RuleError('All of a unit’s fire is in one phase', 'Q&A 8.2');
   const kind = weaponType(ctx, w).kind;
-  if (r > 0 && !ctx.los(hex, v.hex).clear) throw new RuleError('No line of sight', '§7');
+  if (r > 0 && !(floorsOn(s) ? us.every((u) => unitSeesHex(ctx, s, u, v.hex)) : ctx.los(hex, v.hex).clear)) throw new RuleError('No line of sight', '§7');
   if (nightSight(ctx, s, hex, v.hex, v.moved) === 'none') throw new RuleError('Too dark to see it', '§49.1');
   const aspect = hitAspect(v, hex);
   if (kind === 'FT') {

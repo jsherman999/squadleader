@@ -508,3 +508,10 @@
     text-decoration: none;
   }
 }
+
+/* A unit on the upper floor of a building (§57): its tag in the stack list is inked in. */
+:is(.ribbon, .side-right, .dock-box) .tag.floor-up {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}

@@ -37,7 +37,7 @@ Deviations from this plan so far:
 - **Sound is synthesised** with the Web Audio API instead of Howler.js and sample files (ADR 0007).
 - **Semi-simultaneous movement** (the optional §16 rule) is not used; Standing Orders apply to the normal Defensive Fire Phase. Economy mode's routine phases are always played by the scripted AI.
 - **Design Your Own** uses original charts and buys the attacker's force automatically (see rulings); the rulebook's charts are not reproduced.
-- **Upper building levels (§57)** are not modelled.
+- **Upper building levels (§57)** are an option, on by default for new games (see `rulings.md` for where it departs from the rulebook).
 
 ## Contents
 
@@ -692,7 +692,7 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | 7 | *Night at Lyutezh*: Lyutezh bridgehead, Nov 1943 (built in M10) | §49 night | Country C |
 | 8 | *Causeway*: Carentan, Jun 1944 (built in M11) | §50–52 Americans, trucks, jeeps | Country E |
 | 9 | *The Fort*: Metz forts, Oct 1944 (built in M11) | §53–56 wire, entrenchments, minefields, bunkers | City B |
-| 10 | *Rubble*: Brest, Sep 1944 (built in M11) | §58–59 rubble, fire (§57 upper levels not modelled) | City A |
+| 10 | *Rubble*: Brest, Sep 1944 (built in M11) | §58–59 rubble, fire | City A |
 | 11 | *Boats on the Waal*: Nijmegen, Sep 1944 (built in M11) | §60 river crossing | Country D |
 | 12 | *Twin Villages in the Snow*: Krinkelt, Dec 1944 (built in M11) | §61–63 snow, roadblocks, on-board artillery | Country C |
 

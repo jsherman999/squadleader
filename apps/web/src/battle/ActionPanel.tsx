@@ -1,5 +1,9 @@
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
 import {
+  STAIRS_MF,
+  floorsOn,
+  hasUpper,
+  isUpper,
   analyzeFire,
   fireOdds,
   autoPlan,
@@ -150,6 +154,42 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
         <button className="btn tiny" onClick={() => setPick(undefined)}>
           Cancel
         </button>
+      </Row>,
+    );
+  }
+  // Building floors (§57): the selected units go up or down the stairs.
+  if (floorsOn(s) && units.length > 0 && (s.phase === 'setup' || s.phase === 'movement' || s.phase === 'advance') && units.every((u) => u.hex === units[0]!.hex) && hasUpper(ctx, s, units[0]!.hex)) {
+    const up = units.filter((u) => isUpper(ctx, s, u));
+    const down = units.filter((u) => !isUpper(ctx, s, u));
+    const cost = s.phase === 'setup' ? 'free' : s.phase === 'movement' ? `${STAIRS_MF} MF` : 'their advance';
+    const errors: string[] = [];
+    const stairs = (list: typeof units, upper: boolean) => {
+      const a: Action = { type: 'floor', units: list.map((u) => u.id), upper };
+      const r = tryAction(ctx, s, a);
+      if (!r.ok) errors.push(r.error);
+      return (
+        <button key={String(upper)} className="btn tiny" disabled={!r.ok} title={r.ok ? undefined : r.error} onClick={() => dispatch(a)}>
+          {upper ? '▲ Go upstairs' : '▼ Go downstairs'}
+          {list.length < units.length ? ` (${list.length})` : ''} · {cost}
+        </button>
+      );
+    };
+    const btns = [down.length > 0 && stairs(down, true), up.length > 0 && stairs(up, false)];
+    rows.push(
+      <Row
+        key="floor"
+        stacked
+        text={`Floors in ${hexId(units[0]!.hex)}: ${up.length ? `${up.length} upstairs` : ''}${up.length && down.length ? ', ' : ''}${down.length ? `${down.length} on the ground floor` : ''}`}
+        why={
+          errors[0] ??
+          (s.phase === 'setup'
+            ? 'This building has two floors. Upstairs, units see over the walls, hedges, woods and small buildings around it, and are seen from as far; on the ground floor they are out of that view.'
+            : s.phase === 'movement'
+              ? `The stairs cost ${STAIRS_MF} MF. A unit that uses them counts as moving on that floor: if the enemy can see it, he may fire on the unit there in his Defensive Fire. Leaving the hex from upstairs costs the stairs too.`
+              : 'Taking the stairs is these units’ advance. It draws no defensive fire.')
+        }
+      >
+        {btns}
       </Row>,
     );
   }
@@ -453,8 +493,17 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
       return (
         <Hint>
           Select units, then click a hex in your setup area (shaded) to place them. End the phase when ready.
+          {floorsOn(s) && Object.values(s.units).some((u) => u.side === side && hasUpper(ctx, s, u.hex)) && (
+            <span>
+              Buildings of three or more hexes have two floors. Units start on the ground floor: select them and use Go upstairs to give them the upper floor’s view (and let the enemy see them from
+              as far).
+            </span>
+          )}
           {Object.values(s.vehicles).some((v) => v.side === side) && (
-            <span>To turn a gun or vehicle, click its hex a second time (or tick it in the list for that hex), then use Turn left and Turn right. The shaded wedge on the map is where it points.</span>
+            <span>
+              To turn a gun or vehicle, click its hex a second time (or tick it in the list for that hex), then use Turn left and Turn right. The shaded wedge on the map is where it points. A
+              further click lets go of the hex.
+            </span>
           )}
           {notes && <span className="faint">{notes}</span>}
         </Hint>
@@ -557,7 +606,7 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
       return (
         <Hint>
           Select units in one hex, then click where to go. The path shows MF used; squads moving with a leader the whole way get +2 MF. To move onto a hex that already holds your units,
-          shift-click it (on a touch screen, press and hold it).
+          shift-click it (on a touch screen, press and hold it). To let go of a stack without moving it, click it again or use Deselect.
           {selectedHex && (
             <button className="btn tiny" onClick={() => dispatch({ type: 'endMove', units: Object.values(s.units).filter((u) => u.hex === selectedHex && u.side === side).map((u) => u.id) })}>
               Done moving here

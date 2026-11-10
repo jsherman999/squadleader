@@ -338,6 +338,8 @@ function drawCounter(ctx: Ctx, s: GameState, u: Unit, nation: Nation, selected: 
   if (u.concealed) badges.push(['?', 0x6a5a9e]);
   if (u.riding) badges.push(['R', 0x2f6b4f]);
   if (u.hidden) badges.push(['H', 0x444444]);
+  // On the upper floor of a multi-storey building (§57).
+  if (u.upstairs === u.hex) badges.push(['▲', 0x7a5a1e]);
   badges.forEach(([b, color], i) => {
     const bg2 = new Graphics();
     bg2.roundRect(CS - 6, 4 + i * 11, b.length > 1 ? 15 : 10, 10, 2).fill(color);

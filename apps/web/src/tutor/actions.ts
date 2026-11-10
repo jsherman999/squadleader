@@ -14,6 +14,8 @@ export function actionSummary(ctx: Ctx, s: GameState, a: Action): string {
       return `Fire at ${hexLabel(ctx, a.target)}`;
     case 'advance':
       return `${units(a.units)} advance → ${hexLabel(ctx, a.to)}`;
+    case 'floor':
+      return `${units(a.units)} ${a.upper ? 'go upstairs' : 'come downstairs'}`;
     case 'rally':
       return `Rally ${units([a.unit])}`;
     case 'repair':
@@ -76,6 +78,7 @@ export function actionUnits(a: Action | undefined): string[] {
     case 'move':
     case 'endMove':
     case 'advance':
+    case 'floor':
       return [...a.units];
     case 'fire':
       return a.firers.map((f) => f.unit);

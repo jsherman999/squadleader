@@ -13,6 +13,9 @@ import {
   moveCost,
   phaseBlockers,
   sideUnitsIn,
+  floorsOn,
+  hasUpper,
+  isUpper,
   type Exposure,
   type GameState,
   type Threat,
@@ -416,7 +419,13 @@ function Battle() {
   const ownDanger = useMemo(() => {
     if (!threat) return undefined;
     const out = new Map<HexKey, Exposure>();
-    for (const u of Object.values(fog.s.units)) if (u.side === dangerSide && !u.riding && !out.has(u.hex)) out.set(u.hex, exposureAt(ctx, fog.s, dangerSide, u.hex, false));
+    // Each stack where it stands, on the floor it is on (§57); with units on both floors of a hex, the worse of the two.
+    for (const u of Object.values(fog.s.units)) {
+      if (u.side !== dangerSide || u.riding) continue;
+      const e = exposureAt(ctx, fog.s, dangerSide, u.hex, false, isUpper(ctx, fog.s, u));
+      const had = out.get(u.hex);
+      if (!had || e.pBreak > had.pBreak) out.set(u.hex, e);
+    }
     return out;
   }, [threat, ctx, fog.s, dangerSide]);
   const planScore = useMemo(() => {
@@ -546,10 +555,14 @@ function Battle() {
     const enemies = Object.values(s.units).filter((u) => u.side !== side);
     const from = parseHexKey(povHex);
     const nearest = enemies.sort((x, y) => hexDistance(from, parseHexKey(x.hex)) - hexDistance(from, parseHexKey(y.hex)))[0];
-    const visible = viewshed(map, povHex);
+    // With building floors (§57) the view is from the floor these units are on, of whatever floors of other hexes it reaches.
+    const floors = floorsOn(s);
+    const upper = floors ? here.some((u) => isUpper(ctx, s, u)) : canBeUpper(map, povHex);
+    const visible = floors
+      ? new Set(Object.keys(map.hexes).filter((k) => k !== povHex && (ctx.losLevel(povHex, upper, k, false).clear || (hasUpper(ctx, s, k) && ctx.losLevel(povHex, upper, k, true).clear))))
+      : viewshed(map, povHex);
     visible.add(povHex);
-    const seen = new Set(enemies.filter((u) => visible.has(u.hex)).map((u) => u.hex)).size;
-    const upper = canBeUpper(map, povHex);
+    const seen = new Set(enemies.filter((u) => (floors ? u.hex === povHex || ctx.losLevel(povHex, upper, u.hex, isUpper(ctx, s, u)).clear : visible.has(u.hex))).map((u) => u.hex)).size;
     return {
       hex: povHex,
       upper,
@@ -557,9 +570,9 @@ function Battle() {
       side,
       ...(nearest ? { lookAt: hexToPixel(parseHexKey(nearest.hex)) } : {}),
       title: `Eyes of ${who} · ${map.hexes[povHex]!.id}`,
-      detail: `${upper ? 'Upper level' : 'Ground level'} · ${seen} enemy-held ${seen === 1 ? 'hex' : 'hexes'} in sight`,
+      detail: `${upper ? 'Upper floor' : 'Ground floor'} · ${seen} enemy-held ${seen === 1 ? 'hex' : 'hexes'} in sight`,
     };
-  }, [povHex, map, ctx, s.units, s.vehicles, selVehicle]);
+  }, [povHex, map, ctx, s, selVehicle]);
 
   const ownIn = useCallback((h: HexKey) => selectable(s, sideUnitsIn(s, h, s.awaiting).map((u) => u.id)), [s]);
 
@@ -615,6 +628,13 @@ function Battle() {
           setVtarget(h);
           return;
         }
+      }
+      // Clicking the selected hex again lets go of it: there is no other way to deselect on a touch screen,
+      // where a click anywhere else is an order. (With a gun or vehicle in the hex, that is picked first.)
+      if (!p.shift && sel.hex === h && (selVehicle?.hex === h || (selUnits.length > 0 && !myVehicle))) {
+        setVsel(undefined);
+        session.select(undefined, []);
+        return;
       }
       // A gun or vehicle is picked by clicking its hex; where your infantry (a gun's crew) is there too,
       // the first click picks the infantry and a second click on the same hex picks the gun or vehicle.
@@ -1134,7 +1154,19 @@ function Battle() {
           )}
           {sel.hex && (
             <>
-              <h3 className="panel-h">{map.hexes[sel.hex]?.id}</h3>
+              <div className="log-head">
+                <h3 className="panel-h">{map.hexes[sel.hex]?.id}</h3>
+                <button
+                  className="btn tiny ghost"
+                  title="Let go of the selection (Esc, or click the hex again)"
+                  onClick={() => {
+                    setVsel(undefined);
+                    session.select(undefined, []);
+                  }}
+                >
+                  Deselect
+                </button>
+              </div>
               <StackPanel
                 ctx={ctx}
                 s={fog.s}

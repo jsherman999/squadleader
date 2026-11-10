@@ -1,5 +1,5 @@
 import { DIRECTIONS, hexKey, neighbor, parseHexKey, type HexKey } from '@squadwar/hex';
-import { enemiesIn, mfLeft, moveCost, vehicleStepCost, vehicleType, type Ctx, type GameState } from '@squadwar/engine';
+import { STAIRS_MF, enemiesIn, isUpper, mfLeft, moveCost, vehicleStepCost, vehicleType, type Ctx, type GameState } from '@squadwar/engine';
 
 export interface PathStep {
   readonly hex: HexKey;
@@ -15,7 +15,9 @@ export function groupPath(ctx: Ctx, s: GameState, units: readonly string[], to: 
   const from = us[0]!.hex;
   const left = Math.min(...us.map((u) => mfLeft(ctx, s, u)));
   const side = us[0]!.side;
-  const dist = new Map<HexKey, number>([[from, 0]]);
+  // Units on an upper floor come down the stairs before they leave the hex (§57.3).
+  const stairs = us.some((u) => isUpper(ctx, s, u)) ? STAIRS_MF : 0;
+  const dist = new Map<HexKey, number>([[from, stairs]]);
   const prev = new Map<HexKey, HexKey>();
   const open = [from];
   const done = new Set<HexKey>();
@@ -44,7 +46,7 @@ export function groupPath(ctx: Ctx, s: GameState, units: readonly string[], to: 
   let total = 0;
   let at = from;
   const path = hexes.map((h) => {
-    const mf = moveCost(ctx, at, h).mf;
+    const mf = moveCost(ctx, at, h).mf + (at === from ? stairs : 0);
     total += mf;
     at = h;
     return { hex: h, mf, total };

@@ -16,6 +16,7 @@ import { applyHexResults } from './morale';
 import { reveal } from './special';
 import { destroyVehicle, heEquivalent, iftColumn, vehicleLabel, vehicleType } from './armor';
 import { blastClears, buildingHit, fortTem } from './western';
+import { unitSeesAnyFloor } from './floors';
 
 /** Calibre and fire missions for each scenario module, rolled at the start where not given (§45.2–45.21). */
 export function setupBatteries(ctx: Ctx, s: GameState): void {
@@ -73,7 +74,7 @@ function battery(s: GameState, id: string): Battery {
 export function observes(ctx: Ctx, s: GameState, leader: Unit, hex: HexKey): boolean {
   if (leader.hex === hex) return true;
   if (s.smoke.some((x) => x.hex === hex)) return false;
-  return ctx.los(leader.hex, hex).clear;
+  return unitSeesAnyFloor(ctx, s, leader, hex);
 }
 
 /** Rally Phase: establish (or maintain, −2) radio contact (§46.11–46.12). A 12 breaks the radio (§46.81). */

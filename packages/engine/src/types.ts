@@ -87,6 +87,11 @@ export interface Unit {
   debarked?: boolean;
   /** Fired from a halftrack: open to fire at +2 until the next enemy fire phase ends (§47.7). */
   exposed?: boolean;
+  /**
+   * The hex in which the unit is on the upper floor of a multi-storey building (§57). It is upstairs
+   * only while this is its own hex, so leaving the hex by any means puts it back on the ground.
+   */
+  upstairs?: HexKey;
 }
 
 /** A tank or self-propelled gun (§28). JSON-serializable. */
@@ -222,6 +227,8 @@ export interface TrackStep {
   readonly open: boolean;
   /** Came up out of a sewer into an enemy-held entrance: no terrain modifiers, −2 (§27.7A). */
   readonly sewer?: boolean;
+  /** The unit was on the upper floor of the hex at this point (§57). */
+  readonly upper?: boolean;
 }
 
 /** A demolition charge placed on a hex (§23). */
@@ -268,12 +275,25 @@ export interface GameOptions {
   readonly concealedMove?: boolean;
   /** §59.1: fires start and spread in woods and wheatfields from June to October. */
   readonly woodsFires?: boolean;
+  /**
+   * §57: units in multi-storey buildings are on the ground floor or the upper floor, and see and are seen
+   * from that floor only. Without it (games saved before the rule) either floor counts, whichever gives a line.
+   */
+  readonly floors?: boolean;
 }
 
 export const OPTIONAL_RULES: readonly { readonly id: keyof GameOptions; readonly rule: string; readonly text: string }[] = [
   { id: 'concealedMove', rule: '§25.4', text: 'Concealed units that move stay concealed as long as no enemy unit can see any hex they move through.' },
   { id: 'woodsFires', rule: '§59.1', text: 'From June to October, flamethrowers and high explosive can set woods and wheatfields alight, and fires spread through them.' },
+  {
+    id: 'floors',
+    rule: '§57',
+    text: 'In buildings of three or more hexes, units are on the ground floor or the upper floor and see, and are seen, from that floor only. Changing floor costs 2 MF, or is the unit’s advance.',
+  },
 ];
+
+/** Rules that are on unless a new game turns them off. */
+export const DEFAULT_OPTIONS: GameOptions = { floors: true };
 
 export interface GameState {
   readonly v: 1;
@@ -365,6 +385,8 @@ export type Action =
   | { readonly type: 'transfer'; readonly weapon: string; readonly to: string | null }
   | { readonly type: 'rout'; readonly unit: string; readonly to?: HexKey }
   | { readonly type: 'advance'; readonly units: readonly string[]; readonly to: HexKey }
+  /** Go up or down the stairs of a multi-storey building hex (§57): in setup, the Movement Phase (2 MF) or as the advance. */
+  | { readonly type: 'floor'; readonly units: readonly string[]; readonly upper: boolean }
   | { readonly type: 'closeCombat'; readonly hex: HexKey; readonly attacks: readonly CloseCombatAttack[] }
   /** Assault engineers lay smoke, first thing in Prep Fire (§24.2–24.3). */
   | { readonly type: 'smoke'; readonly unit: string; readonly hex: HexKey }

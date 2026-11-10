@@ -11,7 +11,7 @@ import { artilleryOrder, radioContact, setupBatteries } from './rules/artillery'
 import { board, pushGun, unload } from './rules/transport';
 import { dig, edgeHexes, enterMap, setupFortifications, setupLanding } from './rules/western';
 import { antiTank, discharge, faceVehicle, facingIndex, newVehicle, resolveVehicleFire, vehicleLabel, vehicleMove, vehicleRepair, vehicleStop } from './rules/armor';
-import { endMove, moveStep, transferWeapon } from './rules/movement';
+import { changeFloor, endMove, moveStep, transferWeapon } from './rules/movement';
 import { rallyAttempt, repairAttempt } from './rules/rally';
 import { doRout } from './rules/rout';
 import { suddenDeath } from './rules/victory';
@@ -261,10 +261,15 @@ export function applyAction(ctx: Ctx, state: GameState, action: Action): Step {
     case 'starshell':
       fireStarshell(ctx, s, action.unit, action.hex, emit);
       break;
+    case 'floor':
+      changeFloor(ctx, s, action.units, action.upper, emit);
+      break;
     case 'endPhase':
       endPhase(ctx, s, emit);
       break;
   }
+  // A unit is upstairs only in the hex where it climbed the stairs (§57): wherever it has gone since, it is on the ground.
+  for (const u of Object.values(s.units)) if (u.upstairs && u.upstairs !== u.hex) delete u.upstairs;
   suddenDeath(ctx, s, emit);
   return { state: s, events };
 }
@@ -281,8 +286,8 @@ export function tryAction(ctx: Ctx, state: GameState, action: Action): TryResult
 }
 
 /** Re-create a game from its seed and action log (saves, replays, undo). */
-export function replay(ctx: Ctx, seed: number, actions: readonly Action[]): { state: GameState; events: GameEvent[]; steps: Step[] } {
-  let step = createGame(ctx, seed);
+export function replay(ctx: Ctx, seed: number, actions: readonly Action[], options?: GameOptions): { state: GameState; events: GameEvent[]; steps: Step[] } {
+  let step = createGame(ctx, seed, options);
   const events: GameEvent[] = [...step.events];
   const steps: Step[] = [step];
   for (const a of actions) {

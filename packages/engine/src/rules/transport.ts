@@ -6,6 +6,7 @@ import { directionTo, parseHexKey, type HexKey } from '@squadwar/hex';
 import type { Ctx } from '../ctx';
 import { carried, enemiesIn, hexLabel, isLeader, moveCost, range, squadType, unitLabel } from '../queries';
 import { RuleError, type GameState, type Unit, type Vehicle } from '../types';
+import { isUpper } from './floors';
 import type { Emit } from './common';
 import { enemyVehiclesIn, mpLeft, vehicleLabel, vehicleType } from './armor';
 
@@ -15,7 +16,8 @@ export function riders(s: GameState, v: Vehicle): Unit[] {
 
 /** A crew (or squad, for pushing) in the gun's hex that has not moved or fired. */
 export function gunCrew(ctx: Ctx, s: GameState, gun: Vehicle): Unit | undefined {
-  return Object.values(s.units).find((u) => u.hex === gun.hex && u.side === gun.side && !u.broken && !u.riding && ctx.data.units[u.type]?.kind === 'crew');
+  // The gun is on the ground floor (§57.6): a crew that has gone upstairs is not serving it.
+  return Object.values(s.units).find((u) => u.hex === gun.hex && u.side === gun.side && !u.broken && !u.riding && ctx.data.units[u.type]?.kind === 'crew' && !isUpper(ctx, s, u));
 }
 
 /** Infantry in the vehicle's hex climb on; the vehicle may not move this turn (§31.1–31.3). */

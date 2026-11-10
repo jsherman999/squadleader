@@ -33,7 +33,8 @@ export type OrderType =
   | 'unload'
   | 'push_gun'
   | 'enter'
-  | 'dig';
+  | 'dig'
+  | 'floor';
 
 export interface Order {
   readonly type: OrderType;
@@ -53,6 +54,7 @@ export interface Order {
   readonly op?: 'request' | 'correct' | 'ffe' | 'move' | 'cancel';
   readonly smoke?: boolean;
   readonly work?: 'entrench' | 'wire' | 'mines';
+  readonly floor?: 'upper' | 'ground';
   readonly goal?: string;
   readonly reason?: string;
 }
@@ -95,6 +97,7 @@ const ORDER_TYPES: readonly OrderType[] = [
   'push_gun',
   'enter',
   'dig',
+  'floor',
 ];
 const MG = new Set(['LMG', 'MMG', 'HMG']);
 
@@ -119,6 +122,12 @@ export function orderSchema(): Record<string, unknown> {
       op: { type: 'string', enum: ['request', 'correct', 'ffe', 'move', 'cancel'], description: 'artillery: request fire, correct the spotting round, fire for effect, move the fire for effect, or call it off.' },
       smoke: { type: 'boolean', description: 'artillery ffe: smoke instead of HE.' },
       work: { type: 'string', enum: ['entrench', 'wire', 'mines'], description: 'dig (Prep Fire, instead of firing): dig in, cut wire in its own hex, or clear mines in or next to its hex (target).' },
+      floor: {
+        type: 'string',
+        enum: ['upper', 'ground'],
+        description:
+          'floor: send units (same hex, in a building of 3+ hexes) to that floor. Movement Phase: 2 MF, and the enemy may fire on them on that floor in Defensive Fire if he sees it. Advance Phase: it is their advance, with no defensive fire.',
+      },
       goal: { type: 'string', description: 'One short line: what this order is trying to achieve.' },
       reason: { type: 'string', description: 'Why this order, with the numbers or rules that decided it.' },
     },
@@ -344,6 +353,11 @@ export function executeOrder(env: GameEnv, side: string, o: Order): OrderResult 
       const r = env.apply({ type: 'enter', units: o.units, hex: t }, n);
       return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
     }
+    case 'floor': {
+      if (!o.units?.length || !o.floor) return fail('floor needs units and floor ("upper" or "ground")');
+      const r = env.apply({ type: 'floor', units: o.units, upper: o.floor === 'upper' }, n);
+      return r.ok ? { ok: true, text: texts(r.events) } : fail(r.error);
+    }
     case 'dig': {
       if (!o.unit || !o.work) return fail('dig needs unit and work');
       let t: HexKey | undefined;
@@ -409,6 +423,8 @@ export function actionToOrder(ctx: Ctx, a: Action): Order | undefined {
       return { type: 'enter', units: a.units, target: hexId(ctx, a.hex) };
     case 'dig':
       return { type: 'dig', unit: a.unit, work: a.work, ...(a.hex ? { target: hexId(ctx, a.hex) } : {}) };
+    case 'floor':
+      return { type: 'floor', units: a.units, floor: a.upper ? 'upper' : 'ground' };
     case 'move':
       return { type: 'move', units: a.units, path: [hexId(ctx, a.to)] };
     case 'endMove':

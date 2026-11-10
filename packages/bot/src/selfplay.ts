@@ -1,6 +1,7 @@
 import { rawBoards, rawRules, rawScenarios } from '@squadwar/content';
 import { parseBoard } from '@squadwar/terrain';
 import {
+  DEFAULT_OPTIONS,
   allUnits,
   createGame,
   makeCtx,
@@ -10,6 +11,7 @@ import {
   tryAction,
   type Action,
   type Ctx,
+  type GameOptions,
   type GameState,
 } from '@squadwar/engine';
 import { chooseAction } from './bot';
@@ -55,8 +57,8 @@ export interface SelfPlayResult {
 }
 
 /** Bot vs bot to the end of the game. */
-export function selfPlay(ctx: Ctx, seed: number, maxActions = 6000): SelfPlayResult {
-  let s = createGame(ctx, seed).state;
+export function selfPlay(ctx: Ctx, seed: number, maxActions = 6000, options: GameOptions = DEFAULT_OPTIONS): SelfPlayResult {
+  let s = createGame(ctx, seed, options).state;
   const log: Action[] = [];
   const problems: string[] = [];
   for (let i = 0; i < maxActions && s.phase !== 'gameOver'; i++) {
