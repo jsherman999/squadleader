@@ -494,7 +494,7 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
         const more = addUnits ? groupCandidates(ctx, s, selected) : [];
         return (
           <Hint>
-            Click an enemy hex{s.phase === 'defensiveFire' ? ' (or a hex an enemy moved through, marked with dots)' : ''} to see the odds.
+            Click an enemy hex{s.phase === 'defensiveFire' ? ' (or a ringed hex an enemy moved through)' : ''} to see the odds.
             {more.length > 0 && (
               <span className="suggest">
                 Add to the fire group:
