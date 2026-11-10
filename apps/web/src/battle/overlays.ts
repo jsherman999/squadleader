@@ -198,8 +198,30 @@ export function drawWestern(pen: Pen, ctx: Ctx, s: GameState, snowWash = true): 
   }
 }
 
-export function drawObjectives(pen: Pen, ctx: Ctx): void {
-  for (const o of ctx.objectives) for (const h of o.hexes) hexOutline(pen, parseHexKey(h), 0xf0c66b, 0.55, 2, 0.1);
+/**
+ * Objective buildings: a gold outline round each hex, and a numbered marker
+ * with the building's name on its topmost hex. The numbers match the
+ * Objectives list; `focus` lights one building up (picked from that list).
+ */
+export function drawObjectives(pen: Pen, ctx: Ctx, focus?: string, s?: GameState): void {
+  const busy = new Set(s ? Object.values(s.units).map((u) => u.hex) : []);
+  ctx.objectives.forEach((o, i) => {
+    const on = focus === o.name;
+    for (const h of o.hexes) {
+      if (on) hexFill(pen, parseHexKey(h), 0xf0c66b, 0.32, 0.04);
+      hexOutline(pen, parseHexKey(h), 0xf0c66b, on ? 1 : 0.55, on ? 4.5 : 2, 0.1);
+    }
+    // On the top edge of the building's highest hex that leaves room for the name on the board, an empty one if there is one.
+    const byHeight = [...o.hexes].sort((a, b) => at(a).y - at(b).y || at(a).x - at(b).x);
+    const fits = byHeight.filter((h) => at(h).y - 1.05 >= ctx.map.bounds.y0);
+    const pick = fits.find((h) => !busy.has(h)) ?? fits[0] ?? byHeight[0];
+    const top = pick ? at(pick) : undefined;
+    if (!top) return;
+    const p = { x: top.x, y: top.y - 0.6 };
+    pen.circle(p, on ? 13 : 11, { color: 0x1c1a12, alpha: 0.95 }, { width: 2, color: 0xf0c66b });
+    pen.text(p, String(i + 1), { size: on ? 15 : 13, color: 0xf0c66b });
+    pen.text({ x: p.x, y: p.y - 0.36 }, o.name, { size: on ? 14 : 12, color: 0xffe9b0 });
+  });
 }
 
 export function drawSelection(pen: Pen, sel: HexKey | undefined, target: HexKey | undefined, groupHexes: readonly HexKey[]): void {

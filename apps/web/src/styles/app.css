@@ -110,6 +110,10 @@ button {
 .board-host {
   position: absolute;
   inset: 0;
+  /* Press and hold on the map is a game gesture, not text selection. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .hud-bottom-left {
   position: absolute;
@@ -596,6 +600,11 @@ kbd {
   font-size: 12px;
   padding: 3px 8px;
   border-radius: 10px;
+}
+.phasing.acting,
+.topbar-title .tt-narrow,
+.ph-short {
+  display: none;
 }
 .awaiting.you {
   background: #3b4a2a;
@@ -1452,7 +1461,7 @@ kbd {
     overflow: hidden;
   }
 
-  /* Battle: map, then actions and log, then turn/phase/objectives. */
+  /* Battle: map, the turn and phase strip, actions and log, then objectives and losses. */
   .battle,
   .review {
     display: flex;
@@ -1463,7 +1472,7 @@ kbd {
     order: 1;
   }
   .side-right {
-    order: 2;
+    order: 3;
     overflow: visible;
     border-left: none;
     border-top: 1px solid var(--c-line);
@@ -1472,45 +1481,121 @@ kbd {
   .log {
     max-height: 60vh;
   }
+  /* The ribbon's sections become items of the page column, so they can sit apart. */
   .ribbon {
-    order: 3;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 0 14px;
-    overflow: visible;
-    border-right: none;
-    border-top: 1px solid var(--c-line);
-    padding: 6px 10px 12px;
+    display: contents;
   }
   .ribbon section {
+    background: var(--c-panel);
     border-bottom: none;
-    padding: 4px 0;
+    padding: 6px 10px;
     min-width: 0;
   }
-  .ribbon .rb-turn,
-  .ribbon .rb-phases,
-  .ribbon .rb-obj {
-    grid-column: 1 / -1;
-  }
   .ribbon .rb-turn {
+    order: 2;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 12px;
+    gap: 5px 8px;
+    border-top: 1px solid var(--c-line);
+    padding-bottom: 3px;
   }
   .ribbon .rb-turn .panel-h {
-    width: 100%;
-    margin-bottom: 2px;
+    margin: 0;
+  }
+  .ribbon .rb-turn .turn-box {
+    width: 22px;
+    height: 22px;
   }
   .ribbon .rb-turn .phasing {
-    margin-top: 0;
+    margin: 0 0 0 auto;
+    padding: 2px 8px;
+    font-size: 12px;
   }
+  .ribbon .rb-turn .phasing.acting {
+    display: block;
+    margin-left: 0;
+  }
+  .ribbon .rb-phases {
+    order: 2;
+    padding-top: 3px;
+    padding-bottom: 8px;
+  }
+  .ribbon .rb-phases .panel-h {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .ribbon .rb-phases .phasing {
+    margin: 0 0 5px;
+  }
+  /* The eight phases as two rows of four, the current one lit. */
   .ribbon .phase-list {
-    columns: 2;
-    column-gap: 16px;
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 4px;
+    counter-reset: phase;
+    font-size: 11.5px;
+  }
+  .ribbon .phase-list li {
+    counter-increment: phase;
+    padding: 4px 3px;
+    border: 1px solid var(--c-line);
+    border-radius: 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-cond);
+  }
+  .ribbon .phase-list li::before {
+    content: counter(phase) '\00a0';
+    opacity: 0.6;
+  }
+  .ribbon .phase-list li.now {
+    border-color: var(--c-brass);
+    background: color-mix(in srgb, var(--c-brass) 22%, transparent);
+    color: var(--c-text);
+  }
+  .ribbon .phase-who {
+    display: none;
+  }
+  /* Narrow phones: "Def. Fire" and "Adv. Fire" so all eight fit in two rows. */
+  @media (max-width: 480px) {
+    .ribbon .ph-full.has-short {
+      display: none;
+    }
+    .ribbon .ph-short {
+      display: inline;
+    }
+  }
+  .ribbon .rb-obj,
+  .ribbon .rb-loss {
+    order: 4;
+  }
+  .ribbon .rb-obj {
+    border-top: 1px solid var(--c-line);
   }
   .ribbon .rb-obj .faint {
     margin-top: 4px;
+  }
+  /* The bar stays on screen: it carries the turn and phase in place of the scenario name. */
+  .topbar-title.has-narrow .tt-wide {
+    display: none;
+  }
+  .topbar-title .tt-narrow {
+    display: inline;
+    color: var(--c-text);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 13px;
+  }
+  .topbar-title.has-narrow ~ .topbar-actions .status {
+    display: none;
   }
 
   /* Review: map, the explanation, then the list of decisions. */
@@ -1617,7 +1702,6 @@ kbd {
     order: 1;
   }
   .fx-pop {
-    top: 92px;
     left: 10px;
     right: 10px;
     width: auto;
@@ -1641,6 +1725,18 @@ kbd {
   width: 260px;
   display: grid;
   gap: 8px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.fx-pop.panel-card {
+  background: var(--c-panel-2);
+}
+@media (max-width: 900px) {
+  .fx-pop {
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
 }
 .fx-pop .field {
   grid-template-columns: 56px 1fr;
@@ -2322,4 +2418,57 @@ body.resizing {
 }
 .dock-log .kind-phase {
   box-shadow: 0 2px 0 var(--c-panel-2);
+}
+
+/* ---- Objectives: numbered to match the markers on the map ---- */
+.obj-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.obj-item:hover {
+  background: var(--c-panel-2);
+}
+.obj-item.on {
+  border-color: var(--c-brass);
+  background: color-mix(in srgb, var(--c-brass) 16%, transparent);
+}
+.obj-item .dim {
+  margin-left: 5px;
+}
+.obj-no {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-right: 7px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--c-brass);
+  border-radius: 50%;
+  background: #1c1a12;
+  color: var(--c-brass);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+}
+.obj-help {
+  margin: 4px 0 6px;
+}
+.objective-line {
+  color: var(--c-brass);
+}
+
+/* A button that explains itself when pressed too early, instead of being dead. */
+.btn.idle {
+  opacity: 0.5;
 }

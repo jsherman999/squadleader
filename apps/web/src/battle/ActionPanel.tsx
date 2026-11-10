@@ -27,6 +27,7 @@ import {
   type GameState,
 } from '@squadwar/engine';
 import { FireCalc } from './FireCalc';
+import { defaultFirers } from './firers';
 
 /** Waiting for a hex click: where to put an artillery mark or a starshell, or where reinforcements come on. */
 export type MapPick =
@@ -51,6 +52,28 @@ export interface ActionPanelProps {
   selectedHex?: HexKey;
   dispatch: (a: Action) => boolean;
   setTarget: (h: HexKey) => void;
+  /** Add these units to the selection (forming a fire group with a neighbouring hex). */
+  addUnits?: (ids: string[]) => void;
+}
+
+/** Friendly stacks next to the fire group that could join it (§8.6), nearest hex first. */
+function groupCandidates(ctx: Ctx, s: GameState, selected: readonly string[]): { hex: HexKey; ids: string[]; label: string }[] {
+  const side = s.awaiting;
+  const mine = new Set(selected);
+  const hexes = new Set(selected.map((id) => s.units[id]?.hex).filter((h): h is HexKey => !!h));
+  const seen = new Set<HexKey>();
+  const out: { hex: HexKey; ids: string[]; label: string }[] = [];
+  for (const h of hexes) {
+    for (const n of adjacentHexes(h)) {
+      if (hexes.has(n) || seen.has(n) || !ctx.map.hexes[n]) continue;
+      seen.add(n);
+      const there = Object.values(s.units).filter((u) => u.hex === n && u.side === side && !u.broken && !mine.has(u.id) && !u.riding);
+      const firing = defaultFirers(ctx, s, there.map((u) => u.id)).filter((f) => !(s.units[f.unit]!.firedPhase && s.units[f.unit]!.firedPhase !== s.phase));
+      if (!firing.length) continue;
+      out.push({ hex: n, ids: firing.map((f) => f.unit), label: firing.map((f) => unitLabel(ctx, s.units[f.unit]!)).join(', ') });
+    }
+  }
+  return out;
 }
 
 /** The best few targets for a fire group, by expected broken-or-worse results. */
@@ -374,7 +397,7 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
   return <div className="actions specials">{rows}</div>;
 }
 
-function PhaseActions({ ctx, s, firers, leader, target, selectedHex, hidden, dispatch, setTarget }: ActionPanelProps) {
+function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = [], hidden, dispatch, setTarget, addUnits }: ActionPanelProps) {
   const side = s.awaiting;
   const label = (id: string) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
@@ -413,12 +436,29 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, hidden, dis
     case 'prepFire':
     case 'defensiveFire':
     case 'advancingFire':
-      if (!firers.length) return <Hint>Select your firing units (shift-click adjacent hexes to form a fire group), then click a target hex.</Hint>;
+      if (!firers.length)
+        return (
+          <Hint>
+            Select one of your stacks to fire with, then click a target hex. To fire together with a neighbouring hex, add it with the buttons that appear here, or shift-click it (on a touch
+            screen, press and hold it).
+          </Hint>
+        );
       if (!target) {
         const best = bestTargets(ctx, s, firers, leader);
+        const more = addUnits ? groupCandidates(ctx, s, selected) : [];
         return (
           <Hint>
             Click an enemy hex{s.phase === 'defensiveFire' ? ' (or a hex an enemy moved through, marked with dots)' : ''} to see the odds.
+            {more.length > 0 && (
+              <span className="suggest">
+                Add to the fire group:
+                {more.map((m) => (
+                  <button key={m.hex} className="btn tiny" title={`${m.label} fire together with the selected units (§8.6)`} onClick={() => addUnits!(m.ids)}>
+                    + {hexId(m.hex)} · {m.label}
+                  </button>
+                ))}
+              </span>
+            )}
             {best.length > 0 && (
               <span className="suggest">
                 Suggested:
@@ -437,7 +477,8 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, hidden, dis
     case 'movement':
       return (
         <Hint>
-          Select units in one hex, then click where to go. The path shows MF used; squads moving with a leader the whole way get +2 MF.
+          Select units in one hex, then click where to go. The path shows MF used; squads moving with a leader the whole way get +2 MF. To move onto a hex that already holds your units,
+          shift-click it (on a touch screen, press and hold it).
           {selectedHex && (
             <button className="btn tiny" onClick={() => dispatch({ type: 'endMove', units: Object.values(s.units).filter((u) => u.hex === selectedHex && u.side === side).map((u) => u.id) })}>
               Done moving here

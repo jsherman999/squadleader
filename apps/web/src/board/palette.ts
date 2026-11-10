@@ -38,3 +38,5 @@ export const MAP = {
 
 /** Hex circumradius in world pixels. */
 export const HEX_PX = 48;
+/** How long a touch must rest on a hex to count as a shift-click (milliseconds). */
+export const HOLD_MS = 450;

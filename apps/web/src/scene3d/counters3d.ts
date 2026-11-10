@@ -1,6 +1,7 @@
 /** Counter faces drawn to canvas for the 3D standees (same idiom as the 2D counters). */
 import * as THREE from 'three';
 import { leaderRating, weaponType, type Ctx, type GameState, type Nation, type Unit } from '@squadwar/engine';
+import { FIGURE_SPOTS, drawFigureCanvas, figureParts, poseFor } from '../board/figure';
 
 const NATION: Record<Nation, { bg: string; ink: string }> = {
   german: { bg: '#a9bfcc', ink: '#162028' },
@@ -9,40 +10,6 @@ const NATION: Record<Nation, { bg: string; ink: string }> = {
 };
 
 const cache = new Map<string, THREE.CanvasTexture>();
-
-function soldier(c: CanvasRenderingContext2D, x: number, y: number, s: number, ink: string): void {
-  c.fillStyle = ink;
-  c.strokeStyle = ink;
-  c.beginPath();
-  c.arc(x, y - 6 * s, 2.6 * s, 0, Math.PI * 2);
-  c.fill();
-  c.beginPath();
-  c.ellipse(x, y - 7.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2);
-  c.fill();
-  c.beginPath();
-  c.moveTo(x - 3 * s, y - 3.5 * s);
-  c.lineTo(x + 3 * s, y - 3.5 * s);
-  c.lineTo(x + 2.4 * s, y + 3 * s);
-  c.lineTo(x - 2.4 * s, y + 3 * s);
-  c.fill();
-  c.beginPath();
-  c.moveTo(x - 2.2 * s, y + 3 * s);
-  c.lineTo(x - 0.4 * s, y + 3 * s);
-  c.lineTo(x - 1.6 * s, y + 8 * s);
-  c.lineTo(x - 3.2 * s, y + 8 * s);
-  c.fill();
-  c.beginPath();
-  c.moveTo(x + 0.4 * s, y + 3 * s);
-  c.lineTo(x + 2.2 * s, y + 3 * s);
-  c.lineTo(x + 3.6 * s, y + 8 * s);
-  c.lineTo(x + 2 * s, y + 8 * s);
-  c.fill();
-  c.lineWidth = 1.3 * s;
-  c.beginPath();
-  c.moveTo(x + 1 * s, y - 1 * s);
-  c.lineTo(x + 7 * s, y - 6.5 * s);
-  c.stroke();
-}
 
 /** Texture for one unit's counter face (cached by appearance). */
 export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolean, hidden = false): THREE.CanvasTexture {
@@ -68,12 +35,8 @@ export function counterTexture(ctx: Ctx, s: GameState, u: Unit, selected: boolea
   c.strokeStyle = selected ? '#f0c66b' : 'rgba(0,0,0,0.6)';
   c.stroke();
   const ink = u.broken ? '#ece4cf' : pal.ink;
-  if (t.kind === 'leader') soldier(c, 14, 17, 1.25, ink);
-  else if (t.kind === 'crew') soldier(c, 22, 16, 1.1, ink);
-  else {
-    soldier(c, 15, 17, 1.05, ink);
-    soldier(c, 28, 17, 1.05, ink);
-  }
+  const fig = figureParts(poseFor(t.kind), nation);
+  for (const [fx, fy, fk] of FIGURE_SPOTS[t.kind]) drawFigureCanvas(c, fig, fx, fy, fk, ink);
   c.fillStyle = ink;
   c.font = 'bold 12px "Roboto Condensed", "Arial Narrow", sans-serif';
   c.textAlign = 'center';

@@ -6,7 +6,7 @@ import { Application, Container, Graphics, type FederatedPointerEvent } from 'pi
 import { hexKey, pixelToHex, type HexKey, type Vec2 } from '@squadwar/hex';
 import type { GameMap } from '@squadwar/terrain';
 import { paintBoard, type PaintedBoard } from './paint';
-import { HEX_PX } from './palette';
+import { HEX_PX, HOLD_MS } from './palette';
 
 export interface PointerInfo {
   hex: HexKey | undefined;
@@ -43,7 +43,7 @@ export class BoardRenderer {
   private destroyed = false;
   private ready = false;
   private pointers = new Map<number, Vec2>();
-  private drag?: { start: Vec2; worldStart: Vec2; moved: boolean };
+  private drag?: { start: Vec2; worldStart: Vec2; moved: boolean; t0: number; touch: boolean };
   private pinch?: { dist: number; scale: number; mid: Vec2 };
   private resizeObserver?: ResizeObserver;
   /** True while the camera shows the fitted board (no pan or zoom since). */
@@ -283,6 +283,8 @@ export class BoardRenderer {
         start: { x: e.global.x, y: e.global.y },
         worldStart: { x: this.world.position.x, y: this.world.position.y },
         moved: false,
+        t0: performance.now(),
+        touch: e.pointerType === 'touch' || e.pointerType === 'pen',
       };
     });
     stage.on('pointermove', (e) => {
@@ -311,7 +313,12 @@ export class BoardRenderer {
       if (this.pointers.size < 2) this.pinch = undefined;
       const d = this.drag;
       this.drag = undefined;
-      if (d && !d.moved && e.button === 0) this.events.onClick?.(this.info(e));
+      if (d && !d.moved && e.button === 0) {
+        // Touch screens have no Shift key: pressing and holding a hex is the shift-click.
+        const held = d.touch && performance.now() - d.t0 >= HOLD_MS;
+        const info = this.info(e);
+        this.events.onClick?.(held ? { ...info, shift: true } : info);
+      }
     };
     stage.on('pointerup', up);
     stage.on('pointerupoutside', up);

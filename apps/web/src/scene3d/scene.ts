@@ -10,6 +10,7 @@ import type { GameMap } from '@squadwar/terrain';
 import { canBeUpper, type LosResult } from '@squadwar/los';
 import type { Ctx, GameState } from '@squadwar/engine';
 import type { PointerInfo, RendererEvents } from '../board/renderer';
+import { HOLD_MS } from '../board/palette';
 import { canvasPen } from '../draw/canvasPen';
 import type { Pen } from '../draw/pen';
 import type { FxFrame } from '../fx/sample';
@@ -62,7 +63,7 @@ export class Scene3D {
   private raf = 0;
   private quality: Quality = 'medium';
   private exaggeration = 1.6;
-  private down?: { x: number; y: number };
+  private down?: { x: number; y: number; t0?: number };
   private ray = new THREE.Raycaster();
   private resize?: ResizeObserver;
   private pov?: { spec: PovSpec; yaw: number; pitch: number; saved: { pos: THREE.Vector3; target: THREE.Vector3; fov: number } };
@@ -646,7 +647,7 @@ export class Scene3D {
   }
 
   private onDown = (e: PointerEvent) => {
-    this.down = { x: e.clientX, y: e.clientY };
+    this.down = { x: e.clientX, y: e.clientY, t0: performance.now() };
     if (this.pov) this.renderer.domElement.setPointerCapture(e.pointerId);
   };
 
@@ -673,7 +674,9 @@ export class Scene3D {
     if (this.pov) return;
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return;
     const p = this.pick(e);
-    if (e.button === 0) this.events.onClick?.(p);
+    // Touch screens: pressing and holding a hex is the shift-click.
+    const held = e.pointerType !== 'mouse' && d.t0 !== undefined && performance.now() - d.t0 >= HOLD_MS;
+    if (e.button === 0) this.events.onClick?.(held ? { ...p, shift: true } : p);
     else if (e.button === 2) this.events.onContext?.(p);
   };
 

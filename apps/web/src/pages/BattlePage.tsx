@@ -155,10 +155,20 @@ function Battle() {
       // ignore
     }
   };
-  const docked = infoLayout === 'dock';
+  /** Narrow windows always use the single-column layout. */
+  const [wide, setWide] = useState(() => window.matchMedia('(min-width: 1101px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1101px)');
+    const on = () => setWide(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  const docked = infoLayout === 'dock' && wide;
   /** Your standing orders for Defensive Fire under Streamlined automation. */
   const [standing, setStanding] = useState<string>(() => localStorage.getItem('squadwar:standing') ?? 'open');
   const [notice, setNotice] = useState<string>();
+  /** The objective picked in the Objectives list, lit up on the map. */
+  const [objFocus, setObjFocus] = useState<string>();
   const [help, setHelp] = useState(false);
   const map = ctx.map;
   const [renderer, setRenderer] = useState<BoardRenderer>();
@@ -283,6 +293,9 @@ function Battle() {
 
   /** Watching the computer with the info docked below: the right column only appears when it has something to show. */
   const sideEmpty = docked && aiVsAi && !losMode && !session.error && !sel.hex && radio.length === 0 && llmSides.length === 0;
+  const statusText =
+    s.phase === 'setup' ? `Setup · ${sideName(s.awaiting)}` : s.phase === 'gameOver' ? 'Game over' : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`;
+  const eyesReady = !!povHex || !!selVehicle || !!(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex));
   const whyTitle = aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision';
 
   const openReview = useCallback(() => {
@@ -370,7 +383,7 @@ function Battle() {
       under: (pen, v) => {
         drawWestern(pen, ctx, fog.s, v !== '3d');
         drawNight(pen, ctx, s);
-        drawObjectives(pen, ctx);
+        drawObjectives(pen, ctx, objFocus, fog.s);
         drawSpecial(pen, s);
         drawArtillery(pen, ctx, s, viewer);
         if (s.phase === 'setup' && human) drawSetupZone(pen, ctx.zones[s.awaiting]!);
@@ -418,7 +431,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -664,19 +677,15 @@ function Battle() {
 
   const hoverInfo = hover ? describeHex(map, hover) : undefined;
   const tem = hover ? hexTem(ctx, hover) : undefined;
+  const hoverObjectiveIx = hover ? ctx.objectives.findIndex((o) => o.hexes.includes(hover)) : -1;
+  const hoverObjective = hoverObjectiveIx >= 0 ? { n: hoverObjectiveIx + 1, name: ctx.objectives[hoverObjectiveIx]!.name } : undefined;
   const loose = hover ? Object.values(fog.s.weapons).filter((w) => !w.owner && w.hex === hover && !s.charges.some((c) => c.weapon === w.id)) : [];
   const mf = hover && sel.hex && hover !== sel.hex ? moveCost(ctx, sel.hex, hover) : undefined;
 
   return (
     <div className="page">
-      <TopBar title={ctx.scenario.title}>
-        <span className="status">
-          {s.phase === 'setup'
-            ? `Setup · ${sideName(s.awaiting)}`
-            : s.phase === 'gameOver'
-              ? 'Game over'
-              : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`}
-        </span>
+      <TopBar title={ctx.scenario.title} narrowTitle={statusText}>
+        <span className="status">{statusText}</span>
         {s.phase !== 'gameOver' && (
           <span className={`awaiting ${human ? 'you' : 'bot'}`}>
             {human
@@ -753,9 +762,13 @@ function Battle() {
           </button>
         )}
         <button
-          className={`btn ${povHex ? 'active' : ''}`}
-          disabled={!povHex && !(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex)) && !selVehicle}
-          onClick={() => setPovHex(povHex ? undefined : (selVehicle?.hex ?? sel.hex))}
+          className={`btn ${povHex ? 'active' : ''} ${eyesReady ? '' : 'idle'}`}
+          aria-disabled={!eyesReady}
+          onClick={() => {
+            // Nothing to look from yet: say how, where a greyed-out button would say nothing (phones have no tooltips).
+            if (!eyesReady) setNotice('Eyes shows the battlefield from a unit’s position: select a unit on the map first, then press Eyes.');
+            else setPovHex(povHex ? undefined : (selVehicle?.hex ?? sel.hex));
+          }}
           title="Look from the selected unit's eyes (E)"
         >
           Eyes <kbd>E</kbd>
@@ -797,7 +810,7 @@ function Battle() {
         )}
       </TopBar>
       <div className={`battle ${docked ? 'with-dock' : ''} ${sideEmpty ? 'no-side' : ''}`}>
-        <PhaseRibbon ctx={ctx} s={s} />
+        <PhaseRibbon ctx={ctx} s={s} focus={objFocus} onObjective={(name) => setObjFocus((cur) => (cur === name ? undefined : name))} />
         <div className="board-wrap">
           <MapViews
             map={map}
@@ -909,6 +922,11 @@ function Battle() {
                       Fire DRM {tem.drm > 0 ? `+${tem.drm}` : tem.drm}
                       {mf && Number.isFinite(mf.mf) && sel.hex && mf.parts.length && hover && isAdj(sel.hex, hover) ? ` · enter for ${mf.mf} MF` : ''}
                     </div>
+                    {hoverObjective && (
+                      <div className="hex-card-line objective-line">
+                        Objective {hoverObjective.n}: {hoverObjective.name}
+                      </div>
+                    )}
                     {loose.length > 0 && (
                       <div className="hex-card-line">
                         On the ground: {loose.map((w) => `${sideName(w.side)} ${weaponType(ctx, w).kind}${w.malfunctioned ? ' (malfunctioned)' : ''}`).join(', ')}. Any unit here can pick it up in its Movement Phase.
@@ -969,6 +987,7 @@ function Battle() {
               {...(sel.hex ? { selectedHex: sel.hex } : {})}
               dispatch={session.dispatch}
               setTarget={session.setTarget}
+              addUnits={(ids) => session.select(sel.hex, [...new Set([...selUnits, ...ids])])}
               pick={pick}
               setPick={setPick}
             />

@@ -7,6 +7,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { dirVector, hexToPixel, parseHexKey, type Direction, type HexKey } from '@squadwar/hex';
 import { leaderRating, vehicleType, weaponType, type Ctx, type GameState, type Nation, type Unit, type Vehicle } from '@squadwar/engine';
 import { HEX_PX } from './palette';
+import { FIGURE_SPOTS, figureParts, poseFor, type FigPart } from './figure';
 
 const CS = 44; // counter size in world px
 const NATION: Record<Nation, { bg: number; dark: number; ink: number }> = {
@@ -26,14 +27,23 @@ function mix(a: number, b: number, t: number): number {
   return (Math.round(ar! + (br! - ar!) * t) << 16) | (Math.round(ag! + (bg! - ag!) * t) << 8) | Math.round(ab! + (bb! - ab!) * t);
 }
 
-/** A soldier silhouette: helmet, body, rifle. */
-function soldier(g: Graphics, x: number, y: number, s: number, color: number, alpha = 0.9): void {
-  g.circle(x, y - 6 * s, 2.6 * s).fill({ color, alpha });
-  g.ellipse(x, y - 7.2 * s, 3.6 * s, 1.6 * s).fill({ color, alpha }); // helmet brim
-  g.poly([x - 3 * s, y - 3.5 * s, x + 3 * s, y - 3.5 * s, x + 2.4 * s, y + 3 * s, x - 2.4 * s, y + 3 * s]).fill({ color, alpha });
-  g.poly([x - 2.2 * s, y + 3 * s, x - 0.4 * s, y + 3 * s, x - 1.6 * s, y + 8 * s, x - 3.2 * s, y + 8 * s]).fill({ color, alpha });
-  g.poly([x + 0.4 * s, y + 3 * s, x + 2.2 * s, y + 3 * s, x + 3.6 * s, y + 8 * s, x + 2 * s, y + 8 * s]).fill({ color, alpha });
-  g.moveTo(x + 1 * s, y - 1 * s).lineTo(x + 7 * s, y - 6.5 * s).stroke({ width: 1.3 * s, color, alpha });
+/** Draw a soldier figure (see figure.ts) centred on (x, y) at scale k. */
+function drawFigure(g: Graphics, parts: readonly FigPart[], x: number, y: number, k: number, color: number): void {
+  for (const p of parts) {
+    if (p.kind === 'dot') g.circle(x + p.x * k, y + p.y * k, p.r * k).fill(color);
+    else if (p.kind === 'stroke') {
+      p.pts.forEach(([px, py], i) => (i ? g.lineTo(x + px * k, y + py * k) : g.moveTo(x + px * k, y + py * k)));
+      g.stroke({ width: p.width * k, color, cap: 'round', join: 'round' });
+    } else {
+      for (const c of p.d) {
+        if (c[0] === 'M') g.moveTo(x + c[1] * k, y + c[2] * k);
+        else if (c[0] === 'L') g.lineTo(x + c[1] * k, y + c[2] * k);
+        else if (c[0] === 'C') g.bezierCurveTo(x + c[1] * k, y + c[2] * k, x + c[3] * k, y + c[4] * k, x + c[5] * k, y + c[6] * k);
+        else g.closePath();
+      }
+      g.fill(color);
+    }
+  }
 }
 
 export interface CounterOptions {
@@ -283,12 +293,9 @@ function drawCounter(ctx: Ctx, s: GameState, u: Unit, nation: Nation, selected: 
     // Broken side: diagonal band.
     g.poly([0, CS * 0.62, CS * 0.62, 0, CS * 0.8, 0, 0, CS * 0.8]).fill({ color: 0xffffff, alpha: 0.12 });
   }
-  if (t.kind === 'leader') soldier(g, CS * 0.32, CS * 0.42, 1.25, ink);
-  else if (t.kind === 'crew') soldier(g, CS * 0.5, CS * 0.4, 1.1, ink);
-  else {
-    soldier(g, CS * 0.34, CS * 0.42, 1.05, ink);
-    soldier(g, CS * 0.64, CS * 0.42, 1.05, ink);
-  }
+  // Leaders wave the men on, crews kneel at their weapon, squads advance two abreast.
+  const fig = figureParts(poseFor(t.kind), nation);
+  for (const [fx, fy, fk] of FIGURE_SPOTS[t.kind]) drawFigure(g, fig, fx, fy, fk, ink);
   box.addChild(g);
 
   const label =
