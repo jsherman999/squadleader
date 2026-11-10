@@ -425,8 +425,37 @@ function PhaseActions({ ctx, s, firers, leader, target, selectedHex, selected = 
   const label = (id: string) => (s.units[id] ? unitLabel(ctx, s.units[id]!) : id);
   const hexId = (h: HexKey) => ctx.map.hexes[h]?.id ?? h;
   switch (s.phase) {
-    case 'setup':
-      return <Hint>Select units, then click a hex in your setup area (shaded) to place them. End the phase when ready.</Hint>;
+    case 'setup': {
+      const notes = ctx.scenario.sides.find((x) => x.id === side)?.notes;
+      const onMap = Object.values(s.units).some((u) => u.side === side) || Object.values(s.vehicles).some((v) => v.side === side);
+      if (!onMap) {
+        // A force that arrives during play (boats, reinforcements) has nothing to place.
+        const waiting = (s.reserves ?? []).filter((r) => r.side === side);
+        const n = waiting.reduce((a, r) => a + r.units.length, 0);
+        const first = waiting.length ? Math.min(...waiting.map((r) => r.turn)) : 1;
+        const boats = waiting.some((r) => r.endsMove);
+        return (
+          <Hint>
+            <span className="shots-note">
+              <strong>Nothing to set up.</strong>{' '}
+              {n > 0
+                ? `Your ${n} units start ${boats ? 'in the boats' : 'off the map'}. They come on in your Movement Phase${first > 1 ? `, from turn ${first}` : ''}: this panel will list them then, for you to pick who ${boats ? 'lands' : 'enters'} and where.`
+                : 'You have no units on the map.'}
+            </span>
+            {notes && <span className="faint">{notes}</span>}
+            <button className="btn primary" onClick={() => dispatch({ type: 'endPhase' })}>
+              End setup
+            </button>
+          </Hint>
+        );
+      }
+      return (
+        <Hint>
+          Select units, then click a hex in your setup area (shaded) to place them. End the phase when ready.
+          {notes && <span className="faint">{notes}</span>}
+        </Hint>
+      );
+    }
     case 'rally': {
       const broken = Object.values(s.units).filter((u) => u.side === side && u.broken);
       const weapons = Object.values(s.weapons).filter((w) => w.side === side && w.malfunctioned);
