@@ -76,7 +76,7 @@ Exceptions are listed in [rulings.md](rulings.md): leaders accompanying routs (�
 
 | § | Topic | Notes | MS |
 |---|---|---|---|
-| 42 | Hidden initial placement | **Done.** Scenario units marked hidden are off the map for the enemy (2D, 3D, stack panel, LLM) until they move, fire, are hit or end next to the enemy after Defensive Fire or Advance; walking into them stops the move; fire at them is area fire. Only in woods or buildings. | M10 |
+| 42 | Hidden initial placement | **Done.** Scenario units marked hidden are off the map for the enemy (2D, 3D, stack panel, LLM) until they move, fire (a gun or vehicle firing shows itself and its crew), make smoke, dig, are hit or end next to the enemy after Defensive Fire or Advance; walking into them stops the move; fire at them is area fire. Only in woods or buildings. | M10 |
 | 43 | Advanced LOS | **Done.** Hill levels 1–3, crest lines, height equivalents, blind hexes and the profile view from M2; the country boards C–E now use them. | M2 (geometry), M10 (content) |
 | 44 | Rural terrain | **Done.** Cliffs (impassable; point blank ×3 downhill); wheatfields block sight not fire, no −2 moving through, and are open ground outside June–October; shellholes +1 (−1 net moving). | M2, M10 |
 | 45 | Offboard artillery | **Done.** One module per scenario entry: calibre and fire missions rolled at the start from the module table and a 1–4 chit, or set by the scenario. Counter-battery fire (§45.4) not yet. | M10 |

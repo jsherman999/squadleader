@@ -9,6 +9,7 @@ import { RuleError, type GameState, type Unit, type Vehicle } from '../types';
 import { isUpper } from './floors';
 import type { Emit } from './common';
 import { enemyVehiclesIn, mpLeft, vehicleLabel, vehicleType } from './armor';
+import { reveal } from './special';
 
 export function riders(s: GameState, v: Vehicle): Unit[] {
   return Object.values(s.units).filter((u) => u.riding === v.id);
@@ -104,6 +105,8 @@ export function pushGun(ctx: Ctx, s: GameState, unitId: string, gunId: string, t
   if (!Number.isFinite(moveCost(ctx, g.hex, to).mf) || directionTo(parseHexKey(g.hex), parseHexKey(to)) === undefined) throw new RuleError('Impassable');
   if (enemiesIn(s, to, g.side).length || enemyVehiclesIn(s, to, g.side).length) throw new RuleError('Not into an enemy-held hex');
   const from = g.hex;
+  // Moving gives a hidden or concealed gun position away (§25.4, §42.2).
+  reveal(ctx, s, from, emit, 'moved');
   g.hex = to;
   g.moved = true;
   g.moveDone = true;

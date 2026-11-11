@@ -141,16 +141,22 @@ export function concealableHex(ctx: Ctx, hex: HexKey): boolean {
   return t === 'woods' || t === 'woodBuilding' || t === 'stoneBuilding';
 }
 
-/** Everyone concealed in a hex loses it (§25.4, §25.42, §25.9). */
+/**
+ * Everyone concealed in a hex loses it (§25.4, §25.42, §25.9), and anything
+ * placed hidden there (units, guns, vehicles) goes on the map (§42.2).
+ */
 export function reveal(ctx: Ctx, s: GameState, hex: HexKey, emit: Emit, why: string): void {
   const shown = unitsIn(s, hex).filter((u) => u.concealed || u.hidden);
-  for (const v of Object.values(s.vehicles)) if (v.hex === hex && v.hidden) v.hidden = false;
-  if (!shown.length) return;
+  const guns = Object.values(s.vehicles).filter((v) => v.hex === hex && v.hidden);
+  if (!shown.length && !guns.length) return;
+  const wasHidden = guns.length > 0 || shown.some((u) => u.hidden);
+  for (const v of guns) v.hidden = false;
   for (const u of shown) {
     u.concealed = false;
     u.hidden = false;
   }
-  emit({ kind: 'info', text: `Concealment lost in ${hexLabel(ctx, hex)}: ${why} (§25.4)`, side: shown[0]!.side, hexes: [hex], units: shown.map((u) => u.id) });
+  const text = wasHidden ? `Hidden position revealed in ${hexLabel(ctx, hex)}: ${why} (§42.2)` : `Concealment lost in ${hexLabel(ctx, hex)}: ${why} (§25.4)`;
+  emit({ kind: 'info', text, side: (shown[0] ?? guns[0])!.side, hexes: [hex], units: shown.map((u) => u.id) });
 }
 
 /** Unbroken enemy infantry next to concealed units strips their concealment (§25.4–25.5). */

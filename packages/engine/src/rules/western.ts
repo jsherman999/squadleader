@@ -14,6 +14,7 @@ import { eliminate } from './common';
 import { iftLookup, resultText } from './fire';
 import { applyHexResults } from './morale';
 import { crewCheck, destroyVehicle, iftColumn, inArc, vehicleLabel, vehicleType, facingIndex } from './armor';
+import { reveal } from './special';
 
 // ---- Setup ---------------------------------------------------------------------------------
 
@@ -347,6 +348,8 @@ export function dig(ctx: Ctx, s: GameState, unitId: string, work: 'entrench' | '
   u.usedInherent = true;
   u.moveDone = true;
   u.noConceal = true;
+  // Digging in or working on wire and mines shows where the squad is (§25.4, §42.2).
+  reveal(ctx, s, u.hex, emit, { entrench: 'dug in', wire: 'cut wire', mines: 'cleared mines' }[work]);
   if (work === 'entrench') {
     const h = ctx.map.hexes[u.hex]!;
     if (h.building || bunkerAt(s, u.hex)) throw new RuleError('Not in a building or bunker', '§54.2');

@@ -251,6 +251,8 @@ export function vehicleMove(ctx: Ctx, s: GameState, id: string, to: HexKey, emit
   const from = v.hex;
   const d = directionTo(parseHexKey(from), parseHexKey(to))!;
   const firstHex = !v.moved;
+  // A hidden vehicle that moves is on the map from then on (§42.2).
+  if (v.hidden) v.hidden = false;
   v.mpSpent += cost.mp;
   v.hex = to;
   v.moved = true;
@@ -793,6 +795,8 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   const a = analyzeVehicleFire(ctx, s, req);
   const v = s.vehicles[req.vehicle]!;
   const t = vehicleType(ctx, v);
+  // Firing puts a hidden gun or vehicle, and whoever is hidden with it, on the map (§25.4, §42.2).
+  reveal(ctx, s, v.hex, emit, 'fired');
   v.firedPhase ??= s.phase;
   noteFlash(s, v.hex);
   if (t.kind === 'gun') {
@@ -805,6 +809,8 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   dismountAll(ctx, s, v, 'it fired', emit);
   if (a.turnTo !== undefined) v.facing = a.turnTo;
   const trace = [...a.trace];
+  // The log says where the shot came from: a gun that was hidden until now is otherwise hard to place.
+  const who = `${vehicleLabel(ctx, v)} in ${hexLabel(ctx, v.hex)}`;
   const shooter = { hex: v.hex, kind: a.weapon === 'main' ? 'GUN' : 'VMG', unit: v.id };
   if (a.weapon === 'main') {
     v.mainShots++;
@@ -829,7 +835,7 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
     }
     const outcomes: { hex: HexKey; penetration: boolean; results: { unit: string; result: string | number }[] }[] = [];
     let text: string;
-    if (!hit) text = `${vehicleLabel(ctx, v)} fires at ${hexLabel(ctx, req.target)} and misses (${fin} vs ${a.hitNumber})`;
+    if (!hit) text = `${who} fires at ${hexLabel(ctx, req.target)} and misses (${fin} vs ${a.hitNumber})`;
     else if (a.vs) {
       const tv = s.vehicles[a.vs]!;
       const [k1, k2] = roll2d6(s);
@@ -837,7 +843,7 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
       const kf = k1 + k2 + a.killDrm!;
       const kill = kf <= a.kill!;
       trace.push(`Kill: ${k1}+${k2}${a.killDrm ? ` ${a.killDrm > 0 ? '+' : ''}${a.killDrm}` : ''} = ${kf} vs ${a.kill} (${a.aspect}, ${a.killColumn}): ${kill ? 'destroyed' : 'no penetration'} (§33.4)`);
-      text = `${vehicleLabel(ctx, v)} hits ${vehicleLabel(ctx, tv)} (${a.aspect}): ${kill ? 'knocked out' : 'the shell does not penetrate'}`;
+      text = `${who} hits ${vehicleLabel(ctx, tv)} (${a.aspect}): ${kill ? 'knocked out' : 'the shell does not penetrate'}`;
       outcomes.push({ hex: req.target, penetration: false, results: [{ unit: tv.id, result: kill ? 'KIA' : '-' }] });
       emit({ kind: 'fire', text, trace, side: v.side, dice, from: v.hex, to: req.target, hexes: [req.target], fx: { firerHexes: [v.hex], targets: [req.target], kinds: ['GUN'], shooters: [shooter], outcomes, hit, kill, vs: tv.id } });
       if (kill) destroyVehicle(ctx, s, tv, `${t.gun}mm ${a.ammo} from ${vehicleLabel(ctx, v)}`, emit, 'roll');
@@ -851,7 +857,7 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
       const [i1, i2] = roll2d6(s);
       dice.push(i1, i2);
       const res = infantryResults(ctx, s, a, i1 + i2, 0, trace);
-      text = `${vehicleLabel(ctx, v)} hits ${hexLabel(ctx, req.target)} with ${a.fp} FP of HE: roll ${i1 + i2} → ${summary(res)}`;
+      text = `${who} hits ${hexLabel(ctx, req.target)} with ${a.fp} FP of HE: roll ${i1 + i2} → ${summary(res)}`;
       outcomes.push({ hex: req.target, penetration: false, results: res.map((r) => ({ unit: r.unit, result: r.result })) });
       emit({ kind: 'fire', text, trace, side: v.side, dice, from: v.hex, to: req.target, hexes: [req.target], units: [], fx: { firerHexes: [v.hex], targets: [req.target], kinds: ['GUN'], shooters: [shooter], outcomes, hit } });
       applyInfantry(ctx, s, req.target, res, emit);
@@ -881,7 +887,7 @@ export function resolveVehicleFire(ctx: Ctx, s: GameState, req: VehicleFireReque
   const res = infantryResults(ctx, s, a, d1 + d2, smokeDie, trace);
   emit({
     kind: 'fire',
-    text: `${vehicleLabel(ctx, v)} MGs fire ${a.fp} FP at ${hexLabel(ctx, req.target)}: roll ${d1 + d2} → ${summary(res)}`,
+    text: `${who} MGs fire ${a.fp} FP at ${hexLabel(ctx, req.target)}: roll ${d1 + d2} → ${summary(res)}`,
     trace,
     side: v.side,
     dice: [d1, d2],
@@ -1041,6 +1047,8 @@ export function antiTank(ctx: Ctx, s: GameState, ids: readonly string[], vehicle
       if (!pass) continue;
       u.firedPhase = s.phase;
       u.usedInherent = true;
+      reveal(ctx, s, u.hex, emit, 'attacked a vehicle');
+      u.noConceal = true;
       const [i1, i2] = roll2d6(s);
       const fin = i1 + i2 + drm;
       const ok = fin <= a.immobilizeOn!;

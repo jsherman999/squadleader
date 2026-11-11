@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, tryAction } from '../engine';
 import { analyzeFire } from '../rules/fire';
 import { analyzeVehicleFire } from '../rules/armor';
+import { exposureAt } from '../rules/exposure';
 import { blankState, hexOf, put, putVehicle, testCtx } from './helpers';
 
 describe('§42 hidden initial placement', () => {
@@ -20,6 +21,26 @@ describe('§42 hidden initial placement', () => {
     put(ctx, s2, 'rus-447', 'K5', { hidden: true });
     const a = analyzeFire(ctx, s2, [{ unit: g2.id, inherent: true, weapons: [] }], hexOf(ctx, 'K5'));
     expect(a.targets[0]!.units[0]!.area).toBe(true);
+  });
+  it('a hidden gun and its crew go on the map when the gun fires (§42.2)', () => {
+    const s = blankState(ctx, 'defensiveFire');
+    const gun = putVehicle(ctx, s, 'rus-zis3', 'K5', 'SE-S', { hidden: true });
+    const crew = put(ctx, s, 'rus-237', 'K5', { hidden: true });
+    const g = put(ctx, s, 'ger-467', 'K9', { moved: true });
+    const r = applyAction(ctx, s, { type: 'vfire', vehicle: gun.id, target: g.hex, weapon: 'main' });
+    expect(r.state.vehicles[gun.id]!.hidden).toBe(false);
+    expect(r.state.units[crew.id]!.hidden).toBe(false);
+    expect(r.events.some((e) => /Hidden position revealed in T-K5: fired/.test(e.text))).toBe(true);
+    // The danger map leaves a hidden gun out, and counts it once it is on the map.
+    expect(exposureAt(ctx, s, 'ger', hexOf(ctx, 'K9')).threats.some((x) => x.vehicle === gun.id)).toBe(false);
+    expect(exposureAt(ctx, r.state, 'ger', hexOf(ctx, 'K9')).threats.some((x) => x.vehicle === gun.id)).toBe(true);
+  });
+  it('a hidden vehicle that moves is on the map', () => {
+    const s = blankState(ctx, 'movement');
+    const pz = putVehicle(ctx, s, 'ger-pz4f2', 'K5', 'N-NE', { hidden: true });
+    put(ctx, s, 'rus-447', 'B2');
+    const st = applyAction(ctx, s, { type: 'vmove', vehicle: pz.id, to: hexOf(ctx, 'K4') }).state;
+    expect(st.vehicles[pz.id]!.hidden).toBe(false);
   });
 });
 
