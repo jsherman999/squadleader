@@ -261,6 +261,12 @@ export const ScenarioSchema = z
   .object({
     format: z.literal('squadwar-scenario@1'),
     id: z.string(),
+    /**
+     * Raised whenever a built-in scenario's forces or set-up change (absent means 1).
+     * A saved game replays its actions against the scenario, so it records the revision
+     * it was played on and is loaded against that one.
+     */
+    revision: z.number().int().min(1).optional(),
     title: z.string(),
     date: z.string(),
     location: z.string(),

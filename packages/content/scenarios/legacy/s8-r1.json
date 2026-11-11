@@ -1,0 +1,244 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "s8@1",
+  "title": "Causeway",
+  "date": "June 1944",
+  "location": "Carentan",
+  "briefing": "Paratroopers dropped behind the beaches have fought their way down the causeway road to the edge of a market village that blocks the link between the two American landing areas. A glider-borne company with a single Sherman, a truck and a jeep must clear the village before German reinforcements arrive. The defenders have one anti-tank gun dug in among the trees.",
+  "rulesLevel": 52,
+  "layout": [
+    {
+      "board": "E",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 3
+  },
+  "smoke": {
+    "us": 2
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns S–GG. The anti-tank gun and its crew set up hidden (§42).",
+      "setup": [
+        {
+          "board": "E",
+          "cols": [
+            "S",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "E-Z6",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "E-Z6",
+          "names": [
+            "Oblt. Kessler"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-BB4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "E-BB4",
+          "names": [
+            "Fw. Haas"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-X6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-CC6"
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-Y7"
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-W5"
+        },
+        {
+          "type": "ger-L80",
+          "hex": "E-W5",
+          "names": [
+            "Uffz. Roth"
+          ]
+        },
+        {
+          "type": "ger-pak38",
+          "hex": "E-Z7",
+          "facing": "SW-NW",
+          "hidden": true
+        },
+        {
+          "type": "ger-247",
+          "hex": "E-Z7",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, anywhere in columns A–J. Moves first. One squad starts in the truck, Captain Hollis in the jeep (§51–52).",
+      "setup": [
+        {
+          "board": "E",
+          "cols": [
+            "A",
+            "J"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "E-G4",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "E-G4"
+        },
+        {
+          "type": "us-L91",
+          "hex": "E-G4",
+          "names": [
+            "Lt. Dawes"
+          ]
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "hex": "E-H3"
+        },
+        {
+          "type": "us-L81",
+          "hex": "E-H3",
+          "names": [
+            "Sgt. Kowalski"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "E-F5",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "E-G6",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-L80",
+          "hex": "E-G6",
+          "names": [
+            "Sgt. Ortega"
+          ]
+        },
+        {
+          "type": "us-truck",
+          "hex": "E-B8",
+          "names": [
+            "Deuce"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-666",
+          "hex": "E-B8",
+          "rides": "Deuce"
+        },
+        {
+          "type": "us-jeep",
+          "hex": "E-C8",
+          "names": [
+            "Scout"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-L102",
+          "hex": "E-C8",
+          "names": [
+            "Capt. Hollis"
+          ],
+          "rides": "Scout"
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "E-D8",
+          "names": [
+            "Cheyenne"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 7, they control at least three of the four village strongpoints (church, village hall, stone house, corner house). A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "E-Z6",
+          "name": "Church"
+        },
+        {
+          "hex": "E-BB4",
+          "name": "Village hall"
+        },
+        {
+          "hex": "E-X6",
+          "name": "Stone house"
+        },
+        {
+          "hex": "E-CC6",
+          "name": "Corner house"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Rules §1–52: adds American troops (§50), trucks (§51) and jeeps (§52).",
+    "American squads never suffer desperation morale, and their support weapons are repaired on a 1 or 2 (§50).",
+    "June: the wheatfields are in season (§44.24)."
+  ]
+}

@@ -8,7 +8,7 @@ import type { HexKey } from '@squadwar/hex';
 import { DEFAULT_OPTIONS, createGame, parseScenario, tryAction, type Action, type Ctx, type GameEvent, type GameOptions, type GameState, type SideId } from '@squadwar/engine';
 import { decide, type Rationale } from '@squadwar/bot';
 import { putGame } from './library';
-import { ctxFor, customScenario, registerScenario, scenarioById } from './scenarios';
+import { ctxFor, customScenario, registerScenario, savedScenarioId, scenarioById, scenarioRef } from './scenarios';
 
 /** Who plays a side: a person, the scripted AI, or an LLM (with the scripted AI as fallback). */
 export type Controller = 'human' | 'bot' | 'llm';
@@ -22,6 +22,8 @@ export interface LoggedEvent extends GameEvent {
 export interface SaveFile {
   readonly format: 'squadwar-save@1';
   readonly scenario: string;
+  /** Revision of the built-in scenario the game was played on; absent means the first. */
+  readonly scenarioRev?: number;
   /** The scenario itself, for custom scenarios (Design Your Own, the editor, campaigns). */
   readonly scenarioData?: unknown;
   readonly seed: number;
@@ -103,7 +105,7 @@ let eventN = 0;
 /** Rebuild every state and event of a saved game by replaying its actions. */
 export function replaySave(save: SaveFile): { states: GameState[]; events: LoggedEvent[]; rolled: boolean[] } {
   if (save.scenarioData && !scenarioById(save.scenario)) registerScenario(parseScenario(save.scenarioData));
-  const ctx = ctxFor(save.scenario);
+  const ctx = ctxFor(savedScenarioId(save));
   const first = createGame(ctx, save.seed, save.options);
   const states = [first.state];
   const events: LoggedEvent[] = first.events.map((e) => ({ ...e, n: eventN++, action: -1 }));
@@ -159,7 +161,7 @@ export const useSession = create<SessionState>((set, get) => ({
   load(save) {
     const { states, events, rolled } = replaySave(save);
     set({
-      scenarioId: save.scenario,
+      scenarioId: savedScenarioId(save),
       seed: save.seed,
       controllers: save.controllers,
       actions: [...save.actions],
@@ -329,7 +331,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const save = get().save();
     if (!save) return undefined;
     const id = await putGame(save);
-    if (get().scenarioId === save.scenario && get().seed === save.seed) set({ libraryId: id });
+    if (get().scenarioId === savedScenarioId(save) && get().seed === save.seed) set({ libraryId: id });
     return id;
   },
 
@@ -339,7 +341,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const last = st.states[st.states.length - 1];
     return {
       format: 'squadwar-save@1',
-      scenario: st.scenarioId,
+      ...scenarioRef(st.scenarioId),
       ...(customScenario(st.scenarioId) ? { scenarioData: customScenario(st.scenarioId) } : {}),
       seed: st.seed,
       ...(st.states[0]?.options ? { options: st.states[0].options } : {}),

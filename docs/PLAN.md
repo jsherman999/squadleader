@@ -130,7 +130,7 @@ The project uses the rulebook's game mechanics. Everything you see on screen is 
 ### 4.1 Principles
 
 1. **Pure, deterministic engine.** `(state, action) → (state', events[])`. There is no DOM and no wall clock. All dice come from a seeded PRNG stored in the state.
-2. **Event-sourced.** A game is `scenario + seed + action log`. That one design gives us saves, replays, undo, the Move Planner's forks, network play later, and a perfect record for animations.
+2. **Event-sourced.** A game is `scenario + seed + action log`. That one design gives us saves, replays, undo, the Move Planner's forks, network play later, and a perfect record for animations. Because a save replays against the scenario, a built-in scenario whose forces change gets a higher `revision`, and its earlier form is kept in `packages/content/scenarios/legacy` (id `s8@1`): a save records the revision it was played on (none means 1) and loads against that one.
 3. **One terrain source of truth.** Vector board data feeds the 2D renderer, the LOS math and the 3D mesh.
 4. **Renderers are views.** The 2D board, 3D view and POV cam all subscribe to the same store and engine event stream, so selections and overlays stay in sync.
 5. **AI never touches state directly.** The bot and the LLM submit the same validated actions a human would.
@@ -690,7 +690,7 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | 5 | *Station Hill*: Ponyri, Jul 1943 (built in M10) | §42–46 hidden placement, advanced LOS and hills, rural terrain, offboard artillery | Country D |
 | 6 | *The Kalach Road*: Kalach-on-Don, Nov 1942 (built in M10; the bridge waits for §60) | §47–48 halftracks, AT guns | Country D north of E |
 | 7 | *Night at Lyutezh*: Lyutezh bridgehead, Nov 1943 (built in M10) | §49 night | Country C |
-| 8 | *Causeway*: Carentan, Jun 1944 (built in M11) | §50–52 Americans, trucks, jeeps | Country E |
+| 8 | *Causeway*: Carentan, Jun 1944 (built in M11; revision 2 reinforces the Americans to 10 squads and two Shermans) | §50–52 Americans, trucks, jeeps | Country E |
 | 9 | *The Fort*: Metz forts, Oct 1944 (built in M11) | §53–56 wire, entrenchments, minefields, bunkers | City B |
 | 10 | *Rubble*: Brest, Sep 1944 (built in M11) | §58–59 rubble, fire | City A |
 | 11 | *Boats on the Waal*: Nijmegen, Sep 1944 (built in M11) | §60 river crossing | Country D |

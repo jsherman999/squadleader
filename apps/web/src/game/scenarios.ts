@@ -1,4 +1,4 @@
-import { rawRules, rawScenarios } from '@squadwar/content';
+import { rawLegacyScenarios, rawRules, rawScenarios } from '@squadwar/content';
 import { makeCtx, parseRulesData, parseScenario, type Ctx, type RulesData, type Scenario } from '@squadwar/engine';
 import { allBoards } from '../content';
 
@@ -72,9 +72,41 @@ export function customScenario(id: string): Scenario | undefined {
   return custom.get(id);
 }
 
-/** Any scenario by id: built in first, then custom. */
+// ---- Earlier revisions of built-in scenarios ----
+//
+// A saved game is its seed and its actions, replayed against the scenario. When a built-in
+// scenario's forces change, its revision goes up and the old one is kept (id "s8@1"), so a
+// game started before the change still loads, replays and can be played on as it was.
+
+let legacy: Map<string, Scenario> | undefined;
+function legacyScenarios(): Map<string, Scenario> {
+  legacy ??= new Map(rawLegacyScenarios.map((s) => parseScenario(s)).map((s) => [s.id, s]));
+  return legacy;
+}
+
+/** Any scenario by id: built in first, then custom, then earlier revisions of built-in ones. */
 export function scenarioById(id: string): Scenario | undefined {
-  return allScenarios().find((s) => s.id === id) ?? customScenario(id);
+  return allScenarios().find((s) => s.id === id) ?? customScenario(id) ?? legacyScenarios().get(id);
+}
+
+/** The scenario id a saved game is replayed against: the revision it was played on. */
+export function savedScenarioId(save: { readonly scenario: string; readonly scenarioRev?: number }): string {
+  const current = allScenarios().find((s) => s.id === save.scenario);
+  if (!current) return save.scenario;
+  const rev = save.scenarioRev ?? 1;
+  const old = `${save.scenario}@${rev}`;
+  return rev < (current.revision ?? 1) && legacyScenarios().has(old) ? old : save.scenario;
+}
+
+/** How a game on this scenario id is written to a save: the built-in id, and its revision when not the first. */
+export function scenarioRef(id: string): { scenario: string; scenarioRev?: number } {
+  if (legacyScenarios().has(id)) {
+    const at = id.lastIndexOf('@');
+    const rev = Number(id.slice(at + 1));
+    return { scenario: id.slice(0, at), ...(rev > 1 ? { scenarioRev: rev } : {}) };
+  }
+  const rev = allScenarios().find((s) => s.id === id)?.revision ?? 1;
+  return { scenario: id, ...(rev > 1 ? { scenarioRev: rev } : {}) };
 }
 
 const ctxCache = new Map<string, Ctx>();

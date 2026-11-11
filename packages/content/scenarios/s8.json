@@ -1,10 +1,11 @@
 {
   "format": "squadwar-scenario@1",
   "id": "s8",
+  "revision": 2,
   "title": "Causeway",
   "date": "June 1944",
   "location": "Carentan",
-  "briefing": "Paratroopers dropped behind the beaches have fought their way down the causeway road to the edge of a market village that blocks the link between the two American landing areas. A glider-borne company with a single Sherman, a truck and a jeep must clear the village before German reinforcements arrive. The defenders have one anti-tank gun dug in among the trees.",
+  "briefing": "Paratroopers dropped behind the beaches have fought their way down the causeway road to the edge of a market village that blocks the link between the two American landing areas. A reinforced glider-borne company with two Shermans, a truck and a jeep must clear the village before German reinforcements arrive. The defenders have one anti-tank gun dug in among the trees.",
   "rulesLevel": 52,
   "layout": [
     {
@@ -205,6 +206,39 @@
           "hex": "E-D8",
           "names": [
             "Cheyenne"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-666",
+          "hex": "E-I5",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "E-I5"
+        },
+        {
+          "type": "us-L81",
+          "hex": "E-I5",
+          "names": [
+            "Sgt. Brandt"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "E-G7",
+          "weapons": [
+            "us-ft"
+          ]
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "E-E8",
+          "names": [
+            "Dakota"
           ],
           "facing": "NE-SE"
         }

@@ -5,7 +5,7 @@ import type { PointerInfo } from '../board/renderer';
 import { drawFocus, drawLastFire, drawObjectives } from '../battle/overlays';
 import { downloadSave } from '../game/library';
 import { useReview } from '../game/review';
-import { ctxFor } from '../game/scenarios';
+import { ctxFor, savedScenarioId } from '../game/scenarios';
 import { useSession, type Controller } from '../game/session';
 import { go } from '../router';
 import { ACTION_ICON, actionSummary, actionUnits } from '../tutor/actions';
@@ -35,7 +35,7 @@ export function ReviewPage() {
 function Review() {
   const { save, states, events, index, seek } = useReview();
   const sv = save!;
-  const ctx = ctxFor(sv.scenario);
+  const ctx = ctxFor(savedScenarioId(sv));
   const map = ctx.map;
   const n = sv.actions.length;
   const s = states[index]!;

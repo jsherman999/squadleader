@@ -36,4 +36,40 @@ describe('AI vs AI sessions', () => {
     useSession.getState().load(old);
     expect(useSession.getState().notes).toEqual([]);
   });
+
+  it('a game saved before the forces of a scenario changed replays on the line-up it was played with', () => {
+    const squads = (side: string) => {
+      const st = useSession.getState();
+      const s = st.states.at(-1)!;
+      return Object.values(s.units).filter((u) => u.side === side && /^us-(666|847)$/.test(u.type)).length;
+    };
+    // Causeway before its American reinforcement: 7 squads and one Sherman.
+    useSession.getState().start('s8@1', { ger: 'bot', us: 'bot' }, 7);
+    for (let i = 0; i < 200; i++) if (!useSession.getState().stepBot()) break;
+    const played = useSession.getState();
+    const end = played.states.at(-1)!;
+    const save = JSON.parse(JSON.stringify(played.save()!));
+    // Written like any save made before revisions existed: the built-in id, no revision.
+    expect(save.scenario).toBe('s8');
+    expect(save.scenarioRev).toBeUndefined();
+    useSession.getState().start('s1', { rus: 'human', ger: 'human' }, 1);
+    useSession.getState().load(save);
+    expect(useSession.getState().scenarioId).toBe('s8@1');
+    expect(useSession.getState().states.at(-1)).toEqual(end);
+    expect(squads('us')).toBeLessThanOrEqual(7);
+    expect(Object.values(useSession.getState().states[0]!.vehicles).filter((v) => v.type === 'us-m4a4')).toHaveLength(1);
+
+    // A new game gets the current forces, and its save says which revision that is.
+    useSession.getState().start('s8', { ger: 'bot', us: 'bot' }, 7);
+    expect(squads('us')).toBe(10);
+    expect(Object.values(useSession.getState().states[0]!.vehicles).filter((v) => v.type === 'us-m4a4')).toHaveLength(2);
+    for (let i = 0; i < 60; i++) if (!useSession.getState().stepBot()) break;
+    const now = JSON.parse(JSON.stringify(useSession.getState().save()!));
+    expect(now.scenario).toBe('s8');
+    expect(now.scenarioRev).toBe(2);
+    const last = useSession.getState().states.at(-1)!;
+    useSession.getState().load(now);
+    expect(useSession.getState().scenarioId).toBe('s8');
+    expect(useSession.getState().states.at(-1)).toEqual(last);
+  });
 });
