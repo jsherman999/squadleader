@@ -266,6 +266,35 @@ export function MapViews(p: MapViewsProps) {
     else s3.exitPov();
   }, [s3, pov]);
 
+  // Split view with Eyes: a line on the top-down map from the viewer to whatever is under the crosshair.
+  // It is redrawn straight from the 3D view as that turns, without going through React.
+  const povOn = !!pov;
+  useEffect(() => {
+    if (!s3 || !r2 || !povOn || !show2d || !show3d) return;
+    s3.setLookListener((look) => {
+      const g = r2.overlay('pov-look', 'top');
+      if (!look) return;
+      const k = 1 / r2.world.scale.x; // constant width on screen, whatever the zoom
+      const a = { x: look.from.x * HEX_PX, y: look.from.y * HEX_PX };
+      const b = { x: look.to.x * HEX_PX, y: look.to.y * HEX_PX };
+      g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6 * k, color: 0x0b1014, alpha: 0.55, cap: 'round' });
+      g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 2.5 * k, color: 0xffffff, alpha: look.hit ? 0.95 : 0.5, cap: 'round' });
+      // The viewer's eye.
+      g.circle(a.x, a.y, 5 * k).fill({ color: 0xffffff }).stroke({ width: 1.5 * k, color: 0x0b1014 });
+      // The crosshair, where the view meets the ground or something on it.
+      if (look.hit) {
+        const r = 9 * k;
+        g.circle(b.x, b.y, r).stroke({ width: 4.5 * k, color: 0x0b1014, alpha: 0.6 });
+        g.circle(b.x, b.y, r).stroke({ width: 2 * k, color: 0xffffff });
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) g.moveTo(b.x + dx * r * 0.45, b.y + dy * r * 0.45).lineTo(b.x + dx * r * 1.6, b.y + dy * r * 1.6).stroke({ width: 2 * k, color: 0xffffff });
+      }
+    });
+    return () => {
+      s3.setLookListener(undefined);
+      r2.overlay('pov-look', 'top');
+    };
+  }, [s3, r2, povOn, show2d, show3d]);
+
   return (
     <div className={`map-views mode-${mode}`}>
       <DiceTray />

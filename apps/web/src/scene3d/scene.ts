@@ -40,6 +40,14 @@ export interface PovSpec {
   readonly side?: string;
 }
 
+/** Where the Eyes view is looking, in map units: from the viewer's hex to what is under the crosshair. */
+export interface PovLook {
+  readonly from: Vec2;
+  readonly to: Vec2;
+  /** The crosshair is on the ground or on something standing on it; false when it is on the sky. */
+  readonly hit: boolean;
+}
+
 const QUALITY: Record<Quality, { ratio: number; shadows: number; trees: number }> = {
   low: { ratio: 1, shadows: 0, trees: 0.6 },
   medium: { ratio: 1.5, shadows: 1024, trees: 1 },
@@ -72,6 +80,9 @@ export class Scene3D {
   private ray = new THREE.Raycaster();
   private resize?: ResizeObserver;
   private pov?: { spec: PovSpec; yaw: number; pitch: number; saved: { pos: THREE.Vector3; target: THREE.Vector3; fov: number } };
+  /** Told where the Eyes view is looking whenever that changes (for the line on the 2D map in split view). */
+  private lookListener?: (look: PovLook | undefined) => void;
+  private lookDirty = false;
   private lastUnits?: () => void;
   private userMoved = false;
   private fx = new Fx3D();
@@ -619,10 +630,40 @@ export class Scene3D {
     this.camera.updateProjectionMatrix();
     this.controls.enabled = true;
     this.lastUnits?.();
+    this.lookDirty = true;
   }
 
   get inPov(): boolean {
     return !!this.pov;
+  }
+
+  /** Report where the Eyes view looks, now and each time it turns; `undefined` when the view is left. */
+  setLookListener(cb: ((look: PovLook | undefined) => void) | undefined): void {
+    this.lookListener = cb;
+    this.lookDirty = true;
+    // Already looking: say where at once, without waiting for the next frame to be drawn.
+    if (cb && this.pov) {
+      this.camera.updateMatrixWorld(true);
+      cb(this.povLook());
+      this.lookDirty = false;
+    }
+  }
+
+  /** What is under the crosshair: the first thing the line of the camera meets, or a point far along it over the horizon. */
+  private povLook(): PovLook | undefined {
+    if (!this.pov || !this.map) return undefined;
+    const eye = this.camera.position;
+    const dir = this.camera.getWorldDirection(new THREE.Vector3());
+    const from = { x: eye.x, y: eye.z };
+    const ray = new THREE.Raycaster(eye, dir, 0.05, 200);
+    const scenery = this.landscape.children.filter((o) => o !== this.hoverLine);
+    const hit = ray.intersectObjects(scenery, true)[0];
+    if (hit) return { from, to: { x: hit.point.x, y: hit.point.z }, hit: true };
+    // Sky: the line runs on in the direction looked, to the edge of the map.
+    const flat = Math.hypot(dir.x, dir.z) || 1;
+    const b = this.map.bounds;
+    const reach = Math.hypot(b.x1 - b.x0, b.y1 - b.y0);
+    return { from, to: { x: from.x + (dir.x / flat) * reach, y: from.y + (dir.z / flat) * reach }, hit: false };
   }
 
   private applyPov(): void {
@@ -630,6 +671,7 @@ export class Scene3D {
     const { yaw, pitch } = this.pov;
     const dir = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
     this.camera.lookAt(this.camera.position.clone().add(dir));
+    this.lookDirty = true;
   }
 
   // ---- Frame and input ---------------------------------------------------------------
@@ -656,6 +698,13 @@ export class Scene3D {
     } else if (this.pov && this.camera.near !== 0.03) {
       this.camera.near = 0.03;
       this.camera.updateProjectionMatrix();
+    }
+    // Where the Eyes view looks, once a frame at most and only when it has turned.
+    if (this.lookDirty && this.lookListener) {
+      this.lookDirty = false;
+      if (this.pov && this.povBase) this.camera.position.copy(this.povBase);
+      this.camera.updateMatrixWorld(true);
+      this.lookListener(this.povLook());
     }
     // Incoming fire shakes the POV camera.
     if (this.pov && this.povBase) {
