@@ -28,6 +28,8 @@ export function StackPanel({
   // A building of three or more hexes has two floors (§57): each unit is on one of them.
   const floors = floorsOn(s) && hasUpper(ctx, s, hex);
   const loose = weaponsIn(s, hex).filter((w) => w.owner === null);
+  // Units of the side to act that could pick up a weapon lying here (§5.7).
+  const carriers = units.filter((u) => u.side === s.awaiting && !u.broken && !u.riding);
   const vehicles = Object.values(s.vehicles).filter((v) => v.hex === hex);
   const wrecks = s.wrecks.filter((w) => w.hex === hex).length;
   const sideName = (id: string) => s.sides.find((x) => x.id === id)?.name ?? id;
@@ -104,10 +106,22 @@ export function StackPanel({
         <div key={w.id} className="stack-row loose">
           <span className="tag weapon">{weaponType(ctx, w).name}</span>
           <span className="dim small">lying here{w.malfunctioned ? ', malfunctioned' : ''}</span>
-          {onTransfer && selected.length === 1 && (
-            <button className="btn tiny" onClick={() => onTransfer(w.id, selected[0]!)}>
-              Pick up
-            </button>
+          {/* One unit ticked: it picks the weapon up. Otherwise a button for each unit that could. */}
+          {onTransfer && (s.phase === 'setup' || s.phase === 'movement') ? (
+            carriers.length === 0 ? (
+              <span className="dim small">· move one of your units here to pick it up</span>
+            ) : (
+              (selected.length === 1 && carriers.some((u) => u.id === selected[0]) ? carriers.filter((u) => u.id === selected[0]) : carriers).map((u) => {
+                const ut = ctx.data.units[u.type]!;
+                return (
+                  <button key={u.id} className="btn tiny" onClick={() => onTransfer(w.id, u.id)}>
+                    Pick up: {ut.kind === 'leader' ? (u.name ?? 'leader') : `${ut.fp}-${ut.range}-${ut.morale}`}
+                  </button>
+                );
+              })
+            )
+          ) : (
+            <span className="dim small">· can be picked up in your Movement Phase</span>
           )}
         </div>
       ))}
