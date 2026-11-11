@@ -32,6 +32,11 @@ export interface PovSpec {
   readonly lookAt?: Vec2;
   /** Hexes the rules let this unit see; enemy units elsewhere are hidden. */
   readonly visible?: ReadonlySet<HexKey>;
+  /**
+   * Ids of the enemy units and vehicles the rules let it see, where that is known unit by unit
+   * (building floors, §57). Takes the place of `visible` for showing and hiding them.
+   */
+  readonly seen?: ReadonlySet<string>;
   readonly side?: string;
 }
 
@@ -403,6 +408,10 @@ export class Scene3D {
     const byHex = new Map<HexKey, typeof s.units[string][]>();
     for (const u of Object.values(s.units)) (byHex.get(u.hex) ?? byHex.set(u.hex, []).get(u.hex)!).push(u);
     const pov = this.pov?.spec;
+    // Eyes: is this enemy unit or vehicle one the rules let the viewer see?
+    const inSight = (id: string, hex: HexKey) => (pov?.seen ? pov.seen.has(id) : !pov?.visible || pov.visible.has(hex));
+    // Enemy pieces drawn for the viewer, to be shown through any scenery that hides them (see below).
+    const sighted: { obj: THREE.Object3D; label: string; texture?: THREE.Texture; counter?: THREE.Mesh }[] = [];
     const plane = new THREE.PlaneGeometry(1, 1);
     for (const [hex, us] of byHex) {
       const h = map.hexes[hex]!;
@@ -412,7 +421,8 @@ export class Scene3D {
       const top = h.level + (b ? buildingLevels(b).ridge : 0);
       const order = [...us].sort((a, c2) => Number(ctx.data.units[a.type]!.kind === 'leader') - Number(ctx.data.units[c2.type]!.kind === 'leader'));
       order.forEach((u, i) => {
-        if (pov?.visible && pov.side && u.side !== pov.side && !pov.visible.has(hex)) return;
+        const enemy = !!pov?.side && u.side !== pov.side;
+        if (enemy && !inSight(u.id, hex)) return;
         const n = order.length;
         const ang = (i / Math.max(1, n)) * Math.PI * 2 + 0.6;
         const r = n > 1 ? 0.3 : 0;
@@ -426,6 +436,7 @@ export class Scene3D {
           mini.position.set(c.x + Math.cos(ang) * rr, top * LEVEL + 0.002, c.y + Math.sin(ang) * rr);
           mini.userData = { hex, unit: u.id, base: mini.position.clone() };
           this.units.add(mini);
+          if (enemy) sighted.push({ obj: mini, label: '', texture: counterTexture(ctx, s, u, false, hidden.has(u.id)) });
           return;
         }
         const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: counterTexture(ctx, s, u, selected.has(u.id), hidden.has(u.id)), transparent: true, side: THREE.DoubleSide }));
@@ -434,6 +445,7 @@ export class Scene3D {
         mesh.userData = { hex, standee: true, unit: u.id, base: mesh.position.clone() };
         mesh.renderOrder = 4;
         this.units.add(mesh);
+        if (enemy) sighted.push({ obj: mesh, label: '', counter: mesh });
         const base = new THREE.Mesh(new THREE.CircleGeometry(size * 0.38, 18), new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }));
         base.rotation.x = -Math.PI / 2;
         base.position.set(mesh.position.x, top * LEVEL + 0.006, mesh.position.z);
@@ -457,7 +469,8 @@ export class Scene3D {
       this.units.add(m);
     }
     for (const v of Object.values(s.vehicles)) {
-      if (pov?.visible && pov.side && v.side !== pov.side && !pov.visible.has(v.hex)) continue;
+      const enemyVehicle = !!pov?.side && v.side !== pov.side;
+      if (enemyVehicle && !inSight(v.id, v.hex)) continue;
       if (pov && pov.hex === v.hex) continue;
       const { c, y } = ground(v.hex);
       const shared = Object.values(s.units).some((u) => u.hex === v.hex);
@@ -465,10 +478,47 @@ export class Scene3D {
       m.position.set(c.x + (shared ? 0.25 : 0), y, c.y + (shared ? 0.2 : 0));
       m.userData = { hex: v.hex, vehicle: v.id, base: m.position.clone() };
       this.units.add(m);
+      if (enemyVehicle) sighted.push({ obj: m, label: vehicleType(ctx, v).name });
       if (vehicle === v.id) {
         const ring = selectionRing();
         ring.position.set(m.position.x, y + 0.01, m.position.z);
         this.units.add(ring);
+      }
+    }
+    // Eyes shows what the rules let the viewer see. The scenery is drawn taller and rougher than the
+    // rules' heights, so a building or a wood can stand in front of an enemy the viewer has a line of
+    // sight to. Such a piece is drawn through the scenery: counters on top of it, figures and vehicles
+    // with a marker over them.
+    if (pov && sighted.length) {
+      this.root.updateMatrixWorld(true);
+      const eye = this.camera.position.clone();
+      const ray = new THREE.Raycaster();
+      // Ground, buildings, walls, hedges and trees; not the hex cursor, which is a line.
+      const scenery = this.landscape.children.filter((o) => o !== this.hoverLine);
+      for (const x of sighted) {
+        const at = x.obj.getWorldPosition(new THREE.Vector3());
+        if (!x.counter) at.y += 0.05 * this.exaggeration;
+        const dir = at.clone().sub(eye);
+        const dist = dir.length();
+        if (dist < 0.3) continue;
+        ray.set(eye, dir.normalize());
+        ray.near = 0.05;
+        ray.far = dist - 0.12;
+        if (!ray.intersectObjects(scenery, true).length) continue;
+        if (x.counter) {
+          (x.counter.material as THREE.MeshBasicMaterial).depthTest = false;
+          x.counter.renderOrder = 9;
+          continue;
+        }
+        const label = x.texture ? undefined : labelTexture(x.label, 11, 0xffe9b0);
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: x.texture ?? label!.tex, depthTest: false, transparent: true }));
+        const h = x.texture ? 0.24 : 0.14;
+        sp.scale.set(h * (label?.aspect ?? 1), h / this.exaggeration, 1);
+        sp.position.copy(x.obj.position);
+        sp.position.y += (x.texture ? 0.2 : 0.16) / this.exaggeration;
+        sp.renderOrder = 9;
+        sp.userData = { base: sp.position.clone() };
+        this.units.add(sp);
       }
     }
   }

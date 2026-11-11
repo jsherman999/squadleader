@@ -106,8 +106,8 @@ export function changeFloor(ctx: Ctx, s: GameState, ids: readonly string[], uppe
     else delete u.upstairs;
   };
   if (s.phase === 'setup') {
+    // No event: the log is read by both sides, and a setup is not announced (the units may be concealed or hidden).
     movers.forEach(set);
-    emit({ kind: 'info', text: `${names} set up on the ${to} of ${hexLabel(ctx, hex)}`, side: s.awaiting, units: [...ids], hexes: [hex] });
     return;
   }
   if (s.phase === 'advance') {

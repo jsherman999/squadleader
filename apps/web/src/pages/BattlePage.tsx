@@ -16,6 +16,9 @@ import {
   floorsOn,
   hasUpper,
   isUpper,
+  observes,
+  tryAction,
+  unitLabel,
   type Exposure,
   type GameState,
   type Threat,
@@ -411,6 +414,24 @@ function Battle() {
     const due = (s.reserves ?? []).filter((r) => r.side === s.awaiting && r.turn <= s.turn && r.units.length > 0);
     return due.length ? { hexes: [...new Set(due.flatMap((r) => r.hexes))], boats: due.some((r) => r.endsMove) } : undefined;
   }, [human, s]);
+  // Artillery: the hexes the order being given can go to. The spotter (the leader holding radio contact) must see the hex.
+  const artyZone = useMemo(() => {
+    if (pick?.kind !== 'arty' || !human) return undefined;
+    const b = (s.batteries ?? []).find((x) => x.id === pick.battery);
+    const spotter = b?.leader ? s.units[b.leader] : undefined;
+    if (!b || !spotter) return undefined;
+    const hexes = Object.keys(map.hexes).filter(
+      (h) => observes(ctx, s, spotter, h) && tryAction(ctx, s, { type: 'arty', battery: b.id, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) }).ok,
+    );
+    return { hexes: new Set(hexes), spotter };
+  }, [pick, human, s, ctx, map]);
+  useEffect(() => {
+    if (!artyZone || artyZone.hexes.size) return;
+    const sp = artyZone.spotter;
+    setNotice(
+      `${unitLabel(ctx, sp)} in ${map.hexes[sp.hex]?.id ?? sp.hex} can observe no hex this order could go to${hasUpper(ctx, s, sp.hex) && !isUpper(ctx, s, sp) ? ' from the ground floor: take him upstairs for a view' : ': he needs a line of sight to the target'}.`,
+    );
+  }, [artyZone, ctx, map, s]);
   // The danger map is for the side you play (the side to act when both or neither are yours), from the enemy you can see.
   const dangerSide = viewer ?? s.awaiting;
   const dangers = useMemo(() => (threat ? exposureMap(ctx, fog.s, dangerSide) : undefined), [threat, ctx, fog.s, dangerSide]);
@@ -482,6 +503,7 @@ function Battle() {
           for (const [h, e] of dangers) if (e.pBreak >= DANGER_MIN && !enemiesIn(fog.s, h, dangerSide).length) shade.push([h, e.pBreak]);
           drawDanger(pen, shade);
         }
+        if (artyZone) drawEntryHexes(pen, artyZone.hexes, true, 'OBSERVED');
         // Drawn last, over the danger shading: the one place waiting units can come on.
         if (entry) drawEntryHexes(pen, entry.hexes, pick?.kind === 'enter', entry.boats ? 'LAND HERE' : 'ENTER HERE');
       },
@@ -522,7 +544,7 @@ function Battle() {
         else if (losMode && losA) hexOutline(pen, map.hexes[losA]!.hex, 0xf0c66b, 1, 4);
       },
     }),
-    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus, fire.canHit, dangerSide, ownDanger, entry],
+    [ctx, s, human, dangers, lastFire, plan, map, sel.hex, session.target, groupHexes, movePreview, firers.length, losMode, los, losA, tutor, aiVsAi, selVehicle, vtarget, vehiclePreview, viewer, fog.s, pick, objFocus, fire.canHit, dangerSide, ownDanger, entry, artyZone],
   );
 
   // Eyes (POV): a unit's view at eye height. Enemy units show only where the rules give LOS.
@@ -536,11 +558,17 @@ function Battle() {
       const ang = facingAngle(veh.facing);
       const visible = viewshed(map, povHex);
       visible.add(povHex);
-      const foes = [...Object.values(s.units), ...Object.values(s.vehicles)].filter((x) => x.side !== veh.side && visible.has(x.hex));
+      // What it can fire on: with building floors (§57) a vehicle, on the ground, sees each enemy unit on that unit's own floor.
+      const floorsV = floorsOn(s);
+      const canSee = (hex: HexKey, up: boolean) => hex === povHex || (floorsV ? ctx.losLevel(povHex, false, hex, up).clear : visible.has(hex));
+      const foeUnits = Object.values(s.units).filter((u) => u.side !== veh.side && canSee(u.hex, isUpper(ctx, s, u)));
+      const foeVehicles = Object.values(s.vehicles).filter((v) => v.side !== veh.side && canSee(v.hex, false));
+      const foes = [...foeUnits, ...foeVehicles];
       return {
         hex: povHex,
         upper: false,
         visible,
+        seen: new Set(foes.map((x) => x.id)),
         side: veh.side,
         lookAt: { x: c.x + Math.cos(ang) * 6, y: c.y + Math.sin(ang) * 6 },
         title: `${vehicleLabel(ctx, veh)} · commander’s view · ${map.hexes[povHex]!.id}`,
@@ -562,11 +590,16 @@ function Battle() {
       ? new Set(Object.keys(map.hexes).filter((k) => k !== povHex && (ctx.losLevel(povHex, upper, k, false).clear || (hasUpper(ctx, s, k) && ctx.losLevel(povHex, upper, k, true).clear))))
       : viewshed(map, povHex);
     visible.add(povHex);
-    const seen = new Set(enemies.filter((u) => (floors ? u.hex === povHex || ctx.losLevel(povHex, upper, u.hex, isUpper(ctx, s, u)).clear : visible.has(u.hex))).map((u) => u.hex)).size;
+    // Every enemy unit and vehicle these eyes have a line of sight to: the view shows all of them, and only them.
+    const canSee = (hex: HexKey, up: boolean) => hex === povHex || (floors ? ctx.losLevel(povHex, upper, hex, up).clear : visible.has(hex));
+    const seenUnits = enemies.filter((u) => canSee(u.hex, isUpper(ctx, s, u)));
+    const seenVehicles = Object.values(s.vehicles).filter((v) => v.side !== side && canSee(v.hex, false));
+    const seen = new Set([...seenUnits, ...seenVehicles].map((x) => x.hex)).size;
     return {
       hex: povHex,
       upper,
       visible,
+      seen: new Set([...seenUnits, ...seenVehicles].map((x) => x.id)),
       side,
       ...(nearest ? { lookAt: hexToPixel(parseHexKey(nearest.hex)) } : {}),
       title: `Eyes of ${who} · ${map.hexes[povHex]!.id}`,
@@ -591,8 +624,12 @@ function Battle() {
         return;
       }
       if (pick) {
-        if (pick.kind === 'arty') session.dispatch({ type: 'arty', battery: pick.battery, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) });
-        else if (pick.kind === 'enter') {
+        if (pick.kind === 'arty') {
+          // A click outside the observed hexes keeps the order open, and says who has to see the target.
+          if (artyZone && !artyZone.hexes.has(h)) setNotice(`${unitLabel(ctx, artyZone.spotter)} cannot observe that hex: pick one of the blue ones.`);
+          else if (session.dispatch({ type: 'arty', battery: pick.battery, op: pick.op, hex: h, ...(pick.smoke ? { smoke: true } : {}) })) setPick(undefined);
+          return;
+        } else if (pick.kind === 'enter') {
           // A click anywhere else keeps the units picked, so a slip does not undo the choice.
           const res = (s.reserves ?? []).find((r) => r.units.some((u) => u.id === pick.units[0]));
           if (res && !res.hexes.includes(h)) setNotice(`They come on only at the blue hexes along the ${res.endsMove ? 'bank' : 'board edge'}.`);
@@ -694,7 +731,7 @@ function Battle() {
       }
       session.select(h, mine);
     },
-    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting, selVehicle, pick],
+    [losMode, human, session, s, ctx, selUnits, sel.hex, firers.length, ownIn, real.awaiting, selVehicle, pick, artyZone],
   );
 
   const onHover = useCallback((p: PointerInfo) => setHover(p.hex), []);

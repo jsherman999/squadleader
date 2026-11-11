@@ -18,6 +18,8 @@ export function Scene3DView({ map, onReady, onHover, onClick, onContext }: Scene
 
   useEffect(() => {
     const sc = new Scene3D();
+    // Development hook for end-to-end checks; not present in production builds.
+    if (import.meta.env.DEV && (window as unknown as { __sw?: object }).__sw) Object.assign((window as unknown as { __sw: object }).__sw, { scene3d: sc });
     sceneRef.current = sc;
     sc.init(hostRef.current!);
     sc.setMap(map);

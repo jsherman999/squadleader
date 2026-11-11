@@ -148,7 +148,7 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
     const text =
       pick.kind === 'starshell'
         ? 'Click the hex for the starshell (within 5 hexes)'
-        : `Click the hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}`;
+        : `Click a blue hex for the ${pick.op === 'request' ? 'artillery request' : pick.op === 'correct' ? 'corrected spotting round' : pick.op === 'move' ? 'moved fire for effect' : 'fire for effect'}: the blue hexes are the ones your spotter can see`;
     rows.push(
       <Row key="pick" text={text}>
         <button className="btn tiny" onClick={() => setPick(undefined)}>
@@ -205,7 +205,13 @@ function Specials({ ctx, s, selected = [], flame, selectedHex, dispatch, pick, s
         <Row
           key={`bat-${b.id}`}
           text={b.onboard ? `${s.vehicles[b.onboard] ? vehicleLabel(ctx, s.vehicles[b.onboard]!) : `${b.mm}mm`} · indirect fire (§63.4)` : `${b.mm}mm artillery · ${left} mission${left === 1 ? '' : 's'} left`}
-          why={`Contact: ${b.contact && b.tried ? 'yes' : b.tried ? 'failed' : 'not tried'} · ${mark}${b.onboard ? ' · one-hex blast' : ''}`}
+          why={`Contact: ${b.contact && b.tried ? 'yes' : b.tried ? 'failed' : 'not tried'} · ${mark}${b.onboard ? ' · one-hex blast' : ''}. ${
+            !b.tried
+              ? 'Each Rally Phase a leader with the radio rolls for contact. With contact he is the spotter: Request a hex he can see, and a spotting round lands there at the end of the turn. Next Rally Phase, radio again, then Correct it or Fire for effect.'
+              : b.contact && b.leader && s.units[b.leader]
+                ? `Spotter: ${unitLabel(ctx, s.units[b.leader]!)} in ${hexId(s.units[b.leader]!.hex)}. The target must be a hex he can see.`
+                : 'No contact this turn: try again next Rally Phase.'
+          }`}
         >
           {!b.tried &&
             leaders.map((L) => (
