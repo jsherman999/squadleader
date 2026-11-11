@@ -2536,3 +2536,69 @@ body.resizing {
 .action-row.stacked .action-btns {
   justify-content: flex-start;
 }
+
+/* ---- Phones: Fire and End phase right under the map ---- */
+.quick-bar {
+  display: none;
+}
+@media (max-width: 900px) {
+  .quick-bar {
+    order: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--c-panel);
+    border-top: 1px solid var(--c-line);
+  }
+  .quick-bar .btn {
+    padding: 9px 12px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .quick-bar .quick-fire {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quick-bar .quick-note {
+    flex: 1;
+    min-width: 0;
+    align-self: center;
+    color: var(--c-text-dim);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quick-bar .quick-end {
+    flex: none;
+    border-color: var(--c-brass);
+  }
+  /* In the bar that stays at the top, End phase comes first, so it shows without scrolling the row. */
+  .topbar-actions > .end-phase {
+    order: -1;
+  }
+  /* The danger legend shrinks to its three swatches. */
+  .legend.danger-legend {
+    right: 6px;
+    bottom: 6px;
+    padding: 2px 6px;
+    font-size: 10px;
+    max-width: none;
+    pointer-events: none;
+  }
+  .legend.danger-legend .legend-note,
+  .legend.danger-legend .legend-row > .small {
+    display: none;
+  }
+  .legend.danger-legend .legend-row {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .legend.danger-legend .swatch {
+    width: 9px;
+    height: 9px;
+  }
+}

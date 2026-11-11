@@ -13,6 +13,8 @@ import {
   moveCost,
   phaseBlockers,
   sideUnitsIn,
+  analyzeFire,
+  fireOdds,
   floorsOn,
   hasUpper,
   isUpper,
@@ -363,6 +365,25 @@ function Battle() {
     },
     [session, renderer],
   );
+  /** Phones: the Fire button under the map, for the infantry attack that is set up (firers and a target chosen). */
+  const quickFire = useMemo(() => {
+    if (!human || !FIRE.has(s.phase) || selVehicle || !firers.length) return undefined;
+    const target = session.target;
+    if (!target) return { ok: false, label: 'Fire: tap a target', title: 'Choose a target hex', fire: () => undefined };
+    try {
+      const a = analyzeFire(ctx, s, firers, target, leader);
+      const hit = fireOdds(ctx, s, a).units.reduce((n, o) => n + (s.units[o.unit]?.side === s.awaiting ? 0 : s.units[o.unit]?.broken ? o.mc : o.breakOrWorse), 0);
+      const fp = Number.isInteger(a.totalFp) ? a.totalFp : a.totalFp.toFixed(1);
+      return {
+        ok: true,
+        label: `Fire ${fp} FP → ${map.hexes[target]?.id ?? target} · breaks ≈${hit.toFixed(1)}`,
+        title: a.trace.join('\n'),
+        fire: () => void session.dispatch({ type: 'fire', firers, target, ...(leader ? { leader } : {}) }),
+      };
+    } catch (e) {
+      return { ok: false, label: 'Fire: not possible', title: (e as Error).message, fire: () => undefined };
+    }
+  }, [human, s, ctx, map, firers, leader, selVehicle, session]);
   const eyesReady = !!povHex || !!selVehicle || !!(sel.hex && Object.values(s.units).some((u) => u.hex === sel.hex));
   const whyTitle = aiVsAi ? (paused ? 'Why this move' : 'Latest key decision') : 'Opponent’s last decision';
 
@@ -961,7 +982,7 @@ function Battle() {
         </select>
         )}
         {!aiVsAi && (
-          <button className="btn primary" disabled={!human || s.phase === 'gameOver' || !!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
+          <button className="btn primary end-phase" disabled={!human || s.phase === 'gameOver' || !!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase (Space)'}>
             End phase <kbd>Space</kbd>
           </button>
         )}
@@ -1155,6 +1176,20 @@ function Battle() {
             </div>
           )}
         </div>
+        {/* Phones: the two things pressed most, right under the map, so a shot can be fired and watched without scrolling. */}
+        {human && !aiVsAi && s.phase !== 'gameOver' && (
+          <div className="quick-bar">
+            {quickFire && (
+              <button className="btn primary quick-fire" disabled={!quickFire.ok || !!plan} onClick={quickFire.fire} title={quickFire.title}>
+                {quickFire.label}
+              </button>
+            )}
+            {!quickFire && <span className="quick-note">{statusText}</span>}
+            <button className="btn quick-end" disabled={!!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase'}>
+              End phase
+            </button>
+          </div>
+        )}
         {!sideEmpty && (
         <aside className="side-right">
           {losMode && (
