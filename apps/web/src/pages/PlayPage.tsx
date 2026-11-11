@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
-import { DEFAULT_OPTIONS, leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions } from '@squadwar/engine';
+import { DEFAULT_OPTIONS, leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions, type Scenario, type UnitType, type VehicleType } from '@squadwar/engine';
 import { allScenarios, customScenarios, registerScenario, removeScenario, rulesData, scenarioById } from '../game/scenarios';
 import { deleteGame, downloadSave, getGame, listGames, type GameSummary } from '../game/library';
 import { useReview } from '../game/review';
@@ -8,6 +8,7 @@ import { loadAutosave, useSession, type Controller, type SaveFile } from '../gam
 import { go, useRoute } from '../router';
 import { useLlm } from '../game/llm';
 import { LlmSettings } from '../ui/LlmSettings';
+import { CounterIcon } from '../ui/CounterIcon';
 import { TopBar } from '../ui/TopBar';
 
 export function PlayPage() {
@@ -137,18 +138,21 @@ export function PlayPage() {
         </aside>
         <section className="scenario-card">
           <h1 className="stencil scenario-title">{sc.title}</h1>
-          <p className="dim">
-            {sc.location} · {sc.date} · rules §1–{sc.rulesLevel}
-          </p>
-          <p className="briefing">{sc.briefing}</p>
-          <h3 className="panel-h">Victory</h3>
-          <p>{sc.victory.text}</p>
+          {/* The briefing comes off the teleprinter, like the dispatches in the game. */}
+          <div className="sheet scenario-brief">
+            <p className="dateline">
+              {sc.location} · {sc.date} · rules §1–{sc.rulesLevel}
+            </p>
+            <p className="briefing">{sc.briefing}</p>
+            <h3 className="panel-h">Victory</h3>
+            <p>{sc.victory.text}</p>
+          </div>
           <h3 className="panel-h">Forces</h3>
           <div className="forces">
             {sc.sides.map((side) => (
-              <div key={side.id} className={`force nation-${side.nation}`}>
+              <div key={side.id} className={`force sheet nation-${side.nation}`}>
                 <div className="force-head">
-                  <strong>{side.name}</strong>
+                  <strong className={`side-chip nation-${side.nation}`}>{side.name}</strong>
                   <select value={controllers[side.id]} onChange={(e) => setControllers({ ...controllers, [side.id]: e.target.value as Controller })} aria-label={`${side.name} player`}>
                     <option value="human">Human</option>
                     <option value="bot">Computer (bot)</option>
@@ -156,18 +160,19 @@ export function PlayPage() {
                   </select>
                 </div>
                 <div className="small dim">{side.notes}</div>
-                <ul className="small">
-                  {side.units.map((u, i) => (
-                    <li key={i}>
-                      {u.count && u.count > 1 ? `${u.count}× ` : ''}
-                      {unitName(u.type)}
-                      {u.names ? ` (${u.names.join(', ')})` : ''}
-                      {u.weapons?.length ? ` with ${u.weapons.map((w) => rulesData().weapons[w]?.name ?? w).join(', ')}` : ''}
-                      {u.enters ? <span className="dim"> · enters turn {u.enters.turn}</span> : ''}
-                      {u.hidden ? <span className="dim"> · hidden</span> : ''}
-                    </li>
+                {/* The order of battle as counters, a stack for each starting hex. */}
+                <div className="oob" role="list" aria-label={`${side.name} forces`}>
+                  {orderOfBattle(side).map((st) => (
+                    <div key={st.key} className="oob-stack" role="listitem">
+                      <div className="oob-counters">
+                        {st.pieces.map((p, i) => (
+                          <CounterIcon key={i} nation={side.nation} unit={p.unit} vehicle={p.vehicle} name={p.name} weapons={p.weapons} label={p.label} />
+                        ))}
+                      </div>
+                      <div className="oob-cap">{st.caption}</div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
@@ -306,6 +311,44 @@ export function PlayPage() {
       </main>
     </div>
   );
+}
+
+interface OobPiece {
+  readonly unit?: UnitType;
+  readonly vehicle?: VehicleType;
+  readonly name?: string;
+  readonly weapons: string[];
+  /** In words, as the list used to say it. */
+  readonly label: string;
+}
+
+/**
+ * A side's forces as stacks of counters: the units that start in one hex together, in the scenario's order.
+ * Reinforcements and hidden units form their own stacks, and the caption says so.
+ */
+function orderOfBattle(side: Scenario['sides'][number]): { key: string; caption: string; pieces: OobPiece[] }[] {
+  const data = rulesData();
+  const stacks = new Map<string, { key: string; caption: string; pieces: OobPiece[] }>();
+  for (const e of side.units) {
+    const where = e.enters ? `enters turn ${e.enters.turn}` : (e.hex ?? 'setup area');
+    const caption = `${where}${e.hidden ? ' · hidden' : ''}`;
+    const st = stacks.get(caption) ?? stacks.set(caption, { key: caption, caption, pieces: [] }).get(caption)!;
+    const vehicle = data.vehicles[e.type];
+    const unit = data.units[e.type];
+    for (let i = 0; i < (e.count ?? 1); i++) {
+      const name = e.names?.[i];
+      // The entry's support weapons go to its first unit, as when the game is set up.
+      const carried = i === 0 ? (e.weapons ?? []) : [];
+      const weaponNames = carried.map((w) => data.weapons[w]?.name ?? w);
+      st.pieces.push({
+        ...(vehicle ? { vehicle } : unit ? { unit } : {}),
+        ...(name ? { name } : {}),
+        weapons: carried.map((w) => data.weapons[w]?.kind ?? w),
+        label: `${unitName(e.type)}${name ? ` (${name})` : ''}${weaponNames.length ? ` with ${weaponNames.join(', ')}` : ''}`,
+      });
+    }
+  }
+  return [...stacks.values()];
 }
 
 function unitName(type: string): string {
