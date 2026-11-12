@@ -11,7 +11,7 @@ export function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: V
   return (
     <span className="segmented" role="group" aria-label="View">
       {MODES.map(([m, label, title]) => (
-        <button key={m} className={`btn ${mode === m ? 'active' : ''}`} aria-pressed={mode === m} onClick={() => onChange(m)} title={`${title} (3 cycles)`}>
+        <button key={m} className={`btn led ${mode === m ? 'active' : ''}`} aria-pressed={mode === m} onClick={() => onChange(m)} title={`${title} (3 cycles)`}>
           {label}
         </button>
       ))}

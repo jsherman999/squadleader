@@ -1,0 +1,721 @@
+/*
+ * Hardware. The controls are the front panel of an early-1980s desktop
+ * instrument: a cream moulded faceplate with printed legends, sprung keycaps,
+ * LCD windows, and lamp tiles of translucent plastic for the turns and phases
+ * that light up as play goes on. The paper of the side panels (teletype.css)
+ * feeds out from under it. The two faces (Barlow Condensed for the panel
+ * lettering, VT323 for the LCDs) are bundled and loaded in main.tsx.
+ */
+:root {
+  --font-panel: 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --font-lcd: 'VT323', 'Courier Prime', 'Courier New', monospace;
+  /* The moulded body and what is printed on it. */
+  --hw-body: #e7dcb0;
+  --hw-body-hi: #f3eaca;
+  --hw-body-lo: #d6c996;
+  --hw-seam: #7a6f49;
+  --hw-print: #35271a;
+  --hw-print-dim: rgba(53, 39, 26, 0.36);
+  --hw-orange: #d2601f;
+  --hw-plate: linear-gradient(180deg, var(--hw-body-hi) 0%, var(--hw-body) 42%, var(--hw-body-lo) 100%);
+  /* Keycaps. */
+  --hw-key: linear-gradient(180deg, #fcf6e0 0%, #f1e8c9 45%, #dfd2a4 100%);
+  --hw-key-hover: linear-gradient(180deg, #fffbea 0%, #f7efd4 45%, #e6dab0 100%);
+  --hw-key-edge: #8a7d52;
+  --hw-key-skirt: #7d7148;
+  /* LCD glass. */
+  --lcd: #a6b187;
+  --lcd-hi: #b8c29a;
+  --lcd-ink: #1b2415;
+  --lcd-bezel: #22231e;
+  /* Lamp colours, as lit. */
+  --lamp-red: #ef4a2b;
+  --lamp-orange: #f57f24;
+  --lamp-yellow: #f6c230;
+  --lamp-white: #f7e9b8;
+  --led: #ff4a2e;
+}
+
+/* ---- The faceplate along the top ------------------------------------- */
+.topbar {
+  height: 48px;
+  background: var(--hw-plate);
+  border-bottom: 1px solid #1a1a16;
+  /* A lit top edge, and the orange pinstripe printed along the bottom. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -3px 0 var(--hw-orange),
+    inset 0 -4px 0 rgba(255, 255, 255, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+  color: var(--hw-print);
+  padding-bottom: 3px;
+}
+.topbar-brand.stencil {
+  font-family: var(--font-panel);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--hw-orange);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  padding-right: 3px;
+}
+/* The scenario name is the model name printed beside the badge. */
+.topbar-title {
+  font-family: var(--font-panel);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.12em;
+  color: var(--hw-print);
+}
+
+/* Anything else printed on the faceplate (the review screen's tick box). */
+.topbar .check {
+  font-family: var(--font-panel);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--hw-print);
+  white-space: nowrap;
+}
+.topbar .check input {
+  accent-color: var(--hw-orange);
+}
+
+/* ---- Keycaps ---------------------------------------------------------- */
+.topbar .btn,
+.topbar .auto-select,
+.quick-bar .btn {
+  font-family: var(--font-panel);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: var(--hw-print);
+  background: var(--hw-key);
+  border: 1px solid var(--hw-key-edge);
+  border-radius: 4px;
+  /* A bright top bevel, a shaded foot, the skirt of the cap, and its shadow on the panel. */
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 0 rgba(125, 113, 72, 0.3),
+    0 2px 0 var(--hw-key-skirt),
+    0 3px 4px rgba(50, 35, 10, 0.35);
+  padding: 5px 9px 5px;
+  margin-bottom: 2px;
+  transition:
+    transform 0.05s,
+    box-shadow 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+.topbar .btn:hover:not(:disabled),
+.topbar .auto-select:hover,
+.quick-bar .btn:hover:not(:disabled) {
+  background: var(--hw-key-hover);
+  border-color: #6f6442;
+}
+/* Pressed, and latched down while a mode is on. */
+.topbar .btn:active:not(:disabled),
+.topbar .btn.active,
+.quick-bar .btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 2px rgba(60, 40, 10, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 var(--hw-key-skirt),
+    0 1px 1px rgba(50, 35, 10, 0.3);
+}
+.topbar .btn.active {
+  background: linear-gradient(180deg, #e9dfbb 0%, #efe6c6 60%, #e2d6aa 100%);
+  border-color: #6f6442;
+}
+/* A key that does nothing now keeps its cap and loses its legend. */
+.topbar .btn:disabled,
+.topbar .btn.idle,
+.quick-bar .btn:disabled {
+  opacity: 1;
+  color: var(--hw-print-dim);
+}
+.topbar .btn kbd {
+  font-family: var(--font-panel);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-left: 5px;
+  padding: 0 3px;
+  border: 1px solid rgba(53, 39, 26, 0.4);
+  border-radius: 2px;
+  color: inherit;
+  background: none;
+  opacity: 0.75;
+}
+/* The LED of a latching key: dark until its mode is on. */
+.topbar .btn.led::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 6px 1px 0;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: radial-gradient(circle at 35% 30%, #8a4a3c, #4a1c13 60%);
+  box-shadow:
+    inset 0 0 1px rgba(0, 0, 0, 0.7),
+    0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.topbar .btn.led.active::before {
+  background: radial-gradient(circle at 35% 30%, #ffe3d6, var(--led) 45%, #b3200d);
+  box-shadow:
+    0 0 5px 1px rgba(255, 74, 46, 0.85),
+    0 0 1px rgba(120, 20, 0, 0.9);
+}
+/* A bank of interlocked keys: one stays down. */
+.topbar .segmented {
+  gap: 3px;
+}
+.topbar .segmented .btn,
+.topbar .segmented .btn:first-child,
+.topbar .segmented .btn:last-child {
+  border-radius: 4px;
+  margin-left: 0;
+}
+/* The round red key. */
+.topbar .btn.help-key {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fbeed2;
+  background: radial-gradient(circle at 38% 30%, #d9634a, #b23a25 55%, #8c2817);
+  border-color: #5e170b;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 0 #5e170b,
+    0 3px 4px rgba(50, 35, 10, 0.35);
+}
+.topbar .btn.help-key:hover:not(:disabled) {
+  background: radial-gradient(circle at 38% 30%, #e37259, #bd442e 55%, #942c1a);
+  border-color: #5e170b;
+}
+.topbar .btn.help-key.active,
+.topbar .btn.help-key:active {
+  box-shadow:
+    inset 0 2px 3px rgba(40, 5, 0, 0.6),
+    0 0 0 #5e170b;
+}
+/* The selectors are keys with a printed arrow. */
+.topbar .auto-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%2335271a'/%3E%3C/svg%3E") right 8px center / 8px 5px no-repeat,
+    var(--hw-key);
+  cursor: pointer;
+}
+.topbar .auto-select:hover {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%2335271a'/%3E%3C/svg%3E") right 8px center / 8px 5px no-repeat,
+    var(--hw-key-hover);
+}
+.topbar .auto-select option {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-ui);
+  color: #1b1b1b;
+  background: #fff;
+}
+
+/* ---- The lamp-lit key: End phase, and Fire under the map --------------- */
+.topbar .btn.primary,
+.quick-bar .btn.quick-end,
+.quick-bar .btn.primary {
+  --lamp: var(--lamp-orange);
+  font-weight: 700;
+  color: #2a1206;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 45%),
+    radial-gradient(85% 130% at 50% 45%, #fff3cf 0%, color-mix(in srgb, var(--lamp) 55%, #ffe39a) 26%, var(--lamp) 62%, color-mix(in srgb, var(--lamp) 72%, #4a1500) 100%);
+  border-color: color-mix(in srgb, var(--lamp) 45%, #2a0c00);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 0 rgba(90, 30, 0, 0.3),
+    0 2px 0 color-mix(in srgb, var(--lamp) 45%, #2a0c00),
+    0 0 12px 2px color-mix(in srgb, var(--lamp) 60%, transparent),
+    0 3px 4px rgba(50, 35, 10, 0.35);
+}
+.quick-bar .btn.primary {
+  --lamp: var(--lamp-red);
+}
+.topbar .btn.primary:hover:not(:disabled),
+.quick-bar .btn.quick-end:hover:not(:disabled),
+.quick-bar .btn.primary:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 45%),
+    radial-gradient(85% 130% at 50% 45%, #fffbe6 0%, color-mix(in srgb, var(--lamp) 45%, #ffeeb5) 30%, color-mix(in srgb, var(--lamp) 90%, #fff) 66%, color-mix(in srgb, var(--lamp) 78%, #4a1500) 100%);
+  border-color: color-mix(in srgb, var(--lamp) 45%, #2a0c00);
+}
+.topbar .btn.primary:active:not(:disabled),
+.quick-bar .btn.quick-end:active:not(:disabled),
+.quick-bar .btn.primary:active:not(:disabled) {
+  box-shadow:
+    inset 0 2px 3px rgba(90, 30, 0, 0.45),
+    0 0 0 #000,
+    0 0 9px 1px color-mix(in srgb, var(--lamp) 55%, transparent);
+}
+/* Lamp out: the same cap, dark, when the key is not yours to press. */
+.topbar .btn.primary:disabled,
+.quick-bar .btn.quick-end:disabled,
+.quick-bar .btn.primary:disabled {
+  color: rgba(250, 236, 205, 0.62);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 45%),
+    color-mix(in srgb, var(--lamp) 34%, #33271f);
+  border-color: #3a2416;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35),
+    0 2px 0 #3a2416,
+    0 3px 4px rgba(50, 35, 10, 0.35);
+}
+
+/* ---- LCD windows ------------------------------------------------------ */
+.topbar .status,
+.topbar .awaiting,
+.topbar-title .tt-narrow,
+.ribbon .phasing,
+.quick-bar .quick-note {
+  font-family: var(--font-lcd);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lcd-ink);
+  /* The faint shadow the segments throw on the back of the glass. */
+  text-shadow: 1px 1px 0 rgba(27, 36, 21, 0.16);
+  background: linear-gradient(180deg, var(--lcd-hi), var(--lcd) 70%);
+  border: 2px solid var(--lcd-bezel);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.65);
+  padding: 3px 8px 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar .status.small {
+  font-size: 16px;
+}
+/* Who acts is always readable in full; the long turn-and-phase readout gives way first (the lamps show both). */
+.topbar .awaiting {
+  flex: none;
+}
+.topbar .status {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.topbar-actions {
+  gap: 7px;
+}
+@media (min-width: 901px) and (max-width: 1900px) {
+  .topbar .status:not(.small) {
+    display: none;
+  }
+}
+@media (min-width: 1901px) {
+  .topbar .status:not(.small) {
+    flex: none;
+  }
+}
+/* Your move: the readout goes to inverse video. */
+.topbar .awaiting.you {
+  color: #c9d3ac;
+  text-shadow: none;
+  background: linear-gradient(180deg, #2b3622, #1f2818);
+}
+.topbar .awaiting.bot {
+  color: var(--lcd-ink);
+}
+
+/* ---- The turn and phase panel ----------------------------------------- */
+.ribbon .rb-turn,
+.ribbon .rb-phases {
+  --c-line: rgba(53, 39, 26, 0.4);
+  margin: 0 calc(-1 * var(--paper-pad));
+  padding: 10px 14px 12px;
+  background: var(--hw-plate);
+  border-bottom: none;
+  color: var(--hw-print);
+  font-family: var(--font-panel);
+}
+.ribbon .rb-turn {
+  margin-top: -8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+/* The slot the paper comes out of. */
+.ribbon .rb-phases {
+  background: linear-gradient(180deg, var(--hw-body) 0%, var(--hw-body-lo) 100%);
+  padding-bottom: 14px;
+  border-bottom: 5px solid #121413;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 5px rgba(0, 0, 0, 0.3);
+  margin-bottom: 6px;
+}
+/* Printed legends, ruled either side. */
+.ribbon :is(.rb-turn, .rb-phases) .panel-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-family: var(--font-panel);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.24em;
+  color: var(--hw-print);
+}
+.ribbon :is(.rb-turn, .rb-phases) .panel-h::before,
+.ribbon :is(.rb-turn, .rb-phases) .panel-h::after {
+  content: '';
+  display: block;
+  flex: 1;
+  margin: 0;
+  border: none;
+  border-top: 1px solid rgba(53, 39, 26, 0.55);
+}
+
+/* ---- Lamp tiles ------------------------------------------------------- */
+/*
+ * Translucent plastic over a lamp. Out, the tile is smoked and deep and its legend reads
+ * light; a phase or turn already played glows low; the current one is fully lit and blooms
+ * onto the panel. --lamp is the colour of the plastic when lit.
+ */
+.ribbon .turn-box,
+.ribbon .phase-list li {
+  --lamp: var(--lamp-orange);
+  /* How much of the lit colour shows at the low level: set so the light legend still reads on each colour. */
+  --low: 60%;
+  position: relative;
+  border: 1px solid rgba(24, 12, 5, 0.8);
+  border-radius: 4px;
+  font-family: var(--font-panel);
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: rgba(246, 236, 210, 0.82);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(110% 90% at 50% 115%, rgba(0, 0, 0, 0.4), transparent 62%),
+    color-mix(in srgb, var(--lamp) 34%, #000);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 3px rgba(50, 35, 10, 0.4);
+}
+.ribbon .turn-box.past,
+.ribbon .phase-list li.past {
+  text-decoration: none;
+  color: #fbf2da;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(95% 100% at 50% 55%, color-mix(in srgb, var(--lamp) var(--low), #000) 0%, color-mix(in srgb, var(--lamp) var(--low), #000) 45%, color-mix(in srgb, var(--lamp) calc(var(--low) - 16%), #000) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.6),
+    0 0 4px color-mix(in srgb, var(--lamp) 30%, transparent),
+    0 2px 3px rgba(50, 35, 10, 0.38);
+}
+.ribbon .turn-box.now,
+.ribbon .phase-list li.now {
+  color: #220e04;
+  font-weight: 700;
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  border-color: color-mix(in srgb, var(--lamp) 55%, #3a1200);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 38%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(80% 85% at 50% 52%, #fffbe9 0%, color-mix(in srgb, var(--lamp) 42%, #fff1bd) 30%, color-mix(in srgb, var(--lamp) 92%, #fff) 68%, color-mix(in srgb, var(--lamp) 80%, #5a1c00) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 6px rgba(255, 250, 220, 0.6),
+    0 0 9px 2px color-mix(in srgb, var(--lamp) 72%, transparent),
+    0 0 22px 5px color-mix(in srgb, var(--lamp) 32%, transparent),
+    0 2px 3px rgba(50, 35, 10, 0.3);
+  animation:
+    lamp-on 0.35s ease-out,
+    lamp-breathe 2.6s ease-in-out 0.35s infinite alternate;
+}
+@keyframes lamp-on {
+  from {
+    filter: brightness(0.55) saturate(0.8);
+  }
+}
+@keyframes lamp-breathe {
+  to {
+    filter: brightness(1.08) saturate(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ribbon .turn-box.now,
+  .ribbon .phase-list li.now {
+    animation: none;
+  }
+}
+body.calm .ribbon .turn-box.now,
+body.calm .ribbon .phase-list li.now {
+  animation: none;
+}
+
+/* The turn keys. */
+.ribbon .turn-track {
+  gap: 6px;
+}
+.ribbon .turn-box {
+  --lamp: var(--lamp-yellow);
+  --low: 50%;
+  width: 27px;
+  height: 25px;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+/* The phase tiles: two to a row, in the four colours of the keyboard. */
+.ribbon .phase-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 6px;
+  counter-reset: phase;
+  font-size: 12.5px;
+  color: inherit;
+}
+.ribbon .phase-list li {
+  counter-increment: phase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 11px 4px 4px;
+  text-align: center;
+  line-height: 1.05;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ribbon .phase-list li::before {
+  content: counter(phase);
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.8;
+}
+.ribbon .phase-list li::marker {
+  content: none;
+}
+.ribbon .phase-list li:nth-child(-n + 2) {
+  --lamp: var(--lamp-red);
+  --low: 68%;
+}
+.ribbon .phase-list li:nth-child(n + 3):nth-child(-n + 4) {
+  --lamp: var(--lamp-orange);
+  --low: 60%;
+}
+.ribbon .phase-list li:nth-child(n + 5):nth-child(-n + 6) {
+  --lamp: var(--lamp-yellow);
+  --low: 50%;
+}
+.ribbon .phase-list li:nth-child(n + 7) {
+  --lamp: var(--lamp-white);
+  --low: 45%;
+}
+/* Who acts is on the readout under the tiles. */
+.ribbon .phase-who,
+.ribbon .rb-phases .phasing:not(.acting) {
+  display: none;
+}
+.ribbon .phasing.acting {
+  display: block;
+}
+/* The readouts: whose turn, and who acts now, with a tab in that side's colour. */
+.ribbon .phasing {
+  margin-top: 10px;
+  border-left: 9px solid var(--nation, var(--lcd-bezel));
+  font-weight: 400;
+}
+
+/* On a desk the keys take a second row when one is not enough, so none of them is ever off the panel. */
+@media (min-width: 901px) {
+  .topbar {
+    height: auto;
+    min-height: 48px;
+    padding-top: 6px;
+    padding-bottom: 9px;
+  }
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 7px;
+  }
+}
+
+/* ---- Between the phone and the desk ------------------------------------ */
+/*
+ * Small laptops and tablets on their side keep the three columns, a little narrower.
+ * (The older rule for this width laid the ribbon out as a row, which inside its
+ * column left only the turn panel in view.)
+ */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .battle,
+  .battle.with-dock {
+    grid-template-columns: 236px minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .battle.with-dock.no-side {
+    grid-template-columns: 236px minmax(0, 1fr);
+  }
+  .ribbon {
+    display: block;
+    overflow-x: hidden;
+    border-bottom: none;
+  }
+}
+
+/* ---- Phones ------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .topbar {
+    height: auto;
+    padding-bottom: 7px;
+  }
+  .topbar-brand.stencil {
+    font-size: 22px;
+  }
+  /* The turn and phase, on the readout beside the badge. */
+  .topbar-title.has-narrow {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .topbar-title .tt-narrow {
+    max-width: 100%;
+    font-size: 17px;
+    letter-spacing: 0.02em;
+  }
+  .topbar-actions {
+    padding: 1px 1px 3px;
+  }
+  .topbar .btn,
+  .topbar .auto-select {
+    font-size: 14px;
+    padding: 6px 11px;
+  }
+  .topbar .btn.help-key {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+  /* Fire and End phase, on the same faceplate as the lamps below them. */
+  .quick-bar {
+    background: var(--hw-plate);
+    border-top: 1px solid #1a1a16;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    padding: 8px 10px 9px;
+    gap: 8px;
+  }
+  .quick-bar .btn {
+    font-size: 16px;
+    padding: 9px 14px;
+    margin-bottom: 2px;
+  }
+  .quick-bar .quick-end {
+    border-color: color-mix(in srgb, var(--lamp) 45%, #2a0c00);
+  }
+  .quick-bar .quick-note {
+    align-self: center;
+    font-size: 18px;
+    color: var(--lcd-ink);
+  }
+  .ribbon .rb-turn,
+  .ribbon .rb-phases {
+    margin: 0;
+    width: auto;
+    border-radius: 0;
+    background: var(--hw-plate);
+    border-top: none;
+    padding: 8px 10px;
+  }
+  .ribbon .rb-turn {
+    border-top: 1px solid rgba(53, 39, 26, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    padding-bottom: 4px;
+    gap: 6px 9px;
+  }
+  .ribbon .rb-phases {
+    background: linear-gradient(180deg, var(--hw-body) 0%, var(--hw-body-lo) 100%);
+    padding-top: 5px;
+    padding-bottom: 11px;
+    border-bottom: 5px solid #121413;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+    margin-bottom: 0;
+  }
+  .ribbon .rb-turn .panel-h {
+    flex: none;
+    margin: 0;
+    letter-spacing: 0.2em;
+  }
+  .ribbon .rb-turn .panel-h::before,
+  .ribbon .rb-turn .panel-h::after {
+    display: none;
+  }
+  .ribbon .rb-turn .turn-track {
+    gap: 5px;
+  }
+  .ribbon .rb-turn .turn-box {
+    width: 25px;
+    height: 24px;
+  }
+  .ribbon .rb-turn .phasing {
+    margin: 0 0 0 auto;
+    padding: 2px 7px 1px;
+    font-size: 17px;
+  }
+  .ribbon .phase-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px 5px;
+    font-size: 12.5px;
+  }
+  .ribbon .phase-list li {
+    min-height: 34px;
+    padding: 11px 2px 4px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    font-family: var(--font-panel);
+    border-color: rgba(34, 18, 8, 0.7);
+  }
+  .ribbon .phase-list li.now {
+    border-color: color-mix(in srgb, var(--lamp) 55%, #3a1200);
+    color: #220e04;
+  }
+  .ribbon .rb-phases .phasing.acting {
+    margin: 9px 0 0;
+    padding: 2px 7px 1px;
+    font-size: 17px;
+  }
+}

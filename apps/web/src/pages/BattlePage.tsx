@@ -325,6 +325,9 @@ function Battle() {
   const sideEmpty = docked && aiVsAi && !losMode && !session.error && !sel.hex && radio.length === 0 && llmSides.length === 0;
   const statusText =
     s.phase === 'setup' ? `Setup · ${sideName(s.awaiting)}` : s.phase === 'gameOver' ? 'Game over' : `Turn ${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase]}`;
+  /** The same for the small readouts on a phone: "T2/7 · German Advancing Fire". */
+  const shortStatus =
+    s.phase === 'setup' || s.phase === 'gameOver' ? statusText : `T${s.turn}/${ctx.scenario.turns} · ${sideName(s.phasing)} ${PHASE_NAMES[s.phase].replace(' Phase', '')}`;
   /** The attacks open to the player in a fire phase, the best one for each target hex, best first. */
   const fire = useMemo(() => {
     const none = { shots: [] as Shot[], canHit: new Set<HexKey>() };
@@ -862,7 +865,7 @@ function Battle() {
 
   return (
     <div className="page">
-      <TopBar title={ctx.scenario.title} narrowTitle={statusText}>
+      <TopBar title={ctx.scenario.title} narrowTitle={shortStatus}>
         <span className="status">{statusText}</span>
         {s.phase !== 'gameOver' && (
           <span className={`awaiting ${human ? 'you' : 'bot'}`}>
@@ -887,7 +890,7 @@ function Battle() {
         )}
         {aiVsAi && (
           <>
-            <button className={`btn ${paused ? 'active' : ''}`} onClick={() => setPaused(!paused)} disabled={real.phase === 'gameOver'} title="Pause or resume (Space)">
+            <button className={`btn led ${paused ? 'active' : ''}`} onClick={() => setPaused(!paused)} disabled={real.phase === 'gameOver'} title="Pause or resume (Space)">
               {paused ? '▶ Resume' : '❚❚ Pause'}
             </button>
             <button className="btn" onClick={() => session.stepBot()} disabled={!paused || real.phase === 'gameOver'} title="One decision (N)">
@@ -920,7 +923,7 @@ function Battle() {
         </button>
         {!aiVsAi && (
         <button
-          className={`btn ${plan ? 'active' : ''}`}
+          className={`btn led ${plan ? 'active' : ''}`}
           disabled={!human && !plan}
           onClick={() => (plan ? session.revertPlan() : session.startPlan())}
           title="Plan moves without committing them (P)"
@@ -928,10 +931,10 @@ function Battle() {
           Plan <kbd>P</kbd>
         </button>
         )}
-        <button className={`btn ${threat ? 'active' : ''}`} onClick={() => setThreat(!threat)} title="Shade hexes by defensive-fire danger (T)">
+        <button className={`btn led ${threat ? 'active' : ''}`} onClick={() => setThreat(!threat)} title="Shade hexes by defensive-fire danger (T)">
           Danger <kbd>T</kbd>
         </button>
-        <button className={`btn ${losMode ? 'active' : ''}`} onClick={() => (setLosMode(!losMode), setLosA(undefined))} title="Check line of sight (L)">
+        <button className={`btn led ${losMode ? 'active' : ''}`} onClick={() => (setLosMode(!losMode), setLosA(undefined))} title="Check line of sight (L)">
           LOS <kbd>L</kbd>
         </button>
         {!aiVsAi && (
@@ -940,7 +943,7 @@ function Battle() {
           </button>
         )}
         <button
-          className={`btn ${povHex ? 'active' : ''} ${eyesReady ? '' : 'idle'}`}
+          className={`btn led ${povHex ? 'active' : ''} ${eyesReady ? '' : 'idle'}`}
           aria-disabled={!eyesReady}
           onClick={() => {
             // Nothing to look from yet: say how, where a greyed-out button would say nothing (phones have no tooltips).
@@ -953,7 +956,7 @@ function Battle() {
         </button>
         <ViewToggle mode={view} onChange={(m) => setView(setViewMode(m))} />
         <FxSettingsButton />
-        <button className="btn" onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
+        <button className={`btn help-key ${help ? 'active' : ''}`} onClick={() => setHelp(!help)} title="Help and keyboard shortcuts (?)">
           ?
         </button>
         <button className="btn" onClick={saveToLibrary} title="Save this game to your library">
@@ -1184,7 +1187,7 @@ function Battle() {
                 {quickFire.label}
               </button>
             )}
-            {!quickFire && <span className="quick-note">{statusText}</span>}
+            {!quickFire && <span className="quick-note">{shortStatus}</span>}
             <button className="btn quick-end" disabled={!!plan} onClick={endPhase} title={blockers.join('\n') || 'End this phase'}>
               End phase
             </button>

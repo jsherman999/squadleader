@@ -743,6 +743,8 @@ Each scenario includes:
 - **Counters:** original vector silhouettes; nationality colors (German field gray, Soviet earth brown, US olive); clear factor lines (for example `4-6-7`); a broken side with reduced morale; a subtle cardboard edge and drop shadow.
 - **UI chrome:**
   - Dark olive and graphite panels with brass accents.
+  - The controls are the front panel of an early-1980s instrument (`styles/hardware.css`): a cream faceplate along the top with sprung keycaps, LEDs on the latching keys, one lamp-lit key (End phase) and LCD readouts; turns and phases are lamp tiles of translucent plastic that are dark until played, glow low once played and are fully lit when current.
+  - The text panels are teletype paper feeding out from under that panel (`styles/teletype.css`).
   - A condensed sans-serif for data and a stencil face, used sparingly, for headings.
   - Monospace digits in tables.
 - **Motion:** quick and purposeful. Easing on counter moves, a soft focus pull in 3D, nothing flashy in menus.

@@ -186,7 +186,7 @@ function Review() {
           <button className="btn" onClick={() => step(-1)} disabled={index === 0} title="Previous decision (←)">
             ◀
           </button>
-          <button className={`btn ${playing ? 'active' : ''}`} onClick={() => setPlaying(!playing)} title="Play or pause (Space)">
+          <button className={`btn led ${playing ? 'active' : ''}`} onClick={() => setPlaying(!playing)} title="Play or pause (Space)">
             {playing ? '❚❚ Pause' : '▶ Play'}
           </button>
           <button className="btn" onClick={() => step(1)} disabled={index >= n} title="Next decision (→)">

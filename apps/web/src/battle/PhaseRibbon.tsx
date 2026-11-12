@@ -6,6 +6,8 @@ const SHORT: Record<string, string> = { defensiveFire: 'Def. Fire', advancingFir
 export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameState; onObjective?: (name: string) => void; focus?: string | undefined }) {
   const side = (id: string) => s.sides.find((x) => x.id === id)!;
   const objectives = objectiveStatus(ctx, s);
+  /** Phases of this player turn already played: their lamps stay on, dimmer than the current one. */
+  const phaseNow = PLAYER_TURN_PHASES.indexOf(s.phase as (typeof PLAYER_TURN_PHASES)[number]);
   return (
     <aside className="ribbon">
       <section className="rb-turn">
@@ -28,8 +30,8 @@ export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameS
         <h3 className="panel-h">Phases</h3>
         {s.phase === 'setup' && <div className="phasing">Setup — {side(s.awaiting).name}</div>}
         <ol className="phase-list">
-          {PLAYER_TURN_PHASES.map((p) => (
-            <li key={p} className={s.phase === p ? 'now' : ''} aria-current={s.phase === p ? 'step' : undefined}>
+          {PLAYER_TURN_PHASES.map((p, i) => (
+            <li key={p} className={s.phase === p ? 'now' : i < phaseNow ? 'past' : ''} aria-current={s.phase === p ? 'step' : undefined}>
               <span className={`ph-full ${SHORT[p] ? 'has-short' : ''}`}>{PHASE_NAMES[p].replace(' Phase', '')}</span>
               {SHORT[p] && <span className="ph-short">{SHORT[p]}</span>}
               {s.phase === p && <span className="dim phase-who"> · {side(s.awaiting).name}</span>}
