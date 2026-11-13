@@ -38,6 +38,7 @@ Deviations from this plan so far:
 - **Semi-simultaneous movement** (the optional §16 rule) is not used; Standing Orders apply to the normal Defensive Fire Phase. Economy mode's routine phases are always played by the scripted AI.
 - **Design Your Own** uses original charts and buys the attacker's force automatically (see rulings); the rulebook's charts are not reproduced.
 - **Upper building levels (§57)** are an option, on by default for new games (see `rulings.md` for where it departs from the rulebook).
+- **Front-line series.** Twelve more scenarios (h1–h12), adapted from the engagements on the scenario cards ([FRONT_LINE_SERIES.md](FRONT_LINE_SERIES.md)). For them the victory conditions gained area objectives (a hill crest held as one objective), exit victories (squads leaving by a board edge) and break points (a side that loses N squads, crews and vehicles gives up).
 
 ## Contents
 
@@ -88,7 +89,7 @@ The project uses the rulebook's game mechanics. Everything you see on screen is 
 | **Rules mechanics** (sequence of play, movement factors, LOS, fire, morale, rout, rally, close combat, AFVs, artillery, …) | Implemented from the supplied rulebook. Help text is paraphrased in our own words, with § cross-references so players can check their own copy. |
 | **Numeric tables and unit data** (Infantry Fire Table, Close Combat Table, To Hit, AFV Kill, terrain DRMs, MF and MP costs, artillery tables, unit factors) | **Complete.** Transcribed in **[REFERENCE_TABLES.md](REFERENCE_TABLES.md)** from three sources: the owner's photos of both sides of the *Quick Reference Data Card*, the tables embedded as images in the rulebook PDF, and the rulebook's Point Value Chart counter art. These are the engine's default values. The engine is fully table-driven, and an in-app **Rules Data editor** lets the owner check or adjust any value. |
 | **Boards** | **Original** geomorphic boards drawn in the classic printed-hex style: hex IDs, center dots, color-coded terrain, three shaded hill levels with crest lines, and walls and hedges on hexsides. They are *not* copies of the published boards. |
-| **Scenarios** | **Original** set of 12 scenarios. They teach the rules in the same order as the rulebook's programmed instruction and are set in other historical WWII engagements. We also add the rulebook's Design-Your-Own random generator and a full scenario editor. The published scenario cards are not reproduced. |
+| **Scenarios** | **Original** set of 12 scenarios. They teach the rules in the same order as the rulebook's programmed instruction and are set in other historical WWII engagements. We also add the rulebook's Design-Your-Own random generator and a full scenario editor. The published scenario cards are not reproduced. A second series, the **front-line series** (h1–h12), adapts the twelve engagements on the owner's scenario cards: the same battles, dates and units and the same rules order, but with this game's titles, briefings, boards, orders of battle, set-ups and victory conditions (see [FRONT_LINE_SERIES.md](FRONT_LINE_SERIES.md)). |
 | **Name and art** (title, counters, UI, audio) | Original. The published game's name is not used in the app. |
 | **The rulebook PDF** | Not committed to this repository. |
 
@@ -695,6 +696,8 @@ Rules unlock in the same order as the rulebook's programmed instruction. Setting
 | 10 | *Rubble*: Brest, Sep 1944 (built in M11) | §58–59 rubble, fire | City A |
 | 11 | *Boats on the Waal*: Nijmegen, Sep 1944 (built in M11) | §60 river crossing | Country D |
 | 12 | *Twin Villages in the Snow*: Krinkelt, Dec 1944 (built in M11) | §61–63 snow, roadblocks, on-board artillery | Country C |
+
+The front-line series (h1–h12) follows the same rules order with the engagements of the scenario cards; see [FRONT_LINE_SERIES.md](FRONT_LINE_SERIES.md).
 
 Each scenario includes:
 

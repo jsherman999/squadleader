@@ -1,0 +1,325 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h8",
+  "title": "Spoiling Attack in the Vosges",
+  "date": "14 January 1945",
+  "location": "Low Vosges, near Bitche",
+  "briefing": "An American infantry battalion is closing the ring around the German positions in the hills, advancing in open order towards a wooded ridge. The Germans have been listening to its radio traffic. A mountain-infantry company is dug in and wired on the crest, and a second one is on its way to hit the Americans in the flank as they climb.",
+  "rulesLevel": 54,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 2
+  },
+  "artillery": [
+    {
+      "side": "ger"
+    },
+    {
+      "side": "us"
+    }
+  ],
+  "fortifications": {
+    "wire": [
+      "C-T3",
+      "C-U3",
+      "C-V3",
+      "C-T4",
+      "C-P3"
+    ],
+    "trenches": [
+      "C-S2",
+      "C-T2",
+      "C-U2"
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, in rows 0–5 of columns K–Z, in the trenches and wire already placed. Some outposts set up hidden (§42). A second company enters along the north edge on turn 3. Leutnant Brandl has a radio to the divisional artillery.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "K",
+            "Z"
+          ],
+          "rows": [
+            0,
+            5
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "C-T2",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-T2",
+          "names": [
+            "Lt. Brandl"
+          ],
+          "weapons": [
+            "ger-radio"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-U2",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-S2",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-S2",
+          "names": [
+            "Fw. Gruber"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-Q3",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L80",
+          "hex": "C-Q3",
+          "names": [
+            "Uffz. Steiner"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-L1",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-V4",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "count": 4,
+          "weapons": [
+            "ger-lmg",
+            "ger-lmg"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "C",
+            "edge": "N"
+          }
+        },
+        {
+          "type": "ger-L92",
+          "names": [
+            "Hptm. Moser"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "C",
+            "edge": "N"
+          }
+        },
+        {
+          "type": "ger-L81",
+          "names": [
+            "Fw. Kofler"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "C",
+            "edge": "N"
+          }
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, in rows 8–10. Moves first. Captain Rowan has a radio to the regimental artillery.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            8,
+            10
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "C-H8",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "C-H8",
+          "names": [
+            "Capt. Rowan"
+          ],
+          "weapons": [
+            "us-radio"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-K8"
+        },
+        {
+          "type": "us-L81",
+          "hex": "C-K8",
+          "names": [
+            "Sgt. Ellis"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-N9",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "hex": "C-Q9"
+        },
+        {
+          "type": "us-666",
+          "hex": "C-T9",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "C-T9",
+          "names": [
+            "Lt. Garrity"
+          ]
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "hex": "C-W9"
+        },
+        {
+          "type": "us-L80",
+          "hex": "C-W9",
+          "names": [
+            "Sgt. Haskins"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-Z9",
+          "weapons": [
+            "us-hmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-B9"
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "C-P10",
+          "names": [
+            "Blue Moon"
+          ],
+          "facing": "NW-N"
+        },
+        {
+          "type": "us-m3ht",
+          "hex": "C-Q10",
+          "names": [
+            "Lucky"
+          ],
+          "facing": "NW-N"
+        },
+        {
+          "type": "us-666",
+          "hex": "C-Q10",
+          "rides": "Lucky"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 8, they control both the crest of the ridge (its level-3 hexes) and the hilltop barn, unless they have reached their break point first: after losing 8 squads, crews and vehicles they call off the attack and the Germans win at once. An objective is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "C-T1",
+          "name": "Ridge crest",
+          "hexes": [
+            "C-S1",
+            "C-T1",
+            "C-U1",
+            "C-S2",
+            "C-T2",
+            "C-U2"
+          ]
+        },
+        {
+          "hex": "C-Q3",
+          "name": "Hilltop barn"
+        }
+      ],
+      "atLeast": 2
+    },
+    "breakPoint": {
+      "us": 8
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 8, the flank attack near Bitche.",
+    "Rules §1–54: adds barbed wire (§53) and entrenchments (§54).",
+    "Each side has one module of offboard artillery, rolled at the start (§45).",
+    "January: the wheatfields are bare open ground (§44.24)."
+  ]
+}

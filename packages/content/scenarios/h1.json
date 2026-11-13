@@ -1,0 +1,240 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h1",
+  "title": "The Guards Go In",
+  "date": "6 October 1942",
+  "location": "Stalingrad, the factory district",
+  "briefing": "The German 389th Infantry Division has spent a week clawing its way block by block towards the Volga, and its companies are worn down to a few squads each. That night a fresh Soviet Guards battalion crossed the river. At first light it goes in with the remnants of the 308th Rifle Division to throw the Germans out of four stone buildings that anchor their line: the apartment block, the bakery, the school and the church.",
+  "rulesLevel": 21,
+  "layout": [
+    {
+      "board": "A",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 6,
+  "setupFirst": "ger",
+  "moveFirst": "rus",
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns I–S.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "I",
+            "S"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "A-O6",
+          "names": [
+            "Lt. Hartmann"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-P5",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-P8",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "A-P8",
+          "names": [
+            "Fw. Lorenz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-O9"
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-K6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-K6",
+          "names": [
+            "Uffz. Bauer"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-Q2",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-Q2",
+          "names": [
+            "Uffz. Sauer"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-R3"
+        }
+      ]
+    },
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up second, anywhere in columns U–GG. Moves first.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "U",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-628",
+          "count": 2,
+          "hex": "A-W5"
+        },
+        {
+          "type": "rus-L102",
+          "hex": "A-W5",
+          "names": [
+            "Capt. Gorin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-X4",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "A-X4",
+          "names": [
+            "Sgt. Fomin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "A-U2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "A-U2",
+          "names": [
+            "Lt. Sokolov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "A-Z5"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "A-Z5",
+          "names": [
+            "Sgt. Panin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "A-Y2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "A-Z8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "A-Z8",
+          "names": [
+            "Sgt. Rudenko"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "A-CC2"
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-CC2"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "rus",
+    "text": "The Soviets win if, at the end of turn 6, they control at least three of the four German-held buildings (apartment block, bakery, school, church). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "A-O6",
+          "name": "Apartment block"
+        },
+        {
+          "hex": "A-P8",
+          "name": "Bakery"
+        },
+        {
+          "hex": "A-K6",
+          "name": "School"
+        },
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 1, the Guards counterattack.",
+    "Rules §1–21 only (Game Set I, basic infantry).",
+    "The Guards SMG squads (6-2-8) hit hard at close range but are short-ranged: get them next to the buildings before they fire."
+  ]
+}

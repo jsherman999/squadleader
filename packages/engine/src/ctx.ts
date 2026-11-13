@@ -55,6 +55,14 @@ export function makeCtx(scenario: Scenario, data: RulesData, boards: Readonly<Re
     zones[side.id] = set;
   }
   const objectives = scenario.victory.controlBuildings.buildings.map((b) => {
+    if (b.hexes) {
+      const hexes = b.hexes.map((id) => {
+        const k = map.byId[id];
+        if (!k) throw new Error(`objective ${b.name}: no hex ${id}`);
+        return k;
+      });
+      return { name: b.name, building: `area:${b.name}`, hexes };
+    }
     const key = map.byId[b.hex];
     const building = key ? map.hexes[key]?.building : undefined;
     if (!building) throw new Error(`objective ${b.name}: ${b.hex} is not a building hex`);

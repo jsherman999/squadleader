@@ -1,0 +1,216 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h6",
+  "title": "Out of the Pocket",
+  "date": "12 January 1943",
+  "location": "Velikiye Luki, the western edge of the pocket",
+  "briefing": "The garrison of Velikiye Luki has been surrounded for seven weeks and the relief has stalled. Tonight the order comes down: every group that can, break out to the west. What is left of a German infantry company slips out of the last houses on the edge of town towards the forest, with a thin, cold Soviet screen somewhere in the dark between them and the German lines.",
+  "rulesLevel": 49,
+  "layout": [
+    {
+      "board": "E",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 10,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "night": true,
+  "starshells": {
+    "rus": 3,
+    "ger": 1
+  },
+  "concealment": {
+    "ger": 4
+  },
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first, anywhere in columns F–T. Three starshells.",
+      "setup": [
+        {
+          "board": "E",
+          "cols": [
+            "F",
+            "T"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "E-J3",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "E-J3",
+          "names": [
+            "Lt. Danilov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "E-I2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "E-M8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "E-M8",
+          "names": [
+            "Sgt. Kuzmin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "E-Q2"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "E-Q2",
+          "names": [
+            "Sgt. Titov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "E-S6",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "E-F5"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "E-F5",
+          "names": [
+            "Sgt. Agapov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "E-K1"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns X–GG (the edge of town). Moves first. Four stacks start concealed; one starshell.",
+      "setup": [
+        {
+          "board": "E",
+          "cols": [
+            "X",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "E-Z6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "E-Z6",
+          "names": [
+            "Maj. Holtz"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-BB4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "E-BB4",
+          "names": [
+            "Lt. Arndt"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-X6"
+        },
+        {
+          "type": "ger-L81",
+          "hex": "E-X6",
+          "names": [
+            "Fw. Gerber"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-Y7",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-Y5"
+        },
+        {
+          "type": "ger-467",
+          "hex": "E-DD6"
+        },
+        {
+          "type": "ger-L80",
+          "hex": "E-DD6",
+          "names": [
+            "Uffz. Lenz"
+          ]
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win as soon as four of their squads have left the map by the west edge of the board: unbroken units standing on the west edge at the end of the German Movement Phase leave the map. Otherwise, at the end of turn 10, the Soviets win.",
+    "controlBuildings": {
+      "buildings": [],
+      "atLeast": 0
+    },
+    "exit": {
+      "side": "ger",
+      "board": "E",
+      "edge": "W",
+      "squads": 4
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 6, the breakout from Velikiye Luki.",
+    "Rules §1–49: adds night (§49): visibility is rolled each turn, gun flashes give firers away, and starshells light the ground around them.",
+    "Exit: unbroken German units on the west edge (columns A–B) at the end of their Movement Phase leave the map with what they carry; four squads out wins at once.",
+    "January: the wheatfields are bare open ground (§44.24)."
+  ]
+}

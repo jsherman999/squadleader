@@ -1,0 +1,269 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h4",
+  "title": "The Hedgehog",
+  "date": "14 November 1941",
+  "location": "Central Russia, a collective-farm village",
+  "briefing": "Winter is coming and every village is shelter. A worn German company has turned this one into a hedgehog: machine guns in the stone buildings, outposts hidden in the woods and barns, and a radio link to the battalion mortars. At dawn the remnants of a Soviet rifle regiment close in from both sides, short of everything but men.",
+  "rulesLevel": 46,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "rus",
+  "concealment": {
+    "ger": 2
+  },
+  "artillery": [
+    {
+      "side": "ger",
+      "mm": 81,
+      "missions": 3
+    }
+  ],
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns K–X. Units marked hidden stay off the map for the Soviets until they give themselves away (§42). Hauptmann Albrecht has a radio to the battalion's 81mm mortars: three fire missions.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "K",
+            "X"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "C-O5",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "C-O5",
+          "names": [
+            "Hptm. Albrecht"
+          ],
+          "weapons": [
+            "ger-radio"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-N7",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-N7",
+          "names": [
+            "Lt. Seidel"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-S7",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-S7",
+          "names": [
+            "Fw. Mertens"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-P8",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-Q3",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-R9"
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-V5",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L80",
+          "hex": "C-V5",
+          "names": [
+            "Uffz. Kühn"
+          ],
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up second, in columns A–G or BB–GG. Moves first.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "A",
+            "G"
+          ]
+        },
+        {
+          "board": "C",
+          "cols": [
+            "BB",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "C-G2",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "C-G2",
+          "names": [
+            "Lt. Pavlov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "C-F4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "C-F4",
+          "names": [
+            "Sgt. Gerasimov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "C-D8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "C-D8",
+          "names": [
+            "Sgt. Chernov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "C-DD2",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "C-DD2",
+          "names": [
+            "Lt. Yegorov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "C-EE4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "C-EE4",
+          "names": [
+            "Sgt. Malyshev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "C-CC1"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "C-CC1",
+          "names": [
+            "Sgt. Bykov"
+          ]
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "rus",
+    "text": "The Soviets win if, at the end of turn 8, they control at least two of the village's three stone buildings (the kolkhoz office, the stone barn and the village hall). A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "C-O5",
+          "name": "Kolkhoz office"
+        },
+        {
+          "hex": "C-N7",
+          "name": "Stone barn"
+        },
+        {
+          "hex": "C-S7",
+          "name": "Village hall"
+        }
+      ],
+      "atLeast": 2
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 4, the village hedgehog.",
+    "Rules §1–46: adds hidden initial placement, hills and rural terrain, and offboard artillery.",
+    "November: the wheatfields are bare open ground (§44.24).",
+    "German artillery: one module of 81mm mortars with three fire missions (§45)."
+  ]
+}

@@ -1,0 +1,334 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h10",
+  "title": "Across from the Rhine",
+  "date": "6 April 1945",
+  "location": "Rhineland, a riverside town",
+  "briefing": "Paratroopers crossed the Rhine before dawn to raid a town on the far bank, expecting a few demoralised stragglers. Instead a Volksgrenadier company has just marched in, with an assault gun behind it. The Americans landed on the western edge of town; to make the raid worth it they must seize the stone buildings at its centre and hold them until their second company comes across.",
+  "rulesLevel": 59,
+  "layout": [
+    {
+      "board": "A",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "smoke": {
+    "us": 2
+  },
+  "concealment": {
+    "ger": 2
+  },
+  "artillery": [
+    {
+      "side": "ger",
+      "mm": 81,
+      "missions": 3
+    },
+    {
+      "side": "us",
+      "mm": 105,
+      "missions": 3
+    }
+  ],
+  "rubble": [
+    "A-M3",
+    "A-I4"
+  ],
+  "fortifications": {
+    "mines": [
+      {
+        "side": "ger",
+        "hex": "A-H5",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "A-I5",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "A-G7",
+        "factors": 6
+      }
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first: the small garrison anywhere in columns K–GG, hidden (§42), with three minefields already laid west of the town. The Volksgrenadier company enters along the east edge on turn 1. Unteroffizier Mahler has a radio to the battalion's 81mm mortars.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "K",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "A-Q2",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-Q2",
+          "names": [
+            "Uffz. Mahler"
+          ],
+          "weapons": [
+            "ger-radio"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-247",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-K6",
+          "hidden": true
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "A-EE7",
+          "names": [
+            "Grille"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-467",
+          "count": 3,
+          "weapons": [
+            "ger-lmg",
+            "ger-pf"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "A",
+            "edge": "E"
+          }
+        },
+        {
+          "type": "ger-467",
+          "count": 3,
+          "weapons": [
+            "ger-mmg",
+            "ger-pf"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "A",
+            "edge": "E"
+          }
+        },
+        {
+          "type": "ger-L102",
+          "names": [
+            "Hptm. Kranz"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "A",
+            "edge": "E"
+          }
+        },
+        {
+          "type": "ger-L91",
+          "names": [
+            "Lt. Sommer"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "A",
+            "edge": "E"
+          }
+        },
+        {
+          "type": "ger-L81",
+          "names": [
+            "Fw. Ebert"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "A",
+            "edge": "E"
+          }
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, anywhere in columns A–F. Moves first. A second company comes across and enters along the west edge on turn 3. Captain Ashby has a radio to a 105mm battery: three fire missions.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "A",
+            "F"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-847",
+          "hex": "A-D4",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "A-D4",
+          "names": [
+            "Capt. Ashby"
+          ],
+          "weapons": [
+            "us-radio"
+          ]
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "hex": "A-C3",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "A-C3",
+          "names": [
+            "Lt. Moreno"
+          ]
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "hex": "A-B5"
+        },
+        {
+          "type": "us-L81",
+          "hex": "A-B5",
+          "names": [
+            "Sgt. Fitch"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "A-E2",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L80",
+          "hex": "A-E2",
+          "names": [
+            "Sgt. Quill"
+          ]
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "hex": "A-C7"
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "weapons": [
+            "us-mmg"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "A",
+            "edge": "W"
+          }
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "weapons": [
+            "us-baz"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "A",
+            "edge": "W"
+          }
+        },
+        {
+          "type": "us-L91",
+          "names": [
+            "Lt. Starke"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "A",
+            "edge": "W"
+          }
+        },
+        {
+          "type": "us-L81",
+          "names": [
+            "Sgt. Ivers"
+          ],
+          "enters": {
+            "turn": 3,
+            "board": "A",
+            "edge": "W"
+          }
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 8, they control at least two of the church, the apartment block and the bakery, unless they have lost 9 squads, crews and vehicles first: then the raid is called off and the Germans win at once. A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes; a rubbled building still counts.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-O6",
+          "name": "Apartment block"
+        },
+        {
+          "hex": "A-P8",
+          "name": "Bakery"
+        }
+      ],
+      "atLeast": 2
+    },
+    "breakPoint": {
+      "us": 9
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 10, the raid across the Rhine.",
+    "Rules §1–59: adds upper floors (§57), rubble (§58) and fire (§59). Shelling has already brought down the buildings at M3 and I4.",
+    "German artillery: one module of 81mm mortars with three fire missions. American artillery: one module of 105mm howitzers with three fire missions (§45).",
+    "The paratroopers have two smoke counters in all."
+  ]
+}

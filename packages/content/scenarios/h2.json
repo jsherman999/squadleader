@@ -1,0 +1,268 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h2",
+  "title": "Island in the Works",
+  "date": "6 October 1942",
+  "location": "Stalingrad, the tractor works",
+  "briefing": "A pocket of the 308th Rifle Division still holds the great assembly hall in the middle of the works, cut off on three sides. The Germans have brought up a company of assault engineers with flamethrowers and charges to finish it; across the yards a scratch Soviet relief force is already working its way in from the east to break the ring.",
+  "rulesLevel": 26,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "smoke": {
+    "ger": 4
+  },
+  "concealment": {
+    "rus": 3
+  },
+  "fanatic": [
+    {
+      "side": "rus",
+      "building": "B-T2"
+    }
+  ],
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first, anywhere in columns R–GG. Three stacks start concealed. The garrison of the assembly hall is fanatic (§26).",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "R",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "hex": "B-T2",
+          "weapons": [
+            "rus-hmg"
+          ]
+        },
+        {
+          "type": "rus-L92",
+          "hex": "B-T2",
+          "names": [
+            "Maj. Ilyin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-V3",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-W4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "B-W4",
+          "names": [
+            "Sgt. Orekhov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-U4"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-Y2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-Y2",
+          "names": [
+            "Sgt. Kalinin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-AA3"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-S4"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-S4",
+          "names": [
+            "Sgt. Lapin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "B-FF5",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "B-FF5",
+          "names": [
+            "Lt. Gromov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "B-V5"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-V5",
+          "names": [
+            "Sgt. Shubin"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns A–P. Moves first. The engineers have four smoke counters.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "P"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-838",
+          "hex": "B-K4",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-K4",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "B-K4",
+          "names": [
+            "Hptm. Ziegler"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-L2",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "B-L2",
+          "names": [
+            "Lt. Vogt"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M5",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-M5"
+        },
+        {
+          "type": "ger-L81",
+          "hex": "B-M5",
+          "names": [
+            "Fw. Dorn"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "B-N5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-P6",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "B-P6",
+          "names": [
+            "Uffz. Krebs"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "B-O4"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 7, they control at least two of the assembly hall, the north shop and the works office. A building is controlled by the side that has an unbroken unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "B-T2",
+          "name": "Assembly hall"
+        },
+        {
+          "hex": "B-Y2",
+          "name": "North shop"
+        },
+        {
+          "hex": "B-S4",
+          "name": "Works office"
+        }
+      ],
+      "atLeast": 2
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 2, the tractor works.",
+    "Rules §1–26: adds flamethrowers, demolition charges, smoke, concealment and fanaticism.",
+    "Soviet units in the assembly hall are fanatic: −1 on morale checks and rally (§26).",
+    "The German engineers have four smoke counters in all (§24)."
+  ]
+}

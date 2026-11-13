@@ -1,0 +1,382 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h11",
+  "title": "Mist on the Rhine",
+  "date": "24 March 1945",
+  "location": "Rhine gorge, a village above the river",
+  "briefing": "The Rhine has been crossed elsewhere, and here the Americans mean to take it on the run. Two battalions cross in the morning mist, short of boats, shuttling over a few squads at a time. Above the bank waits a scratch German force built round a local headquarters: confused, short of fuel, but dug in, wired and hidden in the village and on the ridge behind it.",
+  "rulesLevel": 60,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 3
+  },
+  "smoke": {
+    "us": 2
+  },
+  "landing": {
+    "side": "us",
+    "mist": [
+      "C-A9",
+      "C-A10",
+      "C-B9",
+      "C-C9",
+      "C-C10",
+      "C-D9",
+      "C-E9",
+      "C-E10",
+      "C-F9",
+      "C-G9",
+      "C-G10",
+      "C-H9",
+      "C-I9",
+      "C-I10",
+      "C-J9",
+      "C-K9",
+      "C-K10",
+      "C-L9",
+      "C-M9",
+      "C-M10",
+      "C-N9",
+      "C-O9",
+      "C-O10",
+      "C-P9",
+      "C-Q9",
+      "C-Q10",
+      "C-R9",
+      "C-S9",
+      "C-S10",
+      "C-T9",
+      "C-U9",
+      "C-U10",
+      "C-V9",
+      "C-W9",
+      "C-W10",
+      "C-X9",
+      "C-Y9",
+      "C-Y10",
+      "C-Z9",
+      "C-AA9",
+      "C-AA10",
+      "C-BB9",
+      "C-CC9",
+      "C-CC10",
+      "C-DD9",
+      "C-EE9",
+      "C-EE10",
+      "C-FF9",
+      "C-GG9",
+      "C-GG10"
+    ]
+  },
+  "fortifications": {
+    "wire": [
+      "C-T8",
+      "C-U8",
+      "C-M8"
+    ],
+    "trenches": [
+      "C-Q6",
+      "C-U7"
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in rows 0–7, with the wire and trenches already placed. Units marked hidden stay off the map for the Americans until they give themselves away (§42).",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            0,
+            7
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "C-O5",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-O5",
+          "names": [
+            "Lt. Wirth"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-N7",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-S7",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "C-S7",
+          "names": [
+            "Maj. Ostermann"
+          ]
+        },
+        {
+          "type": "ger-247",
+          "hex": "C-Q3",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-S5",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L80",
+          "hex": "C-S5",
+          "names": [
+            "Uffz. Hahn"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-247",
+          "hex": "C-T1",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-V5",
+          "weapons": [
+            "ger-pf"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-838",
+          "hex": "C-L1",
+          "weapons": [
+            "ger-pf"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-L1",
+          "names": [
+            "Fw. Bauer"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "C-T6",
+          "names": [
+            "Lore"
+          ],
+          "facing": "SE-S"
+        },
+        {
+          "type": "ger-truck",
+          "hex": "C-R3",
+          "names": [
+            "Opel"
+          ],
+          "facing": "SE-S"
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Lands along the south edge from turn 1 (§60): the boats bring over at most 2d6 squads a turn, and the riverbank rows are misty until the mist burns off. Moves first.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            9,
+            10
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "count": 4,
+          "weapons": [
+            "us-mmg"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-666",
+          "count": 2,
+          "weapons": [
+            "us-baz"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-666",
+          "count": 4,
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-666",
+          "weapons": [
+            "us-hmg"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "weapons": [
+            "us-dc"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L92",
+          "names": [
+            "Maj. Corbin"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L91",
+          "names": [
+            "Lt. Tate"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L81",
+          "names": [
+            "Sgt. Dunn"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        },
+        {
+          "type": "us-L80",
+          "names": [
+            "Sgt. Amos"
+          ],
+          "enters": {
+            "turn": 1,
+            "board": "C",
+            "edge": "S"
+          }
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 7, they control at least three of the kolkhoz office, the stone barn, the village hall and the ridge crest. An objective is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "C-O5",
+          "name": "Kolkhoz office"
+        },
+        {
+          "hex": "C-N7",
+          "name": "Stone barn"
+        },
+        {
+          "hex": "C-S7",
+          "name": "Village hall"
+        },
+        {
+          "hex": "C-T1",
+          "name": "Ridge crest",
+          "hexes": [
+            "C-S1",
+            "C-T1",
+            "C-U1",
+            "C-S2",
+            "C-T2",
+            "C-U2"
+          ]
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 11, the assault crossing in the Rhine gorge.",
+    "Rules §1–60: adds river crossings (§60). The Rhine flows past the south edge of the board.",
+    "March: the wheatfields are bare open ground (§44.24)."
+  ]
+}

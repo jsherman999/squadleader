@@ -19,6 +19,7 @@ import {
   moraleOf,
   mpLeft,
   objectiveStatus,
+  exitHexes,
   passedNear,
   range,
   tryAction,
@@ -159,6 +160,14 @@ function vehiclePath(ctx: Ctx, s: GameState, v: Vehicle, goals: Set<HexKey>): He
 /** Hexes where the AFV can support the attack on the objectives without sitting next to enemy infantry. */
 function vehicleGoals(ctx: Ctx, s: GameState, v: Vehicle): Set<HexKey> {
   const attacker = ctx.scenario.victory.side === v.side;
+  // Breaking out: drive for the exit edge, riders and all.
+  if (ctx.scenario.victory.exit?.side === v.side) {
+    const free = [...exitHexes(ctx)].filter((h) => {
+      const t = ctx.map.hexes[h]!.terrain;
+      return t !== 'stoneBuilding' && t !== 'water' && t !== 'woodBuilding' && !enemiesIn(s, h, v.side).length && !Object.values(s.vehicles).some((o) => o.id !== v.id && o.hex === h);
+    });
+    return new Set(free);
+  }
   const status = objectiveStatus(ctx, s);
   const objs = ctx.objectives.filter((_, i) => (attacker ? status[i]!.owner !== v.side : true)).flatMap((o) => o.hexes);
   const goals = new Set<HexKey>();
@@ -208,7 +217,9 @@ export function vehicleMoveDecision(ctx: Ctx, s: GameState, side: string): Decis
     const aboard = Object.values(s.units).filter((u) => u.riding === v.id);
     if (aboard.length) {
       const objDist = Math.min(...ctx.objectives.flatMap((o) => o.hexes).map((h) => range(h, v.hex)));
-      const near = DIRECTIONS.some((d) => enemiesIn(s, hexKey(neighbor(parseHexKey(v.hex), d)), side).length > 0) || objDist <= 4 || goals.has(v.hex) || (v.moved && mpLeft(ctx, v) < 3);
+      const contact = DIRECTIONS.some((d) => enemiesIn(s, hexKey(neighbor(parseHexKey(v.hex), d)), side).length > 0);
+      // On an exit run the riders stay aboard and leave the map with the vehicle.
+      const near = ctx.scenario.victory.exit?.side === side ? contact : contact || objDist <= 4 || goals.has(v.hex) || (v.moved && mpLeft(ctx, v) < 3);
       if (near && !enemiesIn(s, v.hex, side).length) {
         const a: Action = { type: 'unload', units: aboard.map((u) => u.id), vehicle: v.id };
         if (legal(ctx, s, a))

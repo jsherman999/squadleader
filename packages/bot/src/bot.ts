@@ -25,6 +25,7 @@ import {
   moraleOf,
   moveCost,
   objectiveStatus,
+  exitHexes,
   oddsColumn,
   range,
   sideUnitsIn,
@@ -591,6 +592,8 @@ function objectiveHexes(ctx: Ctx, s: GameState, side: string): HexKey[] {
   const status = objectiveStatus(ctx, s);
   const attacker = ctx.scenario.victory.side === side;
   const out: HexKey[] = [];
+  // The exit side's goal is the exit edge.
+  if (ctx.scenario.victory.exit?.side === side) return [...exitHexes(ctx)];
   ctx.objectives.forEach((o, i) => {
     const owner = status[i]!.owner;
     if (attacker ? owner !== side : true) out.push(...o.hexes);
@@ -819,7 +822,17 @@ function reachesSafeStop(ctx: Ctx, s: GameState, side: string, from: HexKey, pat
 
 /** Where a stack wants to go: attackers to objectives; defenders reinforce threatened objectives. */
 function groupGoal(ctx: Ctx, s: GameState, side: string, hex: HexKey, attacker: boolean): Set<HexKey> | undefined {
+  const exit = ctx.scenario.victory.exit;
+  if (exit?.side === side) {
+    // Breaking out: head for the exit edge; units on it leave at the end of the Movement Phase.
+    const edge = exitHexes(ctx);
+    if (edge.has(hex)) return undefined;
+    const free = new Set([...edge].filter((h) => !enemiesIn(s, h, side).length));
+    return free.size ? free : undefined;
+  }
   const objs = ctx.objectives.map((o) => o.hexes);
+  // Blocking an exit with no buildings to hold: stand fast where the scenario put you.
+  if (exit && !objs.length) return undefined;
   if (attacker) {
     const status = objectiveStatus(ctx, s);
     const todo = objs.filter((_, i) => status[i]!.owner !== side);

@@ -1,0 +1,335 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h12",
+  "title": "The Road West",
+  "date": "17 December 1944",
+  "location": "Ardennes, the road to Wiltz",
+  "briefing": "The German offensive has broken through and its columns are pouring west towards the road junctions. On this road the only thing in the way is a company of combat engineers with a few tank destroyers, an anti-tank gun and a mortar, ordered to hold for a day. They have had a night to lay mines and drag trees across the road. The snow is falling.",
+  "rulesLevel": 63,
+  "layout": [
+    {
+      "board": "C",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 10,
+  "setupFirst": "us",
+  "moveFirst": "ger",
+  "snow": true,
+  "concealment": {
+    "us": 3
+  },
+  "fortifications": {
+    "roadblocks": [
+      "C-X6/SE",
+      "C-L6/NE"
+    ],
+    "wire": [
+      "C-W6",
+      "C-Y6",
+      "C-V8"
+    ],
+    "mines": [
+      {
+        "side": "us",
+        "hex": "C-Y7",
+        "factors": 8
+      },
+      {
+        "side": "us",
+        "hex": "C-W7",
+        "factors": 8
+      },
+      {
+        "side": "us",
+        "hex": "C-U8",
+        "factors": 8
+      }
+    ]
+  },
+  "sides": [
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up first, anywhere in columns E–X, with the roadblocks, wire and minefields already placed. The anti-tank gun and its crew set up hidden (§42).",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "E",
+            "X"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-847",
+          "hex": "C-N7",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "C-N7",
+          "names": [
+            "Capt. Quinlan"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-S7",
+          "weapons": [
+            "us-hmg"
+          ]
+        },
+        {
+          "type": "us-L81",
+          "hex": "C-S7",
+          "names": [
+            "Sgt. Rourke"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-O5",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "C-O5",
+          "names": [
+            "Lt. Hayes"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "C-P8",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-R9",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "C-Q3",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L80",
+          "hex": "C-Q3",
+          "names": [
+            "Sgt. Meeks"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "C-K1",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-57at",
+          "hex": "C-X8",
+          "hidden": true,
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-246",
+          "hex": "C-X8",
+          "hidden": true
+        },
+        {
+          "type": "us-m10",
+          "hex": "C-J6",
+          "names": [
+            "Hellcat"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-mortar81",
+          "hex": "C-H7",
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-246",
+          "hex": "C-H7",
+          "weapons": [
+            "us-radio"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns BB–GG. Moves first.",
+      "setup": [
+        {
+          "board": "C",
+          "cols": [
+            "BB",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "C-DD2",
+          "weapons": [
+            "ger-lmg",
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "C-DD2",
+          "names": [
+            "Hptm. Eckert"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "C-EE4",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "C-EE4",
+          "names": [
+            "Lt. Hinz"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "count": 2,
+          "hex": "C-CC6",
+          "weapons": [
+            "ger-pf",
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "C-CC6",
+          "names": [
+            "Maj. Falk"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "C-BB9",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "C-BB9",
+          "names": [
+            "Fw. Rau"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-EE8",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "C-EE8",
+          "names": [
+            "Uffz. Benz"
+          ]
+        },
+        {
+          "type": "ger-pz4f2",
+          "hex": "C-DD7",
+          "names": [
+            "Gustav"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "C-FF7",
+          "names": [
+            "Hagen"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-251",
+          "hex": "C-GG7",
+          "names": [
+            "Wolf"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-GG7",
+          "weapons": [
+            "ger-pf"
+          ],
+          "rides": "Wolf"
+        },
+        {
+          "type": "ger-truck",
+          "hex": "C-EE7",
+          "names": [
+            "Blitz"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-467",
+          "hex": "C-EE7",
+          "rides": "Blitz"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win as soon as six of their squads have left the map by the west edge of the board: unbroken units standing on the west edge (columns A–B) at the end of the German Movement Phase leave the map, with any vehicle they ride. Otherwise, at the end of turn 10, the Americans win.",
+    "controlBuildings": {
+      "buildings": [],
+      "atLeast": 0
+    },
+    "exit": {
+      "side": "ger",
+      "board": "C",
+      "edge": "W",
+      "squads": 6
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 12, the delaying action on the road to Wiltz.",
+    "Rules §1–63: adds snow (§61), roadblocks (§62) and on-board mortars (§63).",
+    "Exit: squads riding a vehicle that leaves the map count as exited."
+  ]
+}

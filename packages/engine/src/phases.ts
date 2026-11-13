@@ -6,7 +6,7 @@ import { berserkAdvance, berserkMovement } from './rules/advance';
 import { autoPlan, ccHexes, purgeBrokenInMelee, resolveCloseCombat } from './rules/closeCombat';
 import type { Emit } from './rules/common';
 import { doRout, pendingRouts } from './rules/rout';
-import { evaluateVictory } from './rules/victory';
+import { evaluateVictory, exitUnits } from './rules/victory';
 import { armCharges, clearSmoke, expireCharges, gainConcealment, returnLostUnits, revealAdjacent, setupConcealment } from './rules/special';
 import { displaceOverrun, endFirePhase, resetVehicles, resolveAfvAssaults } from './rules/armor';
 import { clearStarshells, rollNightVisibility, rotateFlashes } from './rules/night';
@@ -155,6 +155,7 @@ export function endPhase(ctx: Ctx, s: GameState, emit: Emit): void {
     case 'movement':
       for (const id of s.moving) if (s.units[id]) s.units[id]!.moveDone = true;
       s.moving = [];
+      if (exitUnits(ctx, s, emit)) return;
       s.phase = 'defensiveFire';
       s.awaiting = other;
       s.attacks = [];

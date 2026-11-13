@@ -1,0 +1,287 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h5",
+  "title": "The Highway Ridge",
+  "date": "1 July 1944",
+  "location": "Belorussia, a ridge above the Minsk highway",
+  "briefing": "Army Group Centre is coming apart. What is left of a German infantry division, a battalion in all but name, has been thrown onto the last ridge covering the highway west to Minsk, with an anti-tank gun, two assault guns and whatever stragglers it could stop. The Soviets already hold the village below. If they take the crest, the road is cut.",
+  "rulesLevel": 48,
+  "layout": [
+    {
+      "board": "D",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "ger",
+  "moveFirst": "rus",
+  "concealment": {
+    "ger": 2
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns R–GG. The anti-tank gun and some infantry set up hidden (§42).",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "R",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "D-Y4",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L92",
+          "hex": "D-Y4",
+          "names": [
+            "Maj. Brenner"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-W3",
+          "weapons": [
+            "ger-mmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-L81",
+          "hex": "D-W3",
+          "names": [
+            "Fw. Ritter"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-U5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-T4",
+          "weapons": [
+            "ger-lmg"
+          ],
+          "hidden": true
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-X5"
+        },
+        {
+          "type": "ger-L80",
+          "hex": "D-X5",
+          "names": [
+            "Uffz. Brandt"
+          ]
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-T5",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-pak40",
+          "hex": "D-Y6",
+          "hidden": true,
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-Y6",
+          "hidden": true
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "D-Z4",
+          "names": [
+            "Wotan"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-251",
+          "hex": "D-AA3",
+          "names": [
+            "Kurt"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-AA3",
+          "rides": "Kurt"
+        }
+      ]
+    },
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up second, anywhere in columns A–M (the village they have just taken). Moves first.",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "M"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "D-J6",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-L102",
+          "hex": "D-J6",
+          "names": [
+            "Lt. Col. Vasin"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 3,
+          "hex": "D-I4",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "D-I4",
+          "names": [
+            "Lt. Dyakov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "D-L2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "D-L2",
+          "names": [
+            "Sgt. Rogov"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "count": 2,
+          "hex": "D-L6"
+        },
+        {
+          "type": "rus-L80",
+          "hex": "D-L6",
+          "names": [
+            "Sgt. Ilchenko"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "D-K8",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "D-K8",
+          "names": [
+            "Sgt. Zaitsev"
+          ]
+        },
+        {
+          "type": "rus-t34",
+          "hex": "D-M4",
+          "names": [
+            "Bagration"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "D-M5",
+          "names": [
+            "Smolensk"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "D-M6",
+          "names": [
+            "Orsha"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "rus-su122",
+          "hex": "D-G7",
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "rus",
+    "text": "The Soviets win if, at the end of turn 8, they control both the open crest of the ridge (its level-3 hexes) and the stone house on the hilltop. An objective is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "D-Z4",
+          "name": "Ridge crest",
+          "hexes": [
+            "D-X3",
+            "D-Y3",
+            "D-AA3",
+            "D-X4",
+            "D-Z4",
+            "D-AA4",
+            "D-W5",
+            "D-Z5"
+          ]
+        },
+        {
+          "hex": "D-Y4",
+          "name": "Hilltop house"
+        }
+      ],
+      "atLeast": 2
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 5, the ridges before Minsk.",
+    "Rules §1–48: adds halftracks with riders (§47) and anti-tank guns (§48).",
+    "July: the wheatfields are standing (§44.24).",
+    "The ridge crest is a single objective: hold every level-3 open hex against the enemy, with at least one unbroken unit on it."
+  ]
+}

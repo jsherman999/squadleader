@@ -4,7 +4,7 @@
 
 A browser-only game of WWII squad-level tactical hex combat. It follows the mechanics of the classic 4th Edition squad-level rulebook, on original boards with original scenarios and art.
 
-**Status:** milestones M0–M12 are built (release candidate). You can play the 12 scenarios (city and countryside, Eastern and Western Front, §1–63), deal your own with Design Your Own, build them in the scenario editor, or carry one leader through a six-scenario campaign, hot-seat, against the scripted computer or an LLM, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape (counters or miniatures) or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
+**Status:** milestones M0–M12 are built (release candidate). You can play the 12 scenarios (city and countryside, Eastern and Western Front, §1–63) and the 12 of the front-line series (the engagements of the classic scenario cards, Stalingrad 1942 to the Ardennes 1944, adapted to these boards), deal your own with Design Your Own, build them in the scenario editor, or carry one leader through a six-scenario campaign, hot-seat, against the scripted computer or an LLM, or watch the computer play itself with every move explained, on a 2D map, a 3D landscape (counters or miniatures) or both side by side, with the line-of-sight lab, the move planner, a unit's-eye view and the board editor. See [Progress](docs/PLAN.md#progress).
 
 ## Getting started
 
@@ -24,6 +24,7 @@ Builds deploy to GitHub Pages from `main`. In the repository's Settings → Page
 | [docs/RULES_COVERAGE.md](docs/RULES_COVERAGE.md) | Every rulebook section (§1–63, optional rules, Game Set IV), mapped to an engine module and a milestone |
 | [docs/REFERENCE_TABLES.md](docs/REFERENCE_TABLES.md) | Complete rules data: both sides of the Quick Reference Data Card, the rulebook's embedded tables and the unit roster |
 | [docs/rulings.md](docs/rulings.md) | Interpretation calls the engine makes |
+| [docs/FRONT_LINE_SERIES.md](docs/FRONT_LINE_SERIES.md) | The front-line series: what each scenario adapts and how |
 | [docs/adr](docs/adr/README.md) | Architecture decision records |
 
 ## Features

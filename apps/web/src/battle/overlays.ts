@@ -1,5 +1,5 @@
 import { DIRECTIONS, hexCorners, hexKey, hexsideEndpoints, hexsideHexes, hexToPixel, neighbor, parseHexKey, type Direction, type HexKey, type HexsideKey, type Vec2 } from '@squadwar/hex';
-import { inArc, type Vehicle } from '@squadwar/engine';
+import { exitHexes, inArc, type Vehicle } from '@squadwar/engine';
 import type { Rationale } from '@squadwar/bot';
 import type { Action, Ctx, GameEvent, GameState } from '@squadwar/engine';
 import { hexFill, hexOutline, hexPolygon, type Pen, type Stroke } from '../draw/pen';
@@ -205,6 +205,11 @@ export function drawWestern(pen: Pen, ctx: Ctx, s: GameState, snowWash = true): 
  */
 export function drawObjectives(pen: Pen, ctx: Ctx, focus?: string, s?: GameState): void {
   const busy = new Set(s ? Object.values(s.units).map((u) => u.hex) : []);
+  // Exit victory: the edge hexes the breakout heads for, tinted green.
+  for (const h of exitHexes(ctx)) {
+    hexFill(pen, parseHexKey(h), 0x7fbf6a, 0.16, 0.04);
+    hexOutline(pen, parseHexKey(h), 0x7fbf6a, 0.6, 2, 0.1);
+  }
   ctx.objectives.forEach((o, i) => {
     const on = focus === o.name;
     for (const h of o.hexes) {

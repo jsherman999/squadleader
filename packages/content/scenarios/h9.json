@@ -1,0 +1,351 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h9",
+  "title": "Pillbox Hill",
+  "date": "23 August 1944",
+  "location": "Provence, a hill above the coast road",
+  "briefing": "The Allied advance along the Riviera has been so fast that most German posts give up or fall back. Not this one: a reserve-division company has dug in on a hill above the coast road with pillboxes, wire, mines and an anti-tank gun, and means to stay. An American parachute battalion, with a tank and a self-propelled howitzer in support, is sent to winkle it out.",
+  "rulesLevel": 56,
+  "layout": [
+    {
+      "board": "D",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 7,
+  "setupFirst": "ger",
+  "moveFirst": "us",
+  "concealment": {
+    "ger": 2
+  },
+  "artillery": [
+    {
+      "side": "us",
+      "mm": 105,
+      "missions": 2
+    }
+  ],
+  "fortifications": {
+    "bunkers": [
+      {
+        "side": "ger",
+        "hex": "D-X3",
+        "capacity": 2,
+        "ca": 5,
+        "nca": 7,
+        "facing": "SW-NW"
+      },
+      {
+        "side": "ger",
+        "hex": "D-AA3",
+        "capacity": 1,
+        "ca": 3,
+        "nca": 5,
+        "facing": "NW-N"
+      },
+      {
+        "side": "ger",
+        "hex": "D-W5",
+        "capacity": 2,
+        "ca": 5,
+        "nca": 7,
+        "facing": "SW-NW"
+      }
+    ],
+    "wire": [
+      "D-V2",
+      "D-V3",
+      "D-U3",
+      "D-T6"
+    ],
+    "trenches": [
+      "D-Z4",
+      "D-AA4"
+    ],
+    "mines": [
+      {
+        "side": "ger",
+        "hex": "D-U2",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "D-T3",
+        "factors": 6
+      },
+      {
+        "side": "ger",
+        "hex": "D-W7",
+        "factors": 6
+      }
+    ]
+  },
+  "sides": [
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up first, anywhere in columns R–GG, with the pillboxes, wire, trenches and mines already placed. The anti-tank gun sets up hidden (§42). The Americans may not look inside a pillbox (§56).",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "R",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "D-Y4",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "D-Y4",
+          "names": [
+            "Hptm. Faber"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-X3",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-AA3",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-W5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "D-W5",
+          "names": [
+            "Lt. Rauch"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-Z4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-AA4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-pak40",
+          "hex": "D-Y6",
+          "hidden": true,
+          "facing": "SW-NW"
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-Y6",
+          "hidden": true
+        },
+        {
+          "type": "ger-838",
+          "hex": "D-X5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "D-X5",
+          "names": [
+            "Uffz. Wendt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up second, anywhere in columns A–N. Moves first. Major Darrow has a radio to the parachute artillery: one 105mm module with two fire missions.",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "N"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-847",
+          "hex": "D-N3",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "D-N3",
+          "weapons": [
+            "us-ft"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "D-N3",
+          "names": [
+            "Capt. Rhodes"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "D-N4",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "D-N4",
+          "names": [
+            "Lt. Kerr"
+          ]
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "hex": "D-L6",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "D-L6",
+          "names": [
+            "Maj. Darrow"
+          ],
+          "weapons": [
+            "us-radio"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "D-M7",
+          "weapons": [
+            "us-hmg"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "D-M7"
+        },
+        {
+          "type": "us-L81",
+          "hex": "D-M7",
+          "names": [
+            "Sgt. Lindquist"
+          ]
+        },
+        {
+          "type": "us-847",
+          "count": 2,
+          "hex": "D-K8",
+          "weapons": [
+            "us-dc"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "D-K8",
+          "names": [
+            "Lt. Pike"
+          ]
+        },
+        {
+          "type": "us-847",
+          "hex": "D-L2",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-m4a4",
+          "hex": "D-M5",
+          "names": [
+            "Riviera"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-priest",
+          "hex": "D-H5",
+          "names": [
+            "Big Ben"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "us",
+    "text": "The Americans win if, at the end of turn 7, they control at least two of the ridge crest, the hilltop house and the vineyard house; or at once if the German garrison surrenders after losing 6 squads, crews and vehicles. The Americans lose at once if they lose 8 squads, crews and vehicles themselves. An objective is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Germans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "D-Z4",
+          "name": "Ridge crest",
+          "hexes": [
+            "D-X3",
+            "D-Y3",
+            "D-AA3",
+            "D-X4",
+            "D-Z4",
+            "D-AA4",
+            "D-W5",
+            "D-Z5"
+          ]
+        },
+        {
+          "hex": "D-Y4",
+          "name": "Hilltop house"
+        },
+        {
+          "hex": "D-X5",
+          "name": "Vineyard house"
+        }
+      ],
+      "atLeast": 2
+    },
+    "breakPoint": {
+      "us": 8,
+      "ger": 6
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 9, the strongpoint above the coast.",
+    "Rules §1–56: adds minefields (§55) and pillboxes (§56).",
+    "German surrender: once the Germans have lost 6 squads, crews and vehicles, the garrison gives up and the Americans win.",
+    "August: the wheatfields are standing (§44.24)."
+  ]
+}

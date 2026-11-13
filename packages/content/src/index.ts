@@ -25,6 +25,18 @@ import s9 from '../scenarios/s9.json';
 import s10 from '../scenarios/s10.json';
 import s11 from '../scenarios/s11.json';
 import s12 from '../scenarios/s12.json';
+import h1 from '../scenarios/h1.json';
+import h2 from '../scenarios/h2.json';
+import h3 from '../scenarios/h3.json';
+import h4 from '../scenarios/h4.json';
+import h5 from '../scenarios/h5.json';
+import h6 from '../scenarios/h6.json';
+import h7 from '../scenarios/h7.json';
+import h8 from '../scenarios/h8.json';
+import h9 from '../scenarios/h9.json';
+import h10 from '../scenarios/h10.json';
+import h11 from '../scenarios/h11.json';
+import h12 from '../scenarios/h12.json';
 import s8r1 from '../scenarios/legacy/s8-r1.json';
 
 export const rawBoards: Readonly<Record<string, unknown>> = { A: boardA, B: boardB, C: boardC, D: boardD, E: boardE };
@@ -45,8 +57,13 @@ export const rawRules: {
   artillery,
 };
 
-/** Scenarios in play order. */
-export const rawScenarios: readonly unknown[] = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12];
+/**
+ * Scenarios in play order: the original twelve, then the front-line series (h1–h12): the twelve
+ * engagements of the published scenario cards, from Stalingrad to the Ardennes, adapted as new
+ * scenarios on this game's boards (own forces, set-ups and victory conditions; the cards themselves
+ * are not reproduced). Both series teach the rules in the same order.
+ */
+export const rawScenarios: readonly unknown[] = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12];
 
 /**
  * Earlier revisions of scenarios whose forces have since changed, with the id "<scenario>@<revision>".

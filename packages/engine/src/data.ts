@@ -248,13 +248,31 @@ export const VictorySchema = z
     text: z.string(),
     controlBuildings: z
       .object({
-        /** One display id inside each objective building. */
-        buildings: z.array(z.object({ hex: z.string(), name: z.string() }).strict()),
+        /**
+         * One display id inside each objective building. An objective that is not a building
+         * (a hill crest, a crossroads) lists its display ids in `hexes`; `hex` is then one of them.
+         */
+        buildings: z.array(z.object({ hex: z.string(), name: z.string(), hexes: z.array(z.string()).min(1).optional() }).strict()),
         atLeast: z.number().int(),
       })
       .strict(),
+    /**
+     * Exit victory: the side's unbroken units standing on this board edge at the end of its
+     * Movement Phase leave the map. It wins as soon as `squads` squads have left, and only then
+     * (on top of any objectives above). Must be the victory side.
+     */
+    exit: z
+      .object({ side: z.string(), board: z.string(), edge: z.enum(['N', 'S', 'E', 'W']), squads: z.number().int().min(1) })
+      .strict()
+      .optional(),
+    /**
+     * Break points: a side that has lost this many squads, crews and vehicles in all gives up
+     * the fight at once, and the other side wins (a forced withdrawal, or a surrender).
+     */
+    breakPoint: z.record(z.string(), z.number().int().min(1)).optional(),
   })
-  .strict();
+  .strict()
+  .refine((v) => !v.exit || v.exit.side === v.side, { message: 'the exit side must be the victory side' });
 export type Victory = z.infer<typeof VictorySchema>;
 
 export const ScenarioSchema = z

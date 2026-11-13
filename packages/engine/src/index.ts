@@ -12,7 +12,7 @@ export { canRally, canRepair } from './rules/rally';
 export { canOperateSpecial, smokeAt, isSewerEntrance, concealableHex, fanaticDrm } from './rules/special';
 export { detonate } from './rules/fire';
 export { ccHexes, autoPlan, oddsColumn } from './rules/closeCombat';
-export { objectiveStatus, evaluateVictory, controller } from './rules/victory';
+export { objectiveStatus, evaluateVictory, controller, exitHexes, exitedOf, breakLosses } from './rules/victory';
 export { moraleOf } from './rules/morale';
 export { exposureAt, exposureMap, type Exposure, type Threat } from './rules/exposure';
 export { STAIRS_MF, floorName, floorsOn, floorsOfHex, hasUpper, isUpper, losBetween, postOf, unitSees, unitSeesAnyFloor, unitSeesHex, type Post } from './rules/floors';

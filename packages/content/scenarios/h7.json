@@ -1,0 +1,255 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h7",
+  "title": "Station at First Light",
+  "date": "16 December 1944",
+  "location": "Belgian border, a railway halt",
+  "briefing": "The first morning of the offensive. An American rifle company is lining up for breakfast around the little station when a German fusilier company walks out of the fog along the railway. Neither side expected the other. Both scramble for the buildings; the side that bleeds first will have to pull back.",
+  "rulesLevel": 52,
+  "layout": [
+    {
+      "board": "D",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "us",
+  "moveFirst": "ger",
+  "concealment": {
+    "ger": 2
+  },
+  "sides": [
+    {
+      "id": "us",
+      "nation": "american",
+      "name": "American",
+      "notes": "Sets up first, anywhere in columns A–P.",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "A",
+            "P"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "us-666",
+          "hex": "D-J6",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L92",
+          "hex": "D-J6",
+          "names": [
+            "Capt. Whitlock"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "D-K6",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-L80",
+          "hex": "D-K6",
+          "names": [
+            "Sgt. Doyle"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "D-I4",
+          "weapons": [
+            "us-hmg"
+          ]
+        },
+        {
+          "type": "us-L91",
+          "hex": "D-I4",
+          "names": [
+            "Lt. Barnes"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "D-N2",
+          "weapons": [
+            "us-baz"
+          ]
+        },
+        {
+          "type": "us-246",
+          "hex": "D-N4",
+          "weapons": [
+            "us-mmg"
+          ]
+        },
+        {
+          "type": "us-666",
+          "hex": "D-M7"
+        },
+        {
+          "type": "us-L80",
+          "hex": "D-M7",
+          "names": [
+            "Sgt. Pruitt"
+          ]
+        },
+        {
+          "type": "us-jeep",
+          "hex": "D-G5",
+          "names": [
+            "Chowhound"
+          ],
+          "facing": "NE-SE"
+        },
+        {
+          "type": "us-truck",
+          "hex": "D-H6",
+          "names": [
+            "Mess Truck"
+          ],
+          "facing": "NE-SE"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second, anywhere in columns T–GG. Moves first.",
+      "setup": [
+        {
+          "board": "D",
+          "cols": [
+            "T",
+            "GG"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-838",
+          "hex": "D-T4",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "D-T4",
+          "names": [
+            "Hptm. Scholl"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "D-W3",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-U5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "D-U5",
+          "names": [
+            "Fw. Wagner"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-W6",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "D-W6",
+          "names": [
+            "Lt. Huber"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-Y4",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-Y4",
+          "weapons": [
+            "ger-pf"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "D-AA2",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "D-AA2",
+          "names": [
+            "Uffz. Frey"
+          ]
+        },
+        {
+          "type": "ger-247",
+          "hex": "D-T6",
+          "weapons": [
+            "ger-hmg"
+          ]
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The side that reaches its break point first gives up the fight and loses at once: the Americans after losing 5 squads, crews and vehicles, the Germans after losing 7. If neither has broken by the end of turn 8, the Germans win if they control at least two of the station, the freight shed and the grain store; otherwise the Americans win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "D-J6",
+          "name": "Station"
+        },
+        {
+          "hex": "D-K6",
+          "name": "Freight shed"
+        },
+        {
+          "hex": "D-I4",
+          "name": "Grain store"
+        }
+      ],
+      "atLeast": 2
+    },
+    "breakPoint": {
+      "us": 5,
+      "ger": 7
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 7, the station on the first morning of the Ardennes offensive.",
+    "Rules §1–52: adds American troops (§50), trucks (§51) and jeeps (§52).",
+    "Break points count eliminated squads and crews and destroyed vehicles, trucks and jeeps included."
+  ]
+}

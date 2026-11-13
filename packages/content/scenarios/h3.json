@@ -1,0 +1,336 @@
+{
+  "format": "squadwar-scenario@1",
+  "id": "h3",
+  "title": "Both Ends of the Street",
+  "date": "6 October 1942",
+  "location": "Stalingrad, the factory district",
+  "briefing": "The two fights of that morning were really one: the German push on the works and the Soviet drive on the blocks south of it went in at the same hour, in the same streets. Here they are played together on the city and the works boards, with assault guns for the Germans, two T-34s fresh off the ferries for the Soviets, and the sewers under both.",
+  "rulesLevel": 41,
+  "layout": [
+    {
+      "board": "B",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "board": "A",
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "turns": 8,
+  "setupFirst": "rus",
+  "moveFirst": "ger",
+  "sewers": true,
+  "smoke": {
+    "ger": 3
+  },
+  "concealment": {
+    "rus": 3
+  },
+  "sides": [
+    {
+      "id": "rus",
+      "nation": "russian",
+      "name": "Soviet",
+      "notes": "Sets up first: anywhere in columns K–GG of the works board (B), or in rows 0–3, columns K–GG, of the city board (A). Three stacks start concealed.",
+      "setup": [
+        {
+          "board": "B",
+          "cols": [
+            "K",
+            "GG"
+          ]
+        },
+        {
+          "board": "A",
+          "cols": [
+            "K",
+            "GG"
+          ],
+          "rows": [
+            0,
+            3
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "rus-447",
+          "hex": "B-T2",
+          "weapons": [
+            "rus-hmg"
+          ]
+        },
+        {
+          "type": "rus-L91",
+          "hex": "B-T2",
+          "names": [
+            "Lt. Gusev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-W4",
+          "weapons": [
+            "rus-mmg"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-Y3",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L80",
+          "hex": "B-Y3",
+          "names": [
+            "Sgt. Isayev"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-S4"
+        },
+        {
+          "type": "rus-628",
+          "hex": "B-S4"
+        },
+        {
+          "type": "rus-447",
+          "hex": "A-Q2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L81",
+          "hex": "A-Q2",
+          "names": [
+            "Sgt. Kotov"
+          ]
+        },
+        {
+          "type": "rus-447",
+          "count": 2,
+          "hex": "A-Y2",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-L92",
+          "hex": "A-Y2",
+          "names": [
+            "Capt. Belousov"
+          ]
+        },
+        {
+          "type": "rus-628",
+          "hex": "A-V1"
+        },
+        {
+          "type": "rus-447",
+          "hex": "B-M5",
+          "weapons": [
+            "rus-lmg"
+          ]
+        },
+        {
+          "type": "rus-t34",
+          "hex": "B-Q3",
+          "names": [
+            "Za Volgu"
+          ],
+          "facing": "SW-NW"
+        },
+        {
+          "type": "rus-t34",
+          "hex": "A-U3",
+          "names": [
+            "Mstitel"
+          ],
+          "facing": "S-SW"
+        }
+      ]
+    },
+    {
+      "id": "ger",
+      "nation": "german",
+      "name": "German",
+      "notes": "Sets up second: anywhere in rows 5–10 of the city board (A), or in columns A–H of the works board (B). Moves first. Three smoke counters.",
+      "setup": [
+        {
+          "board": "A",
+          "cols": [
+            "A",
+            "GG"
+          ],
+          "rows": [
+            5,
+            10
+          ]
+        },
+        {
+          "board": "B",
+          "cols": [
+            "A",
+            "H"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "type": "ger-467",
+          "hex": "A-O6",
+          "weapons": [
+            "ger-mmg"
+          ]
+        },
+        {
+          "type": "ger-L102",
+          "hex": "A-O6",
+          "names": [
+            "Hptm. Rehm"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "A-P8",
+          "weapons": [
+            "ger-hmg"
+          ]
+        },
+        {
+          "type": "ger-L81",
+          "hex": "A-P8",
+          "names": [
+            "Fw. Stahl"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "A-K6",
+          "weapons": [
+            "ger-dc"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "A-K6",
+          "weapons": [
+            "ger-ft"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "A-K6",
+          "names": [
+            "Lt. Brückner"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-R5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "hex": "A-L5",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L80",
+          "hex": "A-L5",
+          "names": [
+            "Uffz. Gross"
+          ]
+        },
+        {
+          "type": "ger-467",
+          "count": 2,
+          "hex": "B-F3",
+          "weapons": [
+            "ger-lmg"
+          ]
+        },
+        {
+          "type": "ger-L91",
+          "hex": "B-F3",
+          "names": [
+            "Lt. Adler"
+          ]
+        },
+        {
+          "type": "ger-838",
+          "hex": "B-H2"
+        },
+        {
+          "type": "ger-L80",
+          "hex": "B-H2",
+          "names": [
+            "Uffz. Kern"
+          ]
+        },
+        {
+          "type": "ger-stug3",
+          "hex": "A-T6",
+          "names": [
+            "Puma"
+          ],
+          "facing": "NW-N"
+        },
+        {
+          "type": "ger-stug3h",
+          "hex": "A-M6",
+          "names": [
+            "Bulle"
+          ],
+          "facing": "N-NE"
+        }
+      ]
+    }
+  ],
+  "victory": {
+    "side": "ger",
+    "text": "The Germans win if, at the end of turn 8, they control at least three of the five Soviet strongpoints: the assembly hall, the north shop and the works office on the works board, and the church and the tractor shop on the city board. A building is controlled by the side that has an unbroken infantry unit in it and no enemy units in any of its hexes. Otherwise the Soviets win.",
+    "controlBuildings": {
+      "buildings": [
+        {
+          "hex": "B-T2",
+          "name": "Assembly hall"
+        },
+        {
+          "hex": "B-Y2",
+          "name": "North shop"
+        },
+        {
+          "hex": "B-S4",
+          "name": "Works office"
+        },
+        {
+          "hex": "A-Q2",
+          "name": "Church"
+        },
+        {
+          "hex": "A-Y2",
+          "name": "Tractor shop"
+        }
+      ],
+      "atLeast": 3
+    }
+  },
+  "specialRules": [
+    "Front-line series (adapted from the scenario cards): 3, the two Stalingrad actions as one battle.",
+    "Rules §1–41: adds sewer movement (§27) and armour (§28–41).",
+    "Both sides may use the sewers.",
+    "German assault guns carry smoke dischargers, usable once each (§41.4)."
+  ]
+}

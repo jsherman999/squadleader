@@ -1,4 +1,4 @@
-import { PHASE_NAMES, PLAYER_TURN_PHASES, objectiveStatus, type Ctx, type GameState } from '@squadwar/engine';
+import { PHASE_NAMES, PLAYER_TURN_PHASES, breakLosses, exitedOf, objectiveStatus, type Ctx, type GameState } from '@squadwar/engine';
 
 /** Shorter phase names for narrow phones. */
 const SHORT: Record<string, string> = { defensiveFire: 'Def. Fire', advancingFire: 'Adv. Fire', closeCombat: 'Cl. Combat' };
@@ -57,7 +57,12 @@ export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameS
             </li>
           ))}
         </ul>
-        <p className="faint small obj-help">Each objective is outlined in gold on the map, with its number and name. Pick one here to light it up.</p>
+        {ctx.scenario.victory.exit && (
+          <p className="small obj-exit">
+            Exit ({ctx.scenario.victory.exit.edge} edge, board {ctx.scenario.victory.exit.board}, tinted green): {exitedOf(s, ctx.scenario.victory.exit.side).squads} of {ctx.scenario.victory.exit.squads} squads out
+          </p>
+        )}
+        {objectives.length > 0 && <p className="faint small obj-help">Each objective is outlined in gold on the map, with its number and name. Pick one here to light it up.</p>}
         <p className="faint small">{ctx.scenario.victory.text}</p>
       </section>
       <section className="rb-loss">
@@ -65,6 +70,8 @@ export function PhaseRibbon({ ctx, s, onObjective, focus }: { ctx: Ctx; s: GameS
         {s.sides.map((x) => (
           <div key={x.id} className="small">
             {x.name}: {s.losses[x.id]?.squads ?? 0} squads, {s.losses[x.id]?.leaders ?? 0} leaders
+            {s.losses[x.id]?.vehicles ? `, ${s.losses[x.id]!.vehicles} vehicles` : ''}
+            {ctx.scenario.victory.breakPoint?.[x.id] ? ` · break point ${breakLosses(s, x.id)}/${ctx.scenario.victory.breakPoint[x.id]}` : ''}
           </div>
         ))}
       </section>

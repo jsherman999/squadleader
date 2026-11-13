@@ -4,7 +4,7 @@
  * the phrasing consistent across phases.
  */
 import type { HexKey } from '@squadwar/hex';
-import { DICE2, hexLabel, hexTem, isLeader, objectiveStatus, sideUnitsIn, unitLabel, type Action, type Ctx, type GameState, type Unit } from '@squadwar/engine';
+import { DICE2, exitedOf, hexLabel, hexTem, isLeader, objectiveStatus, sideUnitsIn, unitLabel, type Action, type Ctx, type GameState, type Unit } from '@squadwar/engine';
 
 export interface Rationale {
   /** What the decision is trying to achieve, in one line. */
@@ -74,6 +74,13 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
   const need = ctx.scenario.victory.controlBuildings.atLeast;
   const attacker = ctx.scenario.victory.side === side;
   const left = Math.max(0, ctx.scenario.turns - s.turn);
+  const exit = ctx.scenario.victory.exit;
+  if (exit && !st.length) {
+    const out = exitedOf(s, exit.side).squads;
+    return attacker
+      ? `Breaking out: ${out} of ${exit.squads} squads off the map by the ${exit.edge} edge, ${left} turn${left === 1 ? '' : 's'} after this one.`
+      : `Blocking: the enemy has ${out} of the ${exit.squads} squads it needs off the map; ${left} turn${left === 1 ? '' : 's'} after this one.`;
+  }
   return attacker
     ? `Holding ${mine} of the ${need} objectives needed, ${left} turn${left === 1 ? '' : 's'} after this one.`
     : `Defending: the attacker must take ${need} of ${st.length} objectives; ${left} turn${left === 1 ? '' : 's'} after this one.`;

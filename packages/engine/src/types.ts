@@ -326,6 +326,8 @@ export interface GameState {
   setupDone: SideId[];
   /** Units eliminated so far, by side. */
   losses: Record<SideId, { squads: number; leaders: number; vehicles?: number }>;
+  /** Units that left the map by the scenario's exit edge, by side (exit victory). */
+  exited?: Record<SideId, { squads: number; leaders: number }>;
   /** Smoke counters on the map (§24). */
   smoke: Smoke[];
   /** Smoke counters each side has left (§24.1). */

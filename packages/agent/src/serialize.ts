@@ -15,6 +15,8 @@ import {
   mfLeft,
   moveCost,
   objectiveStatus,
+  exitHexes,
+  exitedOf,
   OPTIONAL_RULES,
   floorsOn,
   hasUpper,
@@ -87,7 +89,13 @@ export function briefing(ctx: Ctx, side: string): string {
     sc.briefing,
     `YOU COMMAND: ${me.name} (${attacker ? 'attacker' : 'defender'}). Opponent: ${them.name}.`,
     `VICTORY: ${sc.victory.text}`,
-    `OBJECTIVES: ${ctx.objectives.map((o) => `${o.name} (${o.hexes.map((h) => hexId(ctx, h)).join(' ')})`).join('; ')}.`,
+    ctx.objectives.length ? `OBJECTIVES: ${ctx.objectives.map((o) => `${o.name} (${o.hexes.map((h) => hexId(ctx, h)).join(' ')})`).join('; ')}.` : '',
+    sc.victory.exit
+      ? `EXIT: ${sc.sides.find((x) => x.id === sc.victory.exit!.side)!.name} unbroken units standing on the ${sc.victory.exit.edge} edge of board ${sc.victory.exit.board} (${[...exitHexes(ctx)].map((h) => hexId(ctx, h)).join(' ')}) at the end of their Movement Phase leave the map; ${sc.victory.exit.squads} squads out wins at once.`
+      : '',
+    sc.victory.breakPoint
+      ? `BREAK POINTS: ${Object.entries(sc.victory.breakPoint).map(([id, n]) => `${sc.sides.find((x) => x.id === id)?.name ?? id} give up after losing ${n} squads, crews and vehicles`).join('; ')}.`
+      : '',
     me.notes ? `YOUR NOTES: ${me.notes}` : '',
   ]
     .filter(Boolean)
@@ -103,7 +111,8 @@ export function situation(ctx: Ctx, s: GameState, side: string): string {
   const lines = [
     `TURN ${s.turn} of ${ctx.scenario.turns} · ${sideName(s.phasing)} player turn · ${PHASE_NAMES[s.phase]} · ${s.awaiting === side ? 'your decision' : 'waiting'}`,
     `OBJECTIVES: ${status.map((o) => `${o.name}: ${o.owner ? sideName(o.owner) : 'contested'}`).join('; ')}.`,
-    `LOSSES: ${s.sides.map((x) => `${x.name} ${s.losses[x.id]?.squads ?? 0} squads, ${s.losses[x.id]?.leaders ?? 0} leaders`).join('; ')}.`,
+    `LOSSES: ${s.sides.map((x) => `${x.name} ${s.losses[x.id]?.squads ?? 0} squads, ${s.losses[x.id]?.leaders ?? 0} leaders, ${s.losses[x.id]?.vehicles ?? 0} vehicles${ctx.scenario.victory.breakPoint?.[x.id] ? ` (break point ${ctx.scenario.victory.breakPoint[x.id]})` : ''}`).join('; ')}.`,
+    ...(ctx.scenario.victory.exit ? [`EXITED: ${exitedOf(s, ctx.scenario.victory.exit.side).squads} of ${ctx.scenario.victory.exit.squads} squads needed.`] : []),
     '',
     `YOUR UNITS (${mine.length}):`,
     ...sortByHex(mine).map((u) => '  ' + unitLine(ctx, s, u, true)),

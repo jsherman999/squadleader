@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { SideId } from '@squadwar/engine';
 import { DEFAULT_OPTIONS, leaderRating, OPTIONAL_RULES, parseScenario, type GameOptions, type Scenario, type UnitType, type VehicleType } from '@squadwar/engine';
 import { allScenarios, customScenarios, registerScenario, removeScenario, rulesData, scenarioById } from '../game/scenarios';
@@ -10,6 +10,13 @@ import { useLlm } from '../game/llm';
 import { LlmSettings } from '../ui/LlmSettings';
 import { CounterIcon } from '../ui/CounterIcon';
 import { TopBar } from '../ui/TopBar';
+
+/** First scenario of the front-line series; its scenarios are numbered from 1 again. */
+const FRONT_LINE_FIRST = 'h1';
+function seriesNumber(id: string, index: number): string {
+  const m = /^h(\d+)$/.exec(id);
+  return m ? m[1]! : String(index + 1);
+}
 
 export function PlayPage() {
   const [, wanted] = useRoute();
@@ -124,15 +131,23 @@ export function PlayPage() {
           ))}
           {customs.length > 0 && <h3 className="panel-h scenario-group">Scenarios</h3>}
           {builtIn.map((s, i) => (
-            <button key={s.id} className={`scenario-item ${s.id === sc.id ? 'active' : ''}`} onClick={() => setChosen(s.id)}>
-              <span className="scenario-no stencil">{i + 1}</span>
-              <span>
-                <strong>{s.title}</strong>
-                <span className="dim small block">
-                  {s.location}, {s.date} · {s.turns} turns
+            // The front-line series (h1–h12) gets its own heading and numbering after the first twelve.
+            <Fragment key={s.id}>
+              {s.id === FRONT_LINE_FIRST && (
+                <h3 className="panel-h scenario-group" title="The engagements of the classic scenario cards, Stalingrad 1942 to the Ardennes 1944, adapted to these boards">
+                  Front-line series
+                </h3>
+              )}
+              <button className={`scenario-item ${s.id === sc.id ? 'active' : ''}`} onClick={() => setChosen(s.id)}>
+                <span className="scenario-no stencil">{seriesNumber(s.id, i)}</span>
+                <span>
+                  <strong>{s.title}</strong>
+                  <span className="dim small block">
+                    {s.location}, {s.date} · {s.turns} turns
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </Fragment>
           ))}
           <p className="faint small">More scenarios arrive with later milestones (armor, artillery, night…).</p>
         </aside>
